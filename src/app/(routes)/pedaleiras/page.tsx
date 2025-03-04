@@ -1,187 +1,206 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
+import { Modal } from '@/components/ui/Modal';
 import { PedaleiraForm } from './components/PedaleiraForm';
-import { PedaleiraCard } from './components/PedaleiraCard';
-import { Modal } from '@/components/Modal';
-import { Musica, Pedaleira } from '@/lib/types';
+import { Pedaleira, Musica } from '@/lib/types';
 
-export default function PedaleiraPage() {
-  const [modalAberto, setModalAberto] = useState(false);
-  const [pedaleiras, setPedaleiras] = useState<Pedaleira[]>([]);
-  const [musicas, setMusicas] = useState<Musica[]>([]);
-  const [pedaleiraParaEditar, setPedaleiraParaEditar] = useState<Pedaleira | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+const mockMusicas: Musica[] = [
+  {
+    id: '1',
+    nome: 'Sweet Child O Mine',
+    artista: 'Guns N Roses',
+    tom: 'C#',
+    bpm: 120
+  },
+  {
+    id: '2',
+    nome: 'Nothing Else Matters',
+    artista: 'Metallica',
+    tom: 'Em',
+    bpm: 92
+  },
+  {
+    id: '3',
+    nome: 'Stairway to Heaven',
+    artista: 'Led Zeppelin',
+    tom: 'Am',
+    bpm: 85
+  }
+];
 
-  useEffect(() => {
-    const carregarDados = async () => {
-      try {
-        setCarregando(true);
-        setErro(null);
-
-        // Busca as músicas
-        const resMusicas = await fetch('/api/musicas');
-        if (!resMusicas.ok) throw new Error('Erro ao carregar músicas');
-        const musicasData = await resMusicas.json();
-        setMusicas(musicasData);
-
-        // Busca as pedaleiras
-        const resPedaleiras = await fetch('/api/pedaleiras');
-        if (!resPedaleiras.ok) throw new Error('Erro ao carregar pedaleiras');
-        const pedaleirasData = await resPedaleiras.json();
-        setPedaleiras(pedaleirasData);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        setErro('Erro ao carregar dados. Por favor, tente novamente.');
-      } finally {
-        setCarregando(false);
+const mockPedaleiras: Pedaleira[] = [
+  {
+    id: '1',
+    nome: 'Pedaleira 1',
+    bancos: [
+      {
+        id: '1',
+        numero: 1,
+        descricao: 'Banco Principal',
+        patches: [
+          {
+            id: '1',
+            numero: 1,
+            letra: 'A',
+            tipo: 'Clean',
+            descricao: 'Clean Cristalino',
+            musicas: ['1', '2']
+          }
+        ]
       }
+    ]
+  }
+];
+
+export default function PedaleirasPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [pedaleiraEditando, setPedaleiraEditando] = useState<Pedaleira | null>(null);
+  const [pedaleiras, setPedaleiras] = useState<Pedaleira[]>(mockPedaleiras);
+
+  const handleSubmit = (data: any) => {
+    const novaPedaleira = {
+      ...data,
+      id: pedaleiraEditando?.id || (pedaleiras.length + 1).toString(),
+      bancos: data.bancos.map((banco: any, index: number) => ({
+        ...banco,
+        id: banco.id || (index + 1).toString(),
+        patches: banco.patches.map((patch: any, pIndex: number) => ({
+          ...patch,
+          id: patch.id || `${index + 1}-${pIndex + 1}`
+        }))
+      }))
     };
 
-    carregarDados();
-  }, []);
-
-  const handleSubmit = async (data: any) => {
-    try {
-      setErro(null);
-      
-      if (pedaleiraParaEditar) {
-        const res = await fetch(`/api/pedaleiras`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...data,
-            id: pedaleiraParaEditar.id
-          }),
-        });
-
-        if (!res.ok) throw new Error('Erro ao atualizar pedaleira');
-        
-        const pedaleiraAtualizada = await res.json();
-        setPedaleiras(pedaleiras.map(p => 
-          p.id === pedaleiraAtualizada.id ? pedaleiraAtualizada : p
-        ));
-      } else {
-        const res = await fetch('/api/pedaleiras', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-
-        if (!res.ok) throw new Error('Erro ao criar pedaleira');
-        
-        const novaPedaleira = await res.json();
-        setPedaleiras([...pedaleiras, novaPedaleira]);
-      }
-
-      setModalAberto(false);
-      setPedaleiraParaEditar(null);
-    } catch (error) {
-      console.error('Erro ao salvar pedaleira:', error);
-      setErro('Erro ao salvar pedaleira. Por favor, tente novamente.');
+    if (pedaleiraEditando) {
+      setPedaleiras(pedaleiras.map(p => 
+        p.id === pedaleiraEditando.id ? novaPedaleira : p
+      ));
+    } else {
+      setPedaleiras([...pedaleiras, novaPedaleira]);
     }
+    setPedaleiraEditando(null);
+    setIsModalOpen(false);
   };
 
-  const handleEdit = (pedaleira: Pedaleira) => {
-    setPedaleiraParaEditar(pedaleira);
-    setModalAberto(true);
+  const handleEditar = (pedaleira: Pedaleira) => {
+    setPedaleiraEditando(pedaleira);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = async (pedaleira: Pedaleira) => {
+  const handleExcluir = (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta pedaleira?')) {
-      try {
-        setErro(null);
-        
-        const res = await fetch(`/api/pedaleiras?id=${pedaleira.id}`, {
-          method: 'DELETE',
-        });
-
-        if (!res.ok) throw new Error('Erro ao excluir pedaleira');
-
-        setPedaleiras(pedaleiras.filter(p => p.id !== pedaleira.id));
-      } catch (error) {
-        console.error('Erro ao excluir pedaleira:', error);
-        setErro('Erro ao excluir pedaleira. Por favor, tente novamente.');
-      }
+      setPedaleiras(pedaleiras.filter(p => p.id !== id));
     }
   };
-
-  if (carregando) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Pedaleiras</h1>
-        <button
-          onClick={() => {
-            setPedaleiraParaEditar(null);
-            setModalAberto(true);
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Nova Pedaleira
-        </button>
-      </div>
-
-      {erro && (
-        <div className="mb-8 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert">
-          <span className="block sm:inline">{erro}</span>
+    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-0">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Minhas Pedaleiras</h1>
+          <button
+            onClick={() => {
+              setPedaleiraEditando(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Nova Pedaleira
+          </button>
         </div>
-      )}
 
-      <Modal
-        isOpen={modalAberto}
-        onClose={() => {
-          setModalAberto(false);
-          setPedaleiraParaEditar(null);
-        }}
-        title={pedaleiraParaEditar ? 'Editar Pedaleira' : 'Nova Pedaleira'}
-        size="lg"
-      >
-        <PedaleiraForm
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setModalAberto(false);
-            setPedaleiraParaEditar(null);
-          }}
-          musicas={musicas}
-          initialData={pedaleiraParaEditar || undefined}
-        />
-      </Modal>
-
-      <div className="space-y-6">
         {pedaleiras.length > 0 ? (
-          pedaleiras.map(pedaleira => (
-            <PedaleiraCard
-              key={pedaleira.id}
-              pedaleira={pedaleira}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-          ))
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {pedaleiras.map((pedaleira) => (
+              <div
+                key={pedaleira.id}
+                className="bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200"
+              >
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-gray-900">{pedaleira.nome}</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {pedaleira.bancos.length} banco(s)
+                  </p>
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-900">Bancos:</h4>
+                    <ul className="mt-2 divide-y divide-gray-200">
+                      {pedaleira.bancos.map((banco) => (
+                        <li key={banco.id} className="py-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium">Banco {banco.numero}</span>
+                            <span className="text-sm text-gray-500">
+                              {banco.patches.length} patch(es)
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-gray-500">{banco.descricao}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="px-4 py-4 sm:px-6">
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => handleEditar(pedaleira)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleExcluir(pedaleira.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="bg-white shadow rounded-lg p-6">
-            <p className="text-gray-500 text-center">
-              Nenhuma pedaleira cadastrada ainda.
+          <div className="text-center py-12">
+            <svg
+              className="mx-auto h-12 w-12 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              Nenhuma pedaleira cadastrada
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Comece criando sua primeira pedaleira.
             </p>
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setPedaleiraEditando(null);
+        }}
+        title={pedaleiraEditando ? 'Editar Pedaleira' : 'Nova Pedaleira'}
+      >
+        <PedaleiraForm
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setPedaleiraEditando(null);
+          }}
+          initialData={pedaleiraEditando}
+          musicas={mockMusicas}
+        />
+      </Modal>
     </div>
   );
 } 
