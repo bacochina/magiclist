@@ -1,8 +1,10 @@
 'use client';
 
 import { Dialog } from '@headlessui/react';
-import { XMarkIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { XMarkIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
+import { StrictMode } from 'react';
 
 interface Musica {
   id: string;
@@ -24,6 +26,7 @@ interface BlocoDetalhesProps {
   musicasDisponiveis: Musica[];
   onAdicionarMusica: (musicaId: string) => void;
   onRemoverMusica: (musicaId: string) => void;
+  onReordenar: (blocoId: string, musicas: Musica[]) => void;
 }
 
 export function BlocoDetalhes({
@@ -33,8 +36,15 @@ export function BlocoDetalhes({
   musicasDisponiveis,
   onAdicionarMusica,
   onRemoverMusica,
+  onReordenar,
 }: BlocoDetalhesProps) {
   const [isAdicionandoMusica, setIsAdicionandoMusica] = useState(false);
+  const [musicas, setMusicas] = useState<Musica[]>([]);
+
+  // Sincroniza o estado local com as músicas do bloco
+  useEffect(() => {
+    setMusicas(bloco.musicas);
+  }, [bloco.musicas]);
 
   const calcularDuracao = (musicas: Musica[]) => {
     // Assumindo média de 4 minutos por música
@@ -45,6 +55,37 @@ export function BlocoDetalhes({
     const horas = Math.floor(minutos / 60);
     const minutosRestantes = minutos % 60;
     return `${horas}h${minutosRestantes > 0 ? ` ${minutosRestantes}min` : ''}`;
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(musicas);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setMusicas(items);
+    onReordenar(bloco.id, items);
+  };
+
+  const handleDragStart = () => {
+    if (window.navigator.vibrate) {
+      window.navigator.vibrate(100);
+    }
+  };
+
+  const handleAdicionarMusica = (musicaId: string) => {
+    onAdicionarMusica(musicaId);
+    const musicaAdicionada = musicasDisponiveis.find(m => m.id === musicaId);
+    if (musicaAdicionada) {
+      setMusicas([...musicas, musicaAdicionada]);
+    }
+    setIsAdicionandoMusica(false);
+  };
+
+  const handleRemoverMusica = (musicaId: string) => {
+    onRemoverMusica(musicaId);
+    setMusicas(musicas.filter(m => m.id !== musicaId));
   };
 
   return (
@@ -71,7 +112,7 @@ export function BlocoDetalhes({
                   {bloco.nome}
                 </Dialog.Title>
                 <p className="text-sm text-gray-500 mb-2">
-                  {bloco.musicas.length} músicas • {calcularDuracao(bloco.musicas)}
+                  {musicas.length} músicas • {calcularDuracao(musicas)}
                 </p>
                 {bloco.descricao && (
                   <p className="text-sm text-gray-600 mb-6">{bloco.descricao}</p>
@@ -91,26 +132,75 @@ export function BlocoDetalhes({
                     </button>
                   </div>
 
-                  {/* Lista de Músicas Atual */}
-                  <ul className="divide-y divide-gray-200 bg-gray-50 rounded-md">
-                    {bloco.musicas.map((musica) => (
-                      <li key={musica.id} className="px-4 py-3 flex items-center justify-between">
-                        <div>
-                          <h5 className="text-sm font-medium text-gray-900">{musica.nome}</h5>
-                          <p className="text-sm text-gray-500">
-                            {musica.artista} • Tom: {musica.tom}
-                            {musica.bpm ? ` • ${musica.bpm} BPM` : ''}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => onRemoverMusica(musica.id)}
-                          className="text-sm text-red-600 hover:text-red-900"
-                        >
-                          Remover
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Lista de Músicas Atual com Drag and Drop */}
+                  <StrictMode>
+                    <DragDropContext 
+                      onDragEnd={handleDragEnd}
+                      onDragStart={handleDragStart}
+                    >
+                      <Droppable 
+                        droppableId="musicas" 
+                        isDropDisabled={false}
+                        isCombineEnabled={false}
+                        ignoreContainerClipping={false}
+                      >
+                        {(provided: DroppableProvided) => (
+                          <ul 
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                            className="divide-y divide-gray-200 bg-gray-50 rounded-md"
+                          >
+                            {musicas.map((musica, index) => (
+                              <Draggable 
+                                key={musica.id} 
+                                draggableId={musica.id} 
+                                index={index}
+                              >
+                                {(provided: DraggableProvided) => (
+                                  <li
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    style={{
+                                      ...provided.draggableProps.style,
+                                    }}
+                                    className="px-4 py-3 flex items-center justify-between hover:bg-gray-100"
+                                  >
+                                    <div className="flex items-center flex-1">
+                                      <div 
+                                        {...provided.dragHandleProps}
+                                        className="mr-3 cursor-grab active:cursor-grabbing"
+                                      >
+                                        <Bars3Icon className="h-5 w-5 text-gray-400" />
+                                      </div>
+                                      <div className="flex items-center">
+                                        <span className="text-sm font-medium text-gray-500 w-8">
+                                          {(index + 1).toString().padStart(2, '0')}
+                                        </span>
+                                        <div>
+                                          <h5 className="text-sm font-medium text-gray-900">{musica.nome}</h5>
+                                          <p className="text-sm text-gray-500">
+                                            {musica.artista} • Tom: {musica.tom}
+                                            {musica.bpm ? ` • ${musica.bpm} BPM` : ''}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleRemoverMusica(musica.id)}
+                                      className="text-sm text-red-600 hover:text-red-900 ml-4"
+                                    >
+                                      Remover
+                                    </button>
+                                  </li>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </ul>
+                        )}
+                      </Droppable>
+                    </DragDropContext>
+                  </StrictMode>
 
                   {/* Seletor de Músicas */}
                   {isAdicionandoMusica && (
@@ -118,7 +208,7 @@ export function BlocoDetalhes({
                       <h5 className="text-sm font-medium text-gray-900 mb-2">Adicionar Músicas</h5>
                       <ul className="divide-y divide-gray-200 bg-white border rounded-md">
                         {musicasDisponiveis
-                          .filter((m) => !bloco.musicas.some((bm) => bm.id === m.id))
+                          .filter((m) => !musicas.some((bm) => bm.id === m.id))
                           .map((musica) => (
                             <li key={musica.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
                               <div>
@@ -129,10 +219,7 @@ export function BlocoDetalhes({
                                 </p>
                               </div>
                               <button
-                                onClick={() => {
-                                  onAdicionarMusica(musica.id);
-                                  setIsAdicionandoMusica(false);
-                                }}
+                                onClick={() => handleAdicionarMusica(musica.id)}
                                 className="text-sm text-indigo-600 hover:text-indigo-900"
                               >
                                 Adicionar

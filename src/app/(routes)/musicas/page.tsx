@@ -10,52 +10,143 @@ import { MusicalNoteIcon } from '@heroicons/react/24/outline';
 const musicasExemplo = [
   {
     id: '1',
-    nome: 'Evidências',
-    artista: 'Chitãozinho & Xororó',
-    tom: 'C',
-    bpm: '120',
-    cifra: `[Intro] C  G/B  Am  Em/G  F  C/E  Dm  G
-C                G/B
-Quando eu digo que deixei de te amar
-Am                   Em/G
-É porque eu te amo
-F              C/E
-Quando eu digo que não quero mais você
-Dm          G
-É porque eu te quero`,
-    letra: `Quando eu digo que deixei de te amar
-É porque eu te amo
-Quando eu digo que não quero mais você
-É porque eu te quero
-
-Eu tenho medo de te dar meu coração
-E confiar em você
-Eu tenho medo de viver uma ilusão
-E sofrer`,
-    observacoes: 'Música muito pedida em todos os shows. Boa para encerramento.',
+    nome: 'Take On Me',
+    artista: 'a-ha',
+    tom: 'A',
+    observacoes: 'Atenção ao falsete no refrão. Sintetizadores são essenciais.',
   },
   {
     id: '2',
-    nome: 'Sweet Child O\' Mine',
-    artista: 'Guns N\' Roses',
+    nome: 'Sweet Dreams (Are Made of This)',
+    artista: 'Eurythmics',
+    tom: 'Cm',
+    observacoes: 'Base de sintetizador marcante. Manter o groove da música.',
+  },
+  {
+    id: '3',
+    nome: 'Billie Jean',
+    artista: 'Michael Jackson',
+    tom: 'F#m',
+    observacoes: 'Linha de baixo característica. Dança opcional mas recomendada.',
+  },
+  {
+    id: '4',
+    nome: 'Girls Just Want to Have Fun',
+    artista: 'Cyndi Lauper',
+    tom: 'F',
+    observacoes: 'Energia alta do início ao fim. Ótima para animar o público.',
+  },
+  {
+    id: '5',
+    nome: 'Every Breath You Take',
+    artista: 'The Police',
+    tom: 'Ab',
+    observacoes: 'Atenção ao padrão do arpejo da guitarra. Manter a dinâmica suave.',
+  },
+  {
+    id: '6',
+    nome: 'Another One Bites the Dust',
+    artista: 'Queen',
+    tom: 'Em',
+    observacoes: 'Linha de baixo é a alma da música. Manter o groove funkeado.',
+  },
+  {
+    id: '7',
+    nome: 'Beat It',
+    artista: 'Michael Jackson',
+    tom: 'Em',
+    observacoes: 'Solo de guitarra icônico. Manter a energia rock da música.',
+  },
+  {
+    id: '8',
+    nome: 'Like a Virgin',
+    artista: 'Madonna',
+    tom: 'F',
+    observacoes: 'Arranjo de teclados importante. Bom para momentos dançantes.',
+  },
+  {
+    id: '9',
+    nome: 'I Wanna Dance with Somebody',
+    artista: 'Whitney Houston',
+    tom: 'G',
+    observacoes: 'Exige bom preparo vocal. Ótima para encerramento de set.',
+  },
+  {
+    id: '10',
+    nome: 'Walk of Life',
+    artista: 'Dire Straits',
+    tom: 'E',
+    observacoes: 'Riff de teclado característico. Manter o balanço country-rock.',
+  },
+  {
+    id: '11',
+    nome: 'Time After Time',
+    artista: 'Cyndi Lauper',
+    tom: 'C',
+    observacoes: 'Balada emotiva. Boa para momentos mais calmos do show.',
+  },
+  {
+    id: '12',
+    nome: 'Eye of the Tiger',
+    artista: 'Survivor',
+    tom: 'Cm',
+    observacoes: 'Riff de guitarra icônico. Energia crescente na execução.',
+  },
+  {
+    id: '13',
+    nome: 'Material Girl',
+    artista: 'Madonna',
+    tom: 'C',
+    observacoes: 'Arranjo de metais importante. Manter o groove disco-pop.',
+  },
+  {
+    id: '14',
+    nome: 'Africa',
+    artista: 'Toto',
+    tom: 'F#',
+    observacoes: 'Atenção às harmonias vocais. Percussão característica.',
+  },
+  {
+    id: '15',
+    nome: 'Call Me',
+    artista: 'Blondie',
     tom: 'D',
-    bpm: '126',
-    cifra: `[Intro] D  C  G  D
-
-D              C              G
-She's got a smile that it seems to me
-D              C              G
-Reminds me of childhood memories
-D              C              G
-Where everything was as fresh as the bright blue sky`,
-    letra: `She's got a smile that it seems to me
-Reminds me of childhood memories
-Where everything was as fresh as the bright blue sky
-
-Now and then when I see her face
-She takes me away to that special place
-And if I stare too long, I'd probably break down and cry`,
-    observacoes: 'Solo complexo, precisa ensaiar bem. Público sempre canta junto.',
+    observacoes: 'Base de sintetizador e guitarra marcantes. Energia new wave.',
+  },
+  {
+    id: '16',
+    nome: 'Karma Chameleon',
+    artista: 'Culture Club',
+    tom: 'Bb',
+    observacoes: 'Melodia de gaita característica. Manter o balanço pop.',
+  },
+  {
+    id: '17',
+    nome: 'Physical',
+    artista: 'Olivia Newton-John',
+    tom: 'E',
+    observacoes: 'Groove dançante essencial. Boa para momentos animados.',
+  },
+  {
+    id: '18',
+    nome: 'Forever Young',
+    artista: 'Alphaville',
+    tom: 'C',
+    observacoes: 'Sintetizadores em destaque. Atenção às dinâmicas.',
+  },
+  {
+    id: '19',
+    nome: 'Total Eclipse of the Heart',
+    artista: 'Bonnie Tyler',
+    tom: 'Dm',
+    observacoes: 'Balada dramática. Exige bom preparo vocal.',
+  },
+  {
+    id: '20',
+    nome: 'Wake Me Up Before You Go-Go',
+    artista: 'Wham!',
+    tom: 'D',
+    observacoes: 'Energia alta e dançante. Ótima para animar o público.',
   },
 ];
 
@@ -130,7 +221,7 @@ export default function MusicasPage() {
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{musica.nome}</h3>
                     <p className="text-sm text-gray-500">
-                      {musica.artista} • Tom: {musica.tom} • BPM: {musica.bpm}
+                      {musica.artista} • Tom: {musica.tom}
                     </p>
                   </div>
                   <div className="flex space-x-4">

@@ -1,11 +1,11 @@
-export interface Banda {
+export type Banda = {
   id: string;
   nome: string;
   genero: string;
   descricao?: string;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 export interface Pedaleira {
   id: string;
@@ -34,7 +34,6 @@ export interface Musica {
   nome: string;
   artista: string;
   tom: string;
-  bpm: number;
 }
 
 export interface BlocoMusical {
