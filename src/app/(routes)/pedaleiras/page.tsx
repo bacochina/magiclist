@@ -2,54 +2,31 @@
 
 import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { PedaleiraForm } from './components/PedaleiraForm';
-import { Pedaleira, Musica } from '@/lib/types';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Pedaleira } from '@/lib/types';
 
-const mockMusicas: Musica[] = [
-  {
-    id: '1',
-    nome: 'Sweet Child O Mine',
-    artista: 'Guns N Roses',
-    tom: 'C#',
-    bpm: 120
-  },
-  {
-    id: '2',
-    nome: 'Nothing Else Matters',
-    artista: 'Metallica',
-    tom: 'Em',
-    bpm: 92
-  },
-  {
-    id: '3',
-    nome: 'Stairway to Heaven',
-    artista: 'Led Zeppelin',
-    tom: 'Am',
-    bpm: 85
-  }
-];
+const pedaleiraSchema = z.object({
+  id: z.string().optional(),
+  nome: z.string().min(1, 'O nome é obrigatório'),
+  marca: z.string().min(1, 'A marca é obrigatória'),
+  usaLetras: z.boolean().default(false),
+  qtdeBancos: z.number().min(1, 'A quantidade de bancos deve ser maior que 0').max(99, 'A quantidade máxima de bancos é 99'),
+  qtdePresetsporBanco: z.number().min(1, 'A quantidade de presets por banco deve ser maior que 0').max(9, 'A quantidade máxima de presets por banco é 9'),
+});
+
+type PedaleiraFormData = z.infer<typeof pedaleiraSchema>;
 
 const mockPedaleiras: Pedaleira[] = [
   {
     id: '1',
     nome: 'Pedaleira 1',
-    bancos: [
-      {
-        id: '1',
-        numero: 1,
-        descricao: 'Banco Principal',
-        patches: [
-          {
-            id: '1',
-            numero: 1,
-            letra: 'A',
-            tipo: 'Clean',
-            descricao: 'Clean Cristalino',
-            musicas: ['1', '2']
-          }
-        ]
-      }
-    ]
+    marca: 'Boss',
+    usaLetras: true,
+    qtdeBancos: 4,
+    qtdePresetsporBanco: 5,
+    bancos: []
   }
 ];
 
@@ -58,18 +35,27 @@ export default function PedaleirasPage() {
   const [pedaleiraEditando, setPedaleiraEditando] = useState<Pedaleira | null>(null);
   const [pedaleiras, setPedaleiras] = useState<Pedaleira[]>(mockPedaleiras);
 
-  const handleSubmit = (data: any) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors }
+  } = useForm<PedaleiraFormData>({
+    resolver: zodResolver(pedaleiraSchema),
+    defaultValues: pedaleiraEditando || {
+      nome: '',
+      marca: '',
+      usaLetras: false,
+      qtdeBancos: 1,
+      qtdePresetsporBanco: 5
+    }
+  });
+
+  const onSubmit = (data: PedaleiraFormData) => {
     const novaPedaleira = {
       ...data,
       id: pedaleiraEditando?.id || (pedaleiras.length + 1).toString(),
-      bancos: data.bancos.map((banco: any, index: number) => ({
-        ...banco,
-        id: banco.id || (index + 1).toString(),
-        patches: banco.patches.map((patch: any, pIndex: number) => ({
-          ...patch,
-          id: patch.id || `${index + 1}-${pIndex + 1}`
-        }))
-      }))
+      bancos: pedaleiraEditando?.bancos || []
     };
 
     if (pedaleiraEditando) {
@@ -81,11 +67,13 @@ export default function PedaleirasPage() {
     }
     setPedaleiraEditando(null);
     setIsModalOpen(false);
+    reset();
   };
 
   const handleEditar = (pedaleira: Pedaleira) => {
     setPedaleiraEditando(pedaleira);
     setIsModalOpen(true);
+    reset(pedaleira);
   };
 
   const handleExcluir = (id: string) => {
@@ -99,15 +87,24 @@ export default function PedaleirasPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Minhas Pedaleiras</h1>
-          <button
-            onClick={() => {
-              setPedaleiraEditando(null);
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Nova Pedaleira
-          </button>
+          <div className="flex items-center space-x-4">
+            <a
+              href="/pedaleiras/presets"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Configurar Presets
+            </a>
+            <button
+              onClick={() => {
+                setPedaleiraEditando(null);
+                setIsModalOpen(true);
+                reset();
+              }}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Nova Pedaleira
+            </button>
+          </div>
         </div>
 
         {pedaleiras.length > 0 ? (
@@ -120,24 +117,14 @@ export default function PedaleirasPage() {
                 <div className="px-4 py-5 sm:p-6">
                   <h3 className="text-lg font-medium text-gray-900">{pedaleira.nome}</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    {pedaleira.bancos.length} banco(s)
+                    Marca: {pedaleira.marca}
                   </p>
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-900">Bancos:</h4>
-                    <ul className="mt-2 divide-y divide-gray-200">
-                      {pedaleira.bancos.map((banco) => (
-                        <li key={banco.id} className="py-2">
-                          <div className="flex justify-between">
-                            <span className="text-sm font-medium">Banco {banco.numero}</span>
-                            <span className="text-sm text-gray-500">
-                              {banco.patches.length} patch(es)
-                            </span>
-                          </div>
-                          <p className="mt-1 text-sm text-gray-500">{banco.descricao}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p className="text-sm text-gray-500">
+                    {pedaleira.qtdeBancos} banco(s) • {pedaleira.qtdePresetsporBanco} presets por banco
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Usa {pedaleira.usaLetras ? 'letras' : 'números'} nos presets
+                  </p>
                 </div>
                 <div className="px-4 py-4 sm:px-6">
                   <div className="flex justify-end space-x-3">
@@ -188,18 +175,111 @@ export default function PedaleirasPage() {
         onClose={() => {
           setIsModalOpen(false);
           setPedaleiraEditando(null);
+          reset();
         }}
         title={pedaleiraEditando ? 'Editar Pedaleira' : 'Nova Pedaleira'}
       >
-        <PedaleiraForm
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setPedaleiraEditando(null);
-          }}
-          initialData={pedaleiraEditando}
-          musicas={mockMusicas}
-        />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <label htmlFor="nome" className="block text-sm font-medium text-gray-700">
+              Nome da Pedaleira
+            </label>
+            <input
+              type="text"
+              id="nome"
+              {...register('nome')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+            {errors.nome && (
+              <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="marca" className="block text-sm font-medium text-gray-700">
+              Marca
+            </label>
+            <input
+              type="text"
+              id="marca"
+              {...register('marca')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+            {errors.marca && (
+              <p className="mt-1 text-sm text-red-600">{errors.marca.message}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="qtdeBancos" className="block text-sm font-medium text-gray-700">
+                Quantidade de Bancos
+              </label>
+              <input
+                type="number"
+                id="qtdeBancos"
+                min="1"
+                max="99"
+                {...register('qtdeBancos', { valueAsNumber: true })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+              {errors.qtdeBancos && (
+                <p className="mt-1 text-sm text-red-600">{errors.qtdeBancos.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="qtdePresetsporBanco" className="block text-sm font-medium text-gray-700">
+                Presets por Banco
+              </label>
+              <input
+                type="number"
+                id="qtdePresetsporBanco"
+                min="1"
+                max="9"
+                {...register('qtdePresetsporBanco', { valueAsNumber: true })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+              {errors.qtdePresetsporBanco && (
+                <p className="mt-1 text-sm text-red-600">{errors.qtdePresetsporBanco.message}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="usaLetras"
+                {...register('usaLetras')}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="usaLetras" className="text-sm font-medium text-gray-700">
+                Usar Letras nos Presets
+              </label>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setPedaleiraEditando(null);
+                reset();
+              }}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Salvar
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

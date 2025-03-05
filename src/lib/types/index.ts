@@ -1,32 +1,34 @@
-export type Banda = {
+export interface Banda {
   id: string;
   nome: string;
   genero: string;
   descricao?: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
+}
 
 export interface Pedaleira {
   id: string;
   nome: string;
+  marca: string;
+  usaLetras: boolean;
+  qtdeBancos: number;
+  qtdePresetsporBanco: number;
   bancos: BancoPedaleira[];
 }
 
 export interface BancoPedaleira {
   id: string;
-  numero: number; // 1-999
+  numero: number;
   descricao: string;
   patches: PatchPedaleira[];
 }
 
 export interface PatchPedaleira {
   id: string;
-  numero: number; // 1-9
-  letra: string; // A-Z
+  numero: number;
+  letra: string;
   tipo: 'Clean' | 'Drive' | 'Distortion' | 'Fuzz' | 'Solo';
   descricao: string;
-  musicas: string[]; // IDs das músicas
+  musicas: string[];
 }
 
 export interface Musica {
@@ -34,6 +36,8 @@ export interface Musica {
   nome: string;
   artista: string;
   tom: string;
+  bpm?: number;
+  dicas?: string[];
 }
 
 export interface BlocoMusical {
@@ -42,8 +46,6 @@ export interface BlocoMusical {
   descricao?: string;
   bandaId: string;
   musicas: Musica[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface Repertorio {
@@ -53,6 +55,4 @@ export interface Repertorio {
   bandaId: string;
   blocos: BlocoMusical[];
   observacoes?: string;
-  createdAt: Date;
-  updatedAt: Date;
 } 

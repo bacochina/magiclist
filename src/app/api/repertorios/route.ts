@@ -1,40 +1,16 @@
 import { NextResponse } from 'next/server';
+import { repertorios } from "@/lib/seeds/repertorios";
+import { Repertorio, BlocoMusical, Musica } from "@/lib/types";
 
-interface Musica {
-  id: string;
-  nome: string;
-  artista: string;
-  tom: string;
-  bpm?: string;
-  dicas?: string[];
-}
-
-interface Bloco {
-  id: string;
-  nome: string;
-  descricao?: string;
-  musicas: Musica[];
-}
-
-interface Repertorio {
-  id: string;
-  nome: string;
-  data: string;
-  bandaId: string;
-  observacoes?: string;
-  blocos: Bloco[];
-}
-
-// Simula um banco de dados em memória
-export const repertorios: Repertorio[] = [];
+let repertoriosData = [...repertorios];
 
 export async function GET() {
   try {
-    return NextResponse.json({ repertorios });
+    return NextResponse.json(repertoriosData);
   } catch (error) {
-    console.error('Erro ao listar repertórios:', error);
+    console.error('Erro ao buscar repertórios:', error);
     return NextResponse.json(
-      { error: 'Erro ao listar repertórios' },
+      { error: 'Erro ao buscar repertórios' },
       { status: 500 }
     );
   }
@@ -42,15 +18,24 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const novoRepertorio = {
-      ...data,
-      id: String(Date.now()),
-    };
-
-    repertorios.push(novoRepertorio);
-
-    return NextResponse.json(novoRepertorio);
+    const novoRepertorio: Partial<Repertorio> = await request.json();
+    
+    // Gera um ID único
+    const repertorioCompleto: Repertorio = {
+      ...novoRepertorio,
+      id: (repertoriosData.length + 1).toString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      blocos: novoRepertorio.blocos?.map(bloco => ({
+        ...bloco,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })) || []
+    } as Repertorio;
+    
+    repertoriosData.push(repertorioCompleto);
+    
+    return NextResponse.json(repertorioCompleto);
   } catch (error) {
     console.error('Erro ao criar repertório:', error);
     return NextResponse.json(
@@ -62,19 +47,26 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const data = await request.json();
-    const index = repertorios.findIndex(r => r.id === data.id);
+    const repertorioAtualizado: Repertorio = await request.json();
     
+    const index = repertoriosData.findIndex(r => r.id === repertorioAtualizado.id);
     if (index === -1) {
       return NextResponse.json(
         { error: 'Repertório não encontrado' },
         { status: 404 }
       );
     }
-
-    repertorios[index] = data;
-
-    return NextResponse.json(data);
+    
+    // Atualiza o updatedAt do repertório e dos blocos
+    repertorioAtualizado.updatedAt = new Date();
+    repertorioAtualizado.blocos = repertorioAtualizado.blocos.map(bloco => ({
+      ...bloco,
+      updatedAt: new Date()
+    }));
+    
+    repertoriosData[index] = repertorioAtualizado;
+    
+    return NextResponse.json(repertorioAtualizado);
   } catch (error) {
     console.error('Erro ao atualizar repertório:', error);
     return NextResponse.json(
@@ -88,26 +80,25 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-
+    
     if (!id) {
       return NextResponse.json(
         { error: 'ID não fornecido' },
         { status: 400 }
       );
     }
-
-    const index = repertorios.findIndex(r => r.id === id);
     
+    const index = repertoriosData.findIndex(r => r.id === id);
     if (index === -1) {
       return NextResponse.json(
         { error: 'Repertório não encontrado' },
         { status: 404 }
       );
     }
-
-    repertorios.splice(index, 1);
-
-    return NextResponse.json({ success: true });
+    
+    repertoriosData = repertoriosData.filter(r => r.id !== id);
+    
+    return NextResponse.json({ message: 'Repertório excluído com sucesso' });
   } catch (error) {
     console.error('Erro ao excluir repertório:', error);
     return NextResponse.json(

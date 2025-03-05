@@ -6,9 +6,11 @@ import { usePathname } from 'next/navigation';
 const navigation = [
   { name: 'Bandas', href: '/bandas' },
   { name: 'Músicas', href: '/musicas' },
-  { name: 'Pedaleiras', href: '/pedaleiras' },
   { name: 'Blocos', href: '/blocos' },
   { name: 'Repertórios', href: '/repertorios' },
+  { name: 'Layouts', href: '/layouts' },
+  { name: 'Pedaleiras', href: '/pedaleiras' },
+  { name: 'Ajuda', href: '/help' },
 ];
 
 export function Navigation() {
