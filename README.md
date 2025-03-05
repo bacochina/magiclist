@@ -1,0 +1,2 @@
+# magiclist
+Gerador de Repertórios
