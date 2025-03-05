@@ -1,82 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { RepertorioForm } from './components/RepertorioForm';
 import { RepertorioPDF } from './components/RepertorioPDF';
-import { CalendarIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, DocumentArrowDownIcon, QueueListIcon } from '@heroicons/react/24/outline';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-// Dados de exemplo - músicas
-const musicasExemplo = [
-  {
-    id: '1',
-    nome: 'Evidências',
-    artista: 'Chitãozinho & Xororó',
-    tom: 'C',
-    bpm: '120',
-  },
-  {
-    id: '2',
-    nome: 'Sweet Child O\' Mine',
-    artista: 'Guns N\' Roses',
-    tom: 'D',
-    bpm: '126',
-  },
-  {
-    id: '3',
-    nome: 'Garota de Ipanema',
-    artista: 'Tom Jobim',
-    tom: 'F',
-    bpm: '130',
-  },
-  {
-    id: '4',
-    nome: 'Wonderwall',
-    artista: 'Oasis',
-    tom: 'Am',
-    bpm: '86',
-  },
-];
-
-// Dados de exemplo - blocos
-const blocosExemplo = [
-  {
-    id: '1',
-    nome: 'Abertura',
-    descricao: 'Músicas animadas para começar o show',
-    musicas: [musicasExemplo[1], musicasExemplo[3]], // Sweet Child e Wonderwall
-  },
-  {
-    id: '2',
-    nome: 'Romântico',
-    descricao: 'Baladas e músicas mais calmas',
-    musicas: [musicasExemplo[0]], // Evidências
-  },
-  {
-    id: '3',
-    nome: 'MPB',
-    descricao: 'Clássicos da música brasileira',
-    musicas: [musicasExemplo[2]], // Garota de Ipanema
-  },
-];
-
-// Dados de exemplo - repertórios
-const repertoriosExemplo = [
-  {
-    id: '1',
-    nome: 'Casamento João e Maria',
-    data: '2024-04-15',
-    observacoes: 'Cerimônia começa às 19h, cocktail às 20h',
-    blocos: [blocosExemplo[1], blocosExemplo[2]], // Romântico e MPB
-  },
-  {
-    id: '2',
-    nome: 'Show Bar do Zé',
-    data: '2024-04-20',
-    observacoes: 'Show começa às 22h',
-    blocos: [blocosExemplo[0], blocosExemplo[2], blocosExemplo[1]], // Abertura, MPB e Romântico
-  },
-];
+// Remover dados de exemplo - músicas, blocos e repertórios
+interface Banda {
+  id: string;
+  nome: string;
+}
 
 interface Musica {
   id: string;
@@ -97,6 +32,7 @@ interface Repertorio {
   id: string;
   nome: string;
   data: string;
+  bandaId: string;
   observacoes: string;
   blocos: Bloco[];
 }
@@ -104,30 +40,112 @@ interface Repertorio {
 export default function RepertoriosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false);
-  const [repertorios, setRepertorios] = useState(repertoriosExemplo);
+  const [repertorios, setRepertorios] = useState<Repertorio[]>([]);
   const [repertorioSelecionado, setRepertorioSelecionado] = useState<Repertorio | undefined>();
   const [isEditando, setIsEditando] = useState(false);
   const [repertorioParaExcluir, setRepertorioParaExcluir] = useState<string | null>(null);
+  const [bandas, setBandas] = useState<Banda[]>([]);
+  const [isLoadingBandas, setIsLoadingBandas] = useState(true);
+  const [errorBandas, setErrorBandas] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBandas = async () => {
+      try {
+        const response = await fetch('/api/bandas');
+        if (!response.ok) {
+          throw new Error('Erro ao carregar bandas');
+        }
+        const data = await response.json();
+        setBandas(data.bandas);
+      } catch (error) {
+        console.error('Erro ao carregar bandas:', error);
+        setErrorBandas('Não foi possível carregar as bandas. Por favor, tente novamente mais tarde.');
+      } finally {
+        setIsLoadingBandas(false);
+      }
+    };
+
+    fetchBandas();
+  }, []);
+
+  // Carregar repertórios
+  useEffect(() => {
+    const fetchRepertorios = async () => {
+      try {
+        const response = await fetch('/api/repertorios');
+        if (!response.ok) {
+          throw new Error('Erro ao carregar repertórios');
+        }
+        const data = await response.json();
+        setRepertorios(data.repertorios);
+      } catch (error) {
+        console.error('Erro ao carregar repertórios:', error);
+      }
+    };
+
+    fetchRepertorios();
+  }, []);
+
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+
+    const items = Array.from(repertorios);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setRepertorios(items);
+  };
 
   const handleSubmit = async (data: any) => {
-    if (isEditando && repertorioSelecionado) {
-      // Atualizar repertório existente
-      setRepertorios(repertorios.map(repertorio => 
-        repertorio.id === repertorioSelecionado.id 
-          ? { ...repertorio, ...data }
-          : repertorio
-      ));
-    } else {
-      // Adicionar novo repertório
-      const novoRepertorio = {
-        id: String(Date.now()),
-        ...data,
-      };
-      setRepertorios([...repertorios, novoRepertorio]);
+    try {
+      if (isEditando && repertorioSelecionado) {
+        // Atualizar repertório existente
+        const response = await fetch('/api/repertorios', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...repertorioSelecionado,
+            ...data,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao atualizar repertório');
+        }
+
+        const repertorioAtualizado = await response.json();
+        setRepertorios(repertorios.map(repertorio => 
+          repertorio.id === repertorioAtualizado.id 
+            ? repertorioAtualizado
+            : repertorio
+        ));
+      } else {
+        // Adicionar novo repertório
+        const response = await fetch('/api/repertorios', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao criar repertório');
+        }
+
+        const novoRepertorio = await response.json();
+        setRepertorios([...repertorios, novoRepertorio]);
+      }
+
+      setIsModalOpen(false);
+      setIsEditando(false);
+      setRepertorioSelecionado(undefined);
+    } catch (error) {
+      console.error('Erro ao salvar repertório:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
     }
-    setIsModalOpen(false);
-    setIsEditando(false);
-    setRepertorioSelecionado(undefined);
   };
 
   const handleEditar = (repertorio: Repertorio) => {
@@ -136,9 +154,22 @@ export default function RepertoriosPage() {
     setIsModalOpen(true);
   };
 
-  const handleExcluir = (repertorioId: string) => {
-    setRepertorios(repertorios.filter(repertorio => repertorio.id !== repertorioId));
-    setRepertorioParaExcluir(null);
+  const handleExcluir = async (repertorioId: string) => {
+    try {
+      const response = await fetch(`/api/repertorios?id=${repertorioId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao excluir repertório');
+      }
+
+      setRepertorios(repertorios.filter(repertorio => repertorio.id !== repertorioId));
+      setRepertorioParaExcluir(null);
+    } catch (error) {
+      console.error('Erro ao excluir repertório:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
+    }
   };
 
   const handleGerarPDF = (repertorio: Repertorio) => {
@@ -146,12 +177,41 @@ export default function RepertoriosPage() {
     setIsPDFModalOpen(true);
   };
 
+  const handleDuplicar = async (repertorio: Repertorio) => {
+    try {
+      const novoRepertorio = {
+        ...repertorio,
+        nome: `${repertorio.nome} (Cópia)`,
+      };
+
+      delete novoRepertorio.id; // Remove o ID para que a API gere um novo
+
+      const response = await fetch('/api/repertorios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(novoRepertorio),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao duplicar repertório');
+      }
+
+      const repertorioDuplicado = await response.json();
+      setRepertorios([...repertorios, repertorioDuplicado]);
+    } catch (error) {
+      console.error('Erro ao duplicar repertório:', error);
+      // Aqui você pode adicionar uma notificação de erro para o usuário
+    }
+  };
+
   const formatarData = (data: string) => {
     return new Date(data).toLocaleDateString('pt-BR');
   };
 
-  const calcularDuracaoTotal = (blocos: typeof blocosExemplo) => {
-    const totalMinutos = blocos.reduce((acc, bloco) => acc + (bloco.musicas.length * 4), 0);
+  const calcularDuracaoTotal = (blocos: Bloco[]) => {
+    const totalMinutos = blocos.reduce((acc: number, bloco: Bloco) => acc + (bloco.musicas.length * 4), 0);
     if (totalMinutos < 60) {
       return `${totalMinutos} minutos`;
     }
@@ -178,58 +238,91 @@ export default function RepertoriosPage() {
         </div>
 
         {/* Lista de Repertórios */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <ul className="divide-y divide-gray-200">
-            {repertorios.map((repertorio) => (
-              <li key={repertorio.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{repertorio.nome}</h3>
-                    <p className="text-sm text-gray-500">
-                      {formatarData(repertorio.data)} • {repertorio.blocos.length} blocos • {calcularDuracaoTotal(repertorio.blocos)}
-                    </p>
-                    {repertorio.observacoes && (
-                      <p className="mt-1 text-sm text-gray-600">{repertorio.observacoes}</p>
-                    )}
-                  </div>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => handleGerarPDF(repertorio)}
-                      className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-900"
-                    >
-                      <DocumentArrowDownIcon className="h-5 w-5 mr-1" />
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => handleEditar(repertorio)}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setRepertorioParaExcluir(repertorio.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </div>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="repertorios">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="bg-white shadow overflow-hidden sm:rounded-lg"
+              >
+                <ul className="divide-y divide-gray-200">
+                  {repertorios.map((repertorio, index) => (
+                    <Draggable key={repertorio.id} draggableId={repertorio.id} index={index}>
+                      {(provided, snapshot) => (
+                        <li
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`px-6 py-4 ${snapshot.isDragging ? 'bg-gray-50 shadow-lg ring-2 ring-indigo-500' : ''}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="cursor-grab hover:text-indigo-500"
+                              >
+                                <QueueListIcon className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-medium text-gray-900">{repertorio.nome}</h3>
+                                <p className="text-sm text-gray-500">
+                                  {formatarData(repertorio.data)} • {repertorio.blocos.length} blocos • {calcularDuracaoTotal(repertorio.blocos)}
+                                </p>
+                                {repertorio.observacoes && (
+                                  <p className="mt-1 text-sm text-gray-600">{repertorio.observacoes}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex space-x-4">
+                              <button
+                                onClick={() => handleGerarPDF(repertorio)}
+                                className="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-900"
+                              >
+                                <DocumentArrowDownIcon className="h-5 w-5 mr-1" />
+                                PDF
+                              </button>
+                              <button
+                                onClick={() => handleDuplicar(repertorio)}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                Duplicar
+                              </button>
+                              <button
+                                onClick={() => handleEditar(repertorio)}
+                                className="text-indigo-600 hover:text-indigo-900"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => setRepertorioParaExcluir(repertorio.id)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
 
-                {/* Lista de blocos do repertório */}
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Blocos:</h4>
-                  <ul className="space-y-2">
-                    {repertorio.blocos.map((bloco, index) => (
-                      <li key={bloco.id} className="text-sm text-gray-600">
-                        {index + 1}. {bloco.nome} ({bloco.musicas.length} músicas)
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+                          {/* Lista de blocos do repertório */}
+                          <div className="mt-4">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Blocos:</h4>
+                            <ul className="space-y-2">
+                              {repertorio.blocos.map((bloco, index) => (
+                                <li key={bloco.id} className="text-sm text-gray-600">
+                                  {index + 1}. {bloco.nome} ({bloco.musicas.length} músicas)
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </li>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </ul>
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
 
         {/* Mensagem quando não há repertórios */}
         {repertorios.length === 0 && (
@@ -243,7 +336,7 @@ export default function RepertoriosPage() {
         )}
       </div>
 
-      {/* Modal de Novo Repertório/Edição */}
+      {/* Modal de Criação/Edição */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
@@ -251,18 +344,28 @@ export default function RepertoriosPage() {
           setIsEditando(false);
           setRepertorioSelecionado(undefined);
         }}
-        title={isEditando ? "Editar Repertório" : "Novo Repertório"}
+        title={isEditando ? 'Editar Repertório' : 'Novo Repertório'}
       >
-        <RepertorioForm
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setIsEditando(false);
-            setRepertorioSelecionado(undefined);
-          }}
-          blocosDisponiveis={blocosExemplo}
-          initialData={isEditando ? repertorioSelecionado : undefined}
-        />
+        {isLoadingBandas ? (
+          <div className="flex justify-center items-center p-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : errorBandas ? (
+          <div className="text-center p-4">
+            <p className="text-red-600">{errorBandas}</p>
+          </div>
+        ) : (
+          <RepertorioForm
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setIsModalOpen(false);
+              setIsEditando(false);
+              setRepertorioSelecionado(undefined);
+            }}
+            bandasDisponiveis={bandas}
+            initialData={repertorioSelecionado}
+          />
+        )}
       </Modal>
 
       {/* Modal de Confirmação de Exclusão */}
@@ -307,12 +410,20 @@ export default function RepertoriosPage() {
       >
         {repertorioSelecionado && (
           <div className="h-[calc(100vh-200px)]">
-            <RepertorioPDF
-              nomeBanda="Sua Banda"
-              nomeRepertorio={repertorioSelecionado.nome}
-              data={repertorioSelecionado.data}
-              blocos={repertorioSelecionado.blocos}
-            />
+            {repertorioSelecionado.blocos?.length > 0 ? (
+              <RepertorioPDF
+                nomeBanda={repertorioSelecionado.bandaId === '1' ? 'Metallica' : 'Iron Maiden'}
+                nomeRepertorio={repertorioSelecionado.nome}
+                data={repertorioSelecionado.data}
+                blocos={repertorioSelecionado.blocos}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gray-50">
+                <div className="text-center">
+                  <p className="text-gray-500">Este repertório não possui blocos</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

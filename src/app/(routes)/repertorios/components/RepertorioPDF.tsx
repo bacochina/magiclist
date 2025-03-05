@@ -125,62 +125,76 @@ export function RepertorioPDF({ nomeBanda, nomeRepertorio, data, blocos }: Reper
   // Criar o texto do cabeçalho
   const textoHeader = `${nomeBanda} - ${nomeRepertorio} - ${formatarData(data)}`;
 
-  return (
-    <PDFViewer style={{ width: '100%', height: '800px' }}>
-      <Document>
-        <Page size="A4" style={styles.page}>
-          {/* Cabeçalho */}
-          <View style={styles.header}>
-            <Text style={styles.headerText}>
-              {textoHeader}
-            </Text>
-          </View>
+  try {
+    return (
+      <PDFViewer style={{ width: '100%', height: '800px' }}>
+        <Document>
+          <Page size="A4" style={styles.page}>
+            {/* Cabeçalho */}
+            <View style={styles.header}>
+              <Text style={styles.headerText}>
+                {textoHeader}
+              </Text>
+            </View>
 
-          {/* Blocos e Músicas */}
-          {blocos.map((bloco, blocoIndex) => {
-            const numeroInicial = blocos
-              .slice(0, blocoIndex)
-              .reduce((acc, b) => acc + b.musicas.length, 0) + 1;
-            
-            const isEven = blocoIndex % 2 === 0;
-            const blocoStyle = isEven ? styles.blocoTituloLeft : styles.blocoTituloRight;
-            const musicaStyle = isEven ? styles.musicaLeft : styles.musicaRight;
+            {/* Blocos e Músicas */}
+            {blocos.map((bloco, blocoIndex) => {
+              const numeroInicial = blocos
+                .slice(0, blocoIndex)
+                .reduce((acc, b) => acc + b.musicas.length, 0) + 1;
+              
+              const isEven = blocoIndex % 2 === 0;
+              const blocoStyle = isEven ? styles.blocoTituloLeft : styles.blocoTituloRight;
+              const musicaStyle = isEven ? styles.musicaLeft : styles.musicaRight;
 
-            return (
-              <View key={bloco.id}>
-                <Text style={blocoStyle}>{bloco.nome}</Text>
-                {bloco.musicas.map((musica, musicaIndex) => (
-                  <View key={musica.id}>
-                    <View style={musicaStyle}>
-                      <Text style={styles.musicaNumero}>
-                        {formatarNumeroMusica(numeroInicial + musicaIndex)}
-                      </Text>
-                      <Text style={styles.musicaNome}>{musica.nome}</Text>
-                      <Text style={styles.musicaTom}>(</Text>
-                      <Text style={styles.musicaTom}>{musica.tom}</Text>
-                      <Text style={styles.musicaTom}>)</Text>
+              return (
+                <View key={bloco.id}>
+                  <Text style={blocoStyle}>{bloco.nome}</Text>
+                  {bloco.musicas.map((musica, musicaIndex) => (
+                    <View key={musica.id}>
+                      {/* Dicas da Música */}
+                      {musica.dicas?.map((dica, index) => (
+                        <Text key={index} style={styles.dica}>
+                          {dica}
+                        </Text>
+                      ))}
+                      {/* Nome da Música */}
+                      <View style={musicaStyle}>
+                        <Text style={styles.musicaNumero}>
+                          {formatarNumeroMusica(numeroInicial + musicaIndex)}
+                        </Text>
+                        <Text style={styles.musicaNome}>{musica.nome}</Text>
+                        <Text style={styles.musicaTom}>(</Text>
+                        <Text style={styles.musicaTom}>{musica.tom}</Text>
+                        <Text style={styles.musicaTom}>)</Text>
+                      </View>
                     </View>
-                    {musica.dicas?.map((dica, index) => (
-                      <Text key={index} style={styles.dica}>
-                        {dica}
-                      </Text>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            );
-          })}
+                  ))}
+                </View>
+              );
+            })}
 
-          {/* Informações da Página */}
-          <Text
-            style={styles.pageInfo}
-            render={({ pageNumber, totalPages }) => (
-              `Página ${pageNumber}/${totalPages}`
-            )}
-            fixed
-          />
-        </Page>
-      </Document>
-    </PDFViewer>
-  );
+            {/* Informações da Página */}
+            <Text
+              style={styles.pageInfo}
+              render={({ pageNumber, totalPages }) => (
+                `Página ${pageNumber}/${totalPages}`
+              )}
+              fixed
+            />
+          </Page>
+        </Document>
+      </PDFViewer>
+    );
+  } catch (error) {
+    console.error('Erro ao renderizar PDF:', error);
+    return (
+      <div className="flex items-center justify-center h-[800px] bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 font-medium">Erro ao carregar o PDF</p>
+          <p className="text-gray-500 mt-2">Por favor, tente novamente mais tarde</p>
+        </div>
+      </div>
+    );
+  }
 } 

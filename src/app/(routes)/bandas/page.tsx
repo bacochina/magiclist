@@ -4,76 +4,55 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { BandaForm } from './components/BandaForm';
 import { Banda } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function BandasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bandaEditando, setBandaEditando] = useState<Banda | null>(null);
+  const [bandaEditando, setBandaEditando] = useState<Banda | undefined>(undefined);
   const [bandas, setBandas] = useState<Banda[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [mostraForm, setMostraForm] = useState(false);
 
   useEffect(() => {
-    const carregarBandas = async () => {
-      try {
-        setCarregando(true);
-        setErro(null);
-        const res = await fetch('/api/bandas');
-        if (!res.ok) throw new Error('Erro ao carregar bandas');
-        const data = await res.json();
-        setBandas(data);
-      } catch (error) {
-        console.error('Erro ao carregar bandas:', error);
-        setErro('Erro ao carregar bandas. Por favor, tente novamente.');
-      } finally {
-        setCarregando(false);
-      }
-    };
-
     carregarBandas();
   }, []);
 
-  const handleSubmit = async (data: any) => {
+  const carregarBandas = async () => {
     try {
-      setErro(null);
-      if (bandaEditando) {
-        // Atualizar banda existente
-        const res = await fetch('/api/bandas', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...data,
-            id: bandaEditando.id
-          }),
-        });
-
-        if (!res.ok) throw new Error('Erro ao atualizar banda');
-        
-        const bandaAtualizada = await res.json();
-        setBandas(bandas.map(banda => 
-          banda.id === bandaAtualizada.id ? bandaAtualizada : banda
-        ));
-      } else {
-        // Criar nova banda
-        const res = await fetch('/api/bandas', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-
-        if (!res.ok) throw new Error('Erro ao criar banda');
-        
-        const novaBanda = await res.json();
-        setBandas([...bandas, novaBanda]);
+      const response = await fetch('/api/bandas');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar bandas');
       }
-      setBandaEditando(null);
-      setIsModalOpen(false);
+      const data = await response.json();
+      setBandas(data.bandas || []);
     } catch (error) {
-      console.error('Erro ao salvar banda:', error);
-      setErro('Erro ao salvar banda. Por favor, tente novamente.');
+      console.error('Erro:', error);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const handleSubmit = async (banda: Omit<Banda, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const response = await fetch('/api/bandas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(banda),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao criar banda');
+      }
+
+      await carregarBandas();
+      setMostraForm(false);
+      setBandaEditando(undefined);
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao criar banda');
     }
   };
 
@@ -100,6 +79,27 @@ export default function BandasPage() {
     }
   };
 
+  const handleSeed = async () => {
+    try {
+      const response = await fetch('/api/bandas/seed', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Erro ao adicionar bandas');
+      }
+
+      const data = await response.json();
+      console.log('Bandas adicionadas:', data);
+      
+      // Recarrega as bandas
+      await carregarBandas();
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao adicionar bandas');
+    }
+  };
+
   if (carregando) {
     return (
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -117,15 +117,11 @@ export default function BandasPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Minhas Bandas</h1>
-          <button
-            onClick={() => {
-              setBandaEditando(null);
-              setIsModalOpen(true);
-            }}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Nova Banda
-          </button>
+          <div className="space-x-4">
+            <Button onClick={() => setMostraForm(true)}>
+              Nova Banda
+            </Button>
+          </div>
         </div>
 
         {erro && (
@@ -197,19 +193,35 @@ export default function BandasPage() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setBandaEditando(null);
+          setBandaEditando(undefined);
         }}
         title={bandaEditando ? 'Editar Banda' : 'Nova Banda'}
       >
         <BandaForm
+          banda={bandaEditando}
           onSubmit={handleSubmit}
           onCancel={() => {
             setIsModalOpen(false);
-            setBandaEditando(null);
+            setBandaEditando(undefined);
           }}
-          initialData={bandaEditando || undefined}
         />
       </Modal>
+
+      {mostraForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Nova Banda</h2>
+            <BandaForm
+              banda={bandaEditando}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setMostraForm(false);
+                setBandaEditando(undefined);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
