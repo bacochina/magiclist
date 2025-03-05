@@ -77,7 +77,7 @@ export default function RepertoriosPage() {
           throw new Error('Erro ao carregar repertórios');
         }
         const data = await response.json();
-        setRepertorios(data.repertorios);
+        setRepertorios(data);
       } catch (error) {
         console.error('Erro ao carregar repertórios:', error);
       }
@@ -179,12 +179,10 @@ export default function RepertoriosPage() {
 
   const handleDuplicar = async (repertorio: Repertorio) => {
     try {
-      const novoRepertorio = {
+      const { id, ...novoRepertorio } = {
         ...repertorio,
         nome: `${repertorio.nome} (Cópia)`,
       };
-
-      delete novoRepertorio.id; // Remove o ID para que a API gere um novo
 
       const response = await fetch('/api/repertorios', {
         method: 'POST',
