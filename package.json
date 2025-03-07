@@ -5,9 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "start:prod": "next start -p $PORT"
+    "start": "next start -p 3000",
+    "lint": "next lint"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.17",
@@ -17,7 +16,7 @@
     "@prisma/client": "^5.10.2",
     "@react-pdf/font": "^2.3.7",
     "@react-pdf/renderer": "^3.3.8",
-    "clsx": "^2.1.1",
+    "clsx": "^2.1.0",
     "jspdf": "^2.5.1",
     "mammoth": "^1.6.0",
     "next": "13.5.6",
@@ -28,7 +27,7 @@
     "react-dnd-html5-backend": "16.0.1",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.50.1",
-    "tailwind-merge": "^2.6.0",
+    "tailwind-merge": "^2.2.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
