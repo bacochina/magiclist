@@ -1,58 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { BandaForm } from './components/BandaForm';
 import { Banda } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { bandasSeed } from '@/lib/seeds/bandas';
 
 export default function BandasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bandaEditando, setBandaEditando] = useState<Banda | undefined>(undefined);
-  const [bandas, setBandas] = useState<Banda[]>([]);
-  const [carregando, setCarregando] = useState(true);
+  const [bandas, setBandas] = useLocalStorage<Banda[]>('bandas', bandasSeed);
   const [erro, setErro] = useState<string | null>(null);
   const [mostraForm, setMostraForm] = useState(false);
 
-  useEffect(() => {
-    carregarBandas();
-  }, []);
-
-  const carregarBandas = async () => {
+  const handleSubmit = async (banda: Omit<Banda, 'id'>) => {
     try {
-      const response = await fetch('/api/bandas');
-      if (!response.ok) {
-        throw new Error('Erro ao carregar bandas');
+      if (bandaEditando) {
+        // Atualizar banda existente
+        setBandas(bandas.map(b => 
+          b.id === bandaEditando.id 
+            ? { ...b, ...banda }
+            : b
+        ));
+      } else {
+        // Adicionar nova banda
+        const novaBanda: Banda = {
+          id: String(Date.now()),
+          ...banda
+        };
+        setBandas([...bandas, novaBanda]);
       }
-      const data = await response.json();
-      setBandas(data.bandas || []);
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  const handleSubmit = async (banda: Omit<Banda, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const response = await fetch('/api/bandas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(banda),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao criar banda');
-      }
-
-      await carregarBandas();
       setMostraForm(false);
+      setIsModalOpen(false);
       setBandaEditando(undefined);
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao criar banda');
+      alert('Erro ao salvar banda');
     }
   };
 
@@ -65,52 +50,13 @@ export default function BandasPage() {
     if (confirm('Tem certeza que deseja excluir esta banda?')) {
       try {
         setErro(null);
-        const res = await fetch(`/api/bandas?id=${bandaId}`, {
-          method: 'DELETE',
-        });
-
-        if (!res.ok) throw new Error('Erro ao excluir banda');
-
-        setBandas(bandas.filter(banda => banda.id !== bandaId));
+        setBandas(bandas.filter(b => b.id !== bandaId));
       } catch (error) {
         console.error('Erro ao excluir banda:', error);
         setErro('Erro ao excluir banda. Por favor, tente novamente.');
       }
     }
   };
-
-  const handleSeed = async () => {
-    try {
-      const response = await fetch('/api/bandas/seed', {
-        method: 'POST',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Erro ao adicionar bandas');
-      }
-
-      const data = await response.json();
-      console.log('Bandas adicionadas:', data);
-      
-      // Recarrega as bandas
-      await carregarBandas();
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao adicionar bandas');
-    }
-  };
-
-  if (carregando) {
-    return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -189,10 +135,12 @@ export default function BandasPage() {
         )}
       </div>
 
+      {/* Modal para edição e criação */}
       <Modal
-        isOpen={isModalOpen}
+        isOpen={isModalOpen || mostraForm}
         onClose={() => {
           setIsModalOpen(false);
+          setMostraForm(false);
           setBandaEditando(undefined);
         }}
         title={bandaEditando ? 'Editar Banda' : 'Nova Banda'}
@@ -202,26 +150,11 @@ export default function BandasPage() {
           onSubmit={handleSubmit}
           onCancel={() => {
             setIsModalOpen(false);
+            setMostraForm(false);
             setBandaEditando(undefined);
           }}
         />
       </Modal>
-
-      {mostraForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Nova Banda</h2>
-            <BandaForm
-              banda={bandaEditando}
-              onSubmit={handleSubmit}
-              onCancel={() => {
-                setMostraForm(false);
-                setBandaEditando(undefined);
-              }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 } 

@@ -1,22 +1,12 @@
 'use client';
 
 import { Dialog } from '@headlessui/react';
-import { XMarkIcon, PlusIcon, Bars3Icon, QueueListIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
-import { StrictMode } from 'react';
-import { Bloco } from '@/lib/types';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Bloco, Musica } from '@/lib/types';
 
-interface Musica {
-  id: string;
-  nome: string;
-  artista: string;
-  tom: string;
-  bpm?: string;
-  observacoes?: string;
-}
-
-interface BlocoDetalhesProps {
+interface BlocoDetalhesModalProps {
   isOpen: boolean;
   onClose: () => void;
   bloco: Bloco;
@@ -26,7 +16,7 @@ interface BlocoDetalhesProps {
   onReordenar: (blocoId: string, musicas: Musica[]) => void;
 }
 
-export function BlocoDetalhes({
+export function BlocoDetalhesModal({
   isOpen,
   onClose,
   bloco,
@@ -34,17 +24,15 @@ export function BlocoDetalhes({
   onAdicionarMusica,
   onRemoverMusica,
   onReordenar,
-}: BlocoDetalhesProps) {
+}: BlocoDetalhesModalProps) {
   const [isAdicionandoMusica, setIsAdicionandoMusica] = useState(false);
-  const [musicas, setMusicas] = useState<Musica[]>([]);
+  const [musicas, setMusicas] = useState<Musica[]>(bloco.musicas);
 
-  // Sincroniza o estado local com as músicas do bloco
   useEffect(() => {
     setMusicas(bloco.musicas);
   }, [bloco.musicas]);
 
   const calcularDuracao = (musicas: Musica[]) => {
-    // Assumindo média de 4 minutos por música
     const minutos = musicas.length * 4;
     if (minutos < 60) {
       return `${minutos} minutos`;
@@ -130,74 +118,67 @@ export function BlocoDetalhes({
                   </div>
 
                   {/* Lista de Músicas Atual com Drag and Drop */}
-                  <StrictMode>
-                    <DragDropContext 
-                      onDragEnd={handleDragEnd}
-                      onDragStart={handleDragStart}
-                    >
-                      <Droppable 
-                        droppableId="musicas" 
-                        isDropDisabled={false}
-                        isCombineEnabled={false}
-                        ignoreContainerClipping={false}
-                      >
-                        {(provided: DroppableProvided) => (
-                          <ul 
-                            {...provided.droppableProps}
-                            ref={provided.innerRef}
-                            className="divide-y divide-gray-200 bg-gray-50 rounded-md"
-                          >
-                            {musicas.map((musica, index) => (
-                              <Draggable 
-                                key={musica.id} 
-                                draggableId={musica.id} 
-                                index={index}
-                              >
-                                {(provided: DraggableProvided) => (
-                                  <li
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    style={{
-                                      ...provided.draggableProps.style,
-                                    }}
-                                    className="px-4 py-3 flex items-center justify-between hover:bg-gray-100"
-                                  >
-                                    <div className="flex items-center flex-1">
-                                      <div 
-                                        {...provided.dragHandleProps}
-                                        className="mr-3 cursor-grab active:cursor-grabbing"
-                                      >
-                                        <Bars3Icon className="h-5 w-5 text-gray-400" />
-                                      </div>
-                                      <div className="flex items-center">
-                                        <span className="text-sm font-medium text-gray-500 w-8">
-                                          {(index + 1).toString().padStart(2, '0')}
-                                        </span>
-                                        <div>
-                                          <h5 className="text-sm font-medium text-gray-900">{musica.nome}</h5>
-                                          <p className="text-sm text-gray-500">
-                                            {musica.artista} • Tom: {musica.tom}
-                                            {musica.bpm ? ` • ${musica.bpm} BPM` : ''}
-                                          </p>
-                                        </div>
+                  <DragDropContext 
+                    onDragEnd={handleDragEnd}
+                    onDragStart={handleDragStart}
+                  >
+                    <Droppable droppableId="musicas">
+                      {(provided) => (
+                        <ul 
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="divide-y divide-gray-200 bg-gray-50 rounded-md"
+                        >
+                          {musicas.map((musica, index) => (
+                            <Draggable 
+                              key={musica.id} 
+                              draggableId={musica.id} 
+                              index={index}
+                            >
+                              {(provided) => (
+                                <li
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                  }}
+                                  className="px-4 py-3 flex items-center justify-between hover:bg-gray-100"
+                                >
+                                  <div className="flex items-center flex-1">
+                                    <div 
+                                      {...provided.dragHandleProps}
+                                      className="mr-3 cursor-grab active:cursor-grabbing"
+                                    >
+                                      <Bars3Icon className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                    <div className="flex items-center">
+                                      <span className="text-sm font-medium text-gray-500 w-8">
+                                        {(index + 1).toString().padStart(2, '0')}
+                                      </span>
+                                      <div>
+                                        <h5 className="text-sm font-medium text-gray-900">{musica.nome}</h5>
+                                        <p className="text-sm text-gray-500">
+                                          {musica.artista} • Tom: {musica.tom}
+                                          {musica.bpm ? ` • ${musica.bpm} BPM` : ''}
+                                        </p>
                                       </div>
                                     </div>
-                                    <button
-                                      onClick={() => handleRemoverMusica(musica.id)}
-                                      className="text-sm text-red-600 hover:text-red-900 ml-4"
-                                    >
-                                      Remover
-                                    </button>
-                                  </li>
-                                )}
-                              </Draggable>
-                            ))}
-                            {provided.placeholder}
-                          </ul>
-                        )}
-                      </Droppable>
-                    </DragDropContext>
-                  </StrictMode>
+                                  </div>
+                                  <button
+                                    onClick={() => handleRemoverMusica(musica.id)}
+                                    className="text-sm text-red-600 hover:text-red-900 ml-4"
+                                  >
+                                    Remover
+                                  </button>
+                                </li>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </ul>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
 
                   {/* Seletor de Músicas */}
                   {isAdicionandoMusica && (
@@ -226,34 +207,6 @@ export function BlocoDetalhes({
                       </ul>
                     </div>
                   )}
-                </div>
-
-                <div className="mt-6 border-t border-gray-200 pt-4">
-                  <h4 className="text-sm font-medium text-gray-500">Músicas do Bloco</h4>
-                  <div className="mt-2 space-y-2">
-                    {musicas.map((musica) => (
-                      <div
-                        key={musica.id}
-                        className="flex items-center space-x-3 bg-white p-3 rounded-md border border-gray-200"
-                      >
-                        <QueueListIcon className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900">{musica.nome}</h4>
-                          <p className="text-sm text-gray-500">
-                            {musica.artista} • Tom: {musica.tom} • BPM: {musica.bpm}
-                          </p>
-                          {musica.observacoes && (
-                            <p className="text-sm text-gray-500 mt-1">{musica.observacoes}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {musicas.length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        Este bloco ainda não possui músicas.
-                      </p>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>

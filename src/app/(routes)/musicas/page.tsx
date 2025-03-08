@@ -1,326 +1,378 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { MusicaForm } from './components/MusicaForm';
-import { MusicaDetalhes } from './components/MusicaDetalhes';
-import { MusicalNoteIcon } from '@heroicons/react/24/outline';
+import { Musica } from '@/lib/types';
+import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
+import { MusicaForm } from '../blocos/components/MusicaForm';
+import { ClientOnly } from '../blocos/components/ClientOnly';
+import { 
+  PencilIcon, 
+  TrashIcon, 
+  PlusIcon, 
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  XMarkIcon,
+  AdjustmentsHorizontalIcon,
+  MusicalNoteIcon
+} from '@heroicons/react/24/outline';
 
-// Dados de exemplo
-const musicasExemplo = [
-  {
-    id: '1',
-    nome: 'Take On Me',
-    artista: 'a-ha',
-    tom: 'A',
-    observacoes: 'Atenção ao falsete no refrão. Sintetizadores são essenciais.',
-  },
-  {
-    id: '2',
-    nome: 'Sweet Dreams (Are Made of This)',
-    artista: 'Eurythmics',
-    tom: 'Cm',
-    observacoes: 'Base de sintetizador marcante. Manter o groove da música.',
-  },
-  {
-    id: '3',
-    nome: 'Billie Jean',
-    artista: 'Michael Jackson',
-    tom: 'F#m',
-    observacoes: 'Linha de baixo característica. Dança opcional mas recomendada.',
-  },
-  {
-    id: '4',
-    nome: 'Girls Just Want to Have Fun',
-    artista: 'Cyndi Lauper',
-    tom: 'F',
-    observacoes: 'Energia alta do início ao fim. Ótima para animar o público.',
-  },
-  {
-    id: '5',
-    nome: 'Every Breath You Take',
-    artista: 'The Police',
-    tom: 'Ab',
-    observacoes: 'Atenção ao padrão do arpejo da guitarra. Manter a dinâmica suave.',
-  },
-  {
-    id: '6',
-    nome: 'Another One Bites the Dust',
-    artista: 'Queen',
-    tom: 'Em',
-    observacoes: 'Linha de baixo é a alma da música. Manter o groove funkeado.',
-  },
-  {
-    id: '7',
-    nome: 'Beat It',
-    artista: 'Michael Jackson',
-    tom: 'Em',
-    observacoes: 'Solo de guitarra icônico. Manter a energia rock da música.',
-  },
-  {
-    id: '8',
-    nome: 'Like a Virgin',
-    artista: 'Madonna',
-    tom: 'F',
-    observacoes: 'Arranjo de teclados importante. Bom para momentos dançantes.',
-  },
-  {
-    id: '9',
-    nome: 'I Wanna Dance with Somebody',
-    artista: 'Whitney Houston',
-    tom: 'G',
-    observacoes: 'Exige bom preparo vocal. Ótima para encerramento de set.',
-  },
-  {
-    id: '10',
-    nome: 'Walk of Life',
-    artista: 'Dire Straits',
-    tom: 'E',
-    observacoes: 'Riff de teclado característico. Manter o balanço country-rock.',
-  },
-  {
-    id: '11',
-    nome: 'Time After Time',
-    artista: 'Cyndi Lauper',
-    tom: 'C',
-    observacoes: 'Balada emotiva. Boa para momentos mais calmos do show.',
-  },
-  {
-    id: '12',
-    nome: 'Eye of the Tiger',
-    artista: 'Survivor',
-    tom: 'Cm',
-    observacoes: 'Riff de guitarra icônico. Energia crescente na execução.',
-  },
-  {
-    id: '13',
-    nome: 'Material Girl',
-    artista: 'Madonna',
-    tom: 'C',
-    observacoes: 'Arranjo de metais importante. Manter o groove disco-pop.',
-  },
-  {
-    id: '14',
-    nome: 'Africa',
-    artista: 'Toto',
-    tom: 'F#',
-    observacoes: 'Atenção às harmonias vocais. Percussão característica.',
-  },
-  {
-    id: '15',
-    nome: 'Call Me',
-    artista: 'Blondie',
-    tom: 'D',
-    observacoes: 'Base de sintetizador e guitarra marcantes. Energia new wave.',
-  },
-  {
-    id: '16',
-    nome: 'Karma Chameleon',
-    artista: 'Culture Club',
-    tom: 'Bb',
-    observacoes: 'Melodia de gaita característica. Manter o balanço pop.',
-  },
-  {
-    id: '17',
-    nome: 'Physical',
-    artista: 'Olivia Newton-John',
-    tom: 'E',
-    observacoes: 'Groove dançante essencial. Boa para momentos animados.',
-  },
-  {
-    id: '18',
-    nome: 'Forever Young',
-    artista: 'Alphaville',
-    tom: 'C',
-    observacoes: 'Sintetizadores em destaque. Atenção às dinâmicas.',
-  },
-  {
-    id: '19',
-    nome: 'Total Eclipse of the Heart',
-    artista: 'Bonnie Tyler',
-    tom: 'Dm',
-    observacoes: 'Balada dramática. Exige bom preparo vocal.',
-  },
-  {
-    id: '20',
-    nome: 'Wake Me Up Before You Go-Go',
-    artista: 'Wham!',
-    tom: 'D',
-    observacoes: 'Energia alta e dançante. Ótima para animar o público.',
-  },
+interface FiltrosBPM {
+  min?: number;
+  max?: number;
+}
+
+// Faixas de BPM pré-definidas
+const faixasBPM = [
+  { label: 'Lenta', descricao: '< 90 BPM', min: 0, max: 90 },
+  { label: 'Moderada', descricao: '90-120 BPM', min: 90, max: 120 },
+  { label: 'Rápida', descricao: '120-150 BPM', min: 120, max: 150 },
+  { label: 'Muito Rápida', descricao: '> 150 BPM', min: 150, max: 999 },
+];
+
+// Lista de tons musicais comuns
+const tonsComuns = [
+  'C', 'Cm', 'C#', 'C#m', 
+  'D', 'Dm', 'D#', 'D#m', 
+  'E', 'Em', 
+  'F', 'Fm', 'F#', 'F#m', 
+  'G', 'Gm', 'G#', 'G#m', 
+  'A', 'Am', 'A#', 'A#m', 
+  'B', 'Bm'
 ];
 
 export default function MusicasPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [musicaSelecionada, setMusicaSelecionada] = useState<typeof musicasExemplo[0] | null>(null);
-  const [isDetalhesOpen, setIsDetalhesOpen] = useState(false);
-  const [isEditando, setIsEditando] = useState(false);
-  const [musicaParaExcluir, setMusicaParaExcluir] = useState<string | null>(null);
-  const [musicas, setMusicas] = useState(musicasExemplo);
+  const [musicas, setMusicas] = useHydratedLocalStorage<Musica[]>('musicas', []);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [musicaEmEdicao, setMusicaEmEdicao] = useState<Musica | undefined>();
+  
+  // Estados para filtros e pesquisa
+  const [busca, setBusca] = useState('');
+  const [filtroTom, setFiltroTom] = useState<string>('');
+  const [filtroBPM, setFiltroBPM] = useState<FiltrosBPM>({ min: undefined, max: undefined });
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
-  const handleSubmit = async (data: any) => {
-    if (isEditando && musicaSelecionada) {
-      // Atualizar música existente
-      setMusicas(musicas.map(musica => 
-        musica.id === musicaSelecionada.id 
-          ? { ...musica, ...data }
-          : musica
-      ));
+  const handleAdicionarMusica = () => {
+    setMusicaEmEdicao(undefined);
+    setModalAberto(true);
+  };
+
+  const handleEditarMusica = (musica: Musica) => {
+    setMusicaEmEdicao(musica);
+    setModalAberto(true);
+  };
+
+  const handleExcluirMusica = (musica: Musica) => {
+    if (confirm(`Tem certeza que deseja excluir a música "${musica.nome}"?`)) {
+      setMusicas(musicas.filter(m => m.id !== musica.id));
+    }
+  };
+
+  const handleSubmit = (data: Partial<Musica>) => {
+    if (musicaEmEdicao) {
+      setMusicas(
+        musicas.map((m) =>
+          m.id === musicaEmEdicao.id
+            ? { ...m, ...data }
+            : m
+        )
+      );
     } else {
-      // Adicionar nova música
-      const novaMusica = {
-        id: String(Date.now()),
-        ...data
+      const novaMusica: Musica = {
+        id: Math.random().toString(36).substr(2, 9),
+        nome: data.nome || '',
+        artista: data.artista || '',
+        tom: data.tom || '',
+        bpm: data.bpm || 0,
+        observacoes: data.observacoes,
       };
       setMusicas([...musicas, novaMusica]);
     }
-    setIsModalOpen(false);
-    setIsEditando(false);
-    setMusicaSelecionada(null);
+    setModalAberto(false);
+    setMusicaEmEdicao(undefined);
   };
 
-  const handleEditar = (musica: typeof musicasExemplo[0]) => {
-    setMusicaSelecionada(musica);
-    setIsEditando(true);
-    setIsModalOpen(true);
+  const handleLimparFiltros = () => {
+    setBusca('');
+    setFiltroTom('');
+    setFiltroBPM({ min: undefined, max: undefined });
   };
 
-  const handleExcluir = (musicaId: string) => {
-    setMusicas(musicas.filter(musica => musica.id !== musicaId));
-    setMusicaParaExcluir(null);
-  };
+  // Lista única de tons para o filtro
+  const tons = useMemo(() => {
+    const tonsNasMusicas = Array.from(new Set(musicas.map(m => m.tom))).sort();
+    // Combina os tons das músicas com os tons comuns, removendo duplicatas
+    return Array.from(new Set([...tonsNasMusicas, ...tonsComuns])).sort();
+  }, [musicas]);
 
-  const handleVerDetalhes = (musica: typeof musicasExemplo[0]) => {
-    setMusicaSelecionada(musica);
-    setIsDetalhesOpen(true);
-  };
+  // Filtra músicas baseado em todos os critérios
+  const musicasFiltradas = useMemo(() => {
+    const termoBusca = busca.toLowerCase();
+    
+    const filtradas = musicas.filter((musica) => {
+      const matchBusca = 
+        musica.nome.toLowerCase().includes(termoBusca) || 
+        musica.artista.toLowerCase().includes(termoBusca);
+      const matchTom = !filtroTom || musica.tom === filtroTom;
+      const matchBPM = (!filtroBPM.min || musica.bpm >= filtroBPM.min) &&
+                      (!filtroBPM.max || musica.bpm <= filtroBPM.max);
+
+      return matchBusca && matchTom && matchBPM;
+    });
+
+    // Ordena por nome
+    return [...filtradas].sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [busca, filtroTom, filtroBPM, musicas]);
+
+  const temFiltrosAtivos = busca || filtroTom || filtroBPM.min || filtroBPM.max;
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div className="px-4 py-6 sm:px-0">
+    <ClientOnly>
+      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">Minhas Músicas</h1>
           <button
-            onClick={() => {
-              setIsEditando(false);
-              setMusicaSelecionada(null);
-              setIsModalOpen(true);
-            }}
+            onClick={handleAdicionarMusica}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
+            <PlusIcon className="h-5 w-5 mr-2" />
             Nova Música
           </button>
         </div>
 
-        {/* Lista de Músicas */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <ul className="divide-y divide-gray-200">
-            {musicas.map((musica) => (
-              <li key={musica.id} className="px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{musica.nome}</h3>
-                    <p className="text-sm text-gray-500">
-                      {musica.artista} • Tom: {musica.tom}
-                    </p>
+        {/* Barra de pesquisa unificada */}
+        <div className="mb-6">
+          <div className="relative flex items-center">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por música ou artista..."
+              className="block w-full rounded-md border-gray-300 pl-10 pr-12 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-12"
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 space-x-1">
+              {temFiltrosAtivos && (
+                <button
+                  onClick={handleLimparFiltros}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  title="Limpar filtros"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                className={`p-1.5 rounded-md ${
+                  mostrarFiltros
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Filtros avançados"
+              >
+                <AdjustmentsHorizontalIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filtros avançados */}
+        {mostrarFiltros && (
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Filtro de Tom */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <MusicalNoteIcon className="h-4 w-4 mr-1 text-indigo-500" />
+                  Tom
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setFiltroTom('')}
+                    className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                      !filtroTom 
+                        ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {tons.map((tom) => (
+                    <button
+                      key={tom}
+                      onClick={() => setFiltroTom(tom)}
+                      className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                        filtroTom === tom 
+                          ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tom}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Filtro de BPM */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Velocidade (BPM)
+                </label>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setFiltroBPM({ min: undefined, max: undefined })}
+                      className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                        !filtroBPM.min && !filtroBPM.max
+                          ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todos
+                    </button>
+                    {faixasBPM.map((faixa) => (
+                      <button
+                        key={faixa.label}
+                        onClick={() => setFiltroBPM({ min: faixa.min, max: faixa.max })}
+                        className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
+                          filtroBPM.min === faixa.min && filtroBPM.max === faixa.max
+                            ? 'bg-indigo-100 text-indigo-700 font-medium' 
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                        title={faixa.descricao}
+                      >
+                        {faixa.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => handleVerDetalhes(musica)}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Ver Detalhes
-                    </button>
-                    <button
-                      onClick={() => handleEditar(musica)}
-                      className="text-indigo-600 hover:text-indigo-900"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => setMusicaParaExcluir(musica.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Excluir
-                    </button>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="number"
+                      placeholder="Min BPM"
+                      value={filtroBPM.min || ''}
+                      onChange={(e) => setFiltroBPM({ ...filtroBPM, min: e.target.value ? Number(e.target.value) : undefined })}
+                      className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                    <span className="text-gray-500">-</span>
+                    <input
+                      type="number"
+                      placeholder="Max BPM"
+                      value={filtroBPM.max || ''}
+                      onChange={(e) => setFiltroBPM({ ...filtroBPM, max: e.target.value ? Number(e.target.value) : undefined })}
+                      className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
                   </div>
                 </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Mensagem quando não há músicas */}
-        {musicas.length === 0 && (
-          <div className="text-center py-12">
-            <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma música cadastrada</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Comece adicionando suas músicas para criar repertórios.
-            </p>
+              </div>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Modal de Nova Música/Edição */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setIsEditando(false);
-          setMusicaSelecionada(null);
-        }}
-        title={isEditando ? "Editar Música" : "Nova Música"}
-      >
-        <MusicaForm
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setIsEditando(false);
-            setMusicaSelecionada(null);
+        {/* Resultados e estatísticas */}
+        <div className="flex justify-between items-center mb-3 text-sm text-gray-500">
+          <div>
+            {musicasFiltradas.length} {musicasFiltradas.length === 1 ? 'música encontrada' : 'músicas encontradas'}
+            {temFiltrosAtivos && ' com os filtros aplicados'}
+          </div>
+          {temFiltrosAtivos && (
+            <button
+              onClick={handleLimparFiltros}
+              className="text-indigo-600 hover:text-indigo-800 flex items-center"
+            >
+              <XMarkIcon className="h-4 w-4 mr-1" />
+              Limpar filtros
+            </button>
+          )}
+        </div>
+
+        {/* Lista de músicas */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {musicasFiltradas.length > 0 ? (
+            <ul className="divide-y divide-gray-200">
+              {musicasFiltradas.map((musica) => (
+                <li key={musica.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center">
+                        <p className="text-sm font-medium text-indigo-600 truncate mr-2">
+                          {musica.nome}
+                        </p>
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                          {musica.tom}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {musica.artista}
+                      </p>
+                      <div className="mt-1 flex items-center">
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                          BPM: {musica.bpm}
+                        </span>
+                        {musica.observacoes && (
+                          <p className="ml-2 text-xs text-gray-500 truncate">
+                            {musica.observacoes}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleEditarMusica(musica)}
+                        className="inline-flex items-center text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-full p-2 transition-colors duration-200"
+                        title="Editar música"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleExcluirMusica(musica)}
+                        className="inline-flex items-center text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 rounded-full p-2 transition-colors duration-200"
+                        title="Excluir música"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="text-center py-12">
+              <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-2 text-sm text-gray-500">
+                {temFiltrosAtivos
+                  ? 'Nenhuma música encontrada com os filtros aplicados'
+                  : 'Nenhuma música cadastrada. Clique em "Nova Música" para começar.'}
+              </p>
+              {temFiltrosAtivos && (
+                <button
+                  onClick={handleLimparFiltros}
+                  className="mt-3 inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Modal de Edição/Criação de Música */}
+        <Modal
+          title={musicaEmEdicao ? 'Editar Música' : 'Nova Música'}
+          isOpen={modalAberto}
+          onClose={() => {
+            setModalAberto(false);
+            setMusicaEmEdicao(undefined);
           }}
-          initialData={isEditando ? musicaSelecionada : undefined}
-        />
-      </Modal>
-
-      {/* Modal de Detalhes da Música */}
-      {musicaSelecionada && (
-        <MusicaDetalhes
-          isOpen={isDetalhesOpen}
-          onClose={() => setIsDetalhesOpen(false)}
-          musica={musicaSelecionada}
-        />
-      )}
-
-      {/* Modal de Confirmação de Exclusão */}
-      <Modal
-        isOpen={!!musicaParaExcluir}
-        onClose={() => setMusicaParaExcluir(null)}
-        title="Confirmar Exclusão"
-      >
-        <div className="mt-2">
-          <p className="text-sm text-gray-500">
-            Tem certeza que deseja excluir esta música? Esta ação não pode ser desfeita.
-          </p>
-        </div>
-
-        <div className="mt-4 flex justify-end space-x-3">
-          <button
-            type="button"
-            className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-            onClick={() => setMusicaParaExcluir(null)}
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700"
-            onClick={() => musicaParaExcluir && handleExcluir(musicaParaExcluir)}
-          >
-            Excluir
-          </button>
-        </div>
-      </Modal>
-    </div>
+        >
+          <MusicaForm
+            musica={musicaEmEdicao}
+            onSubmit={handleSubmit}
+          />
+        </Modal>
+      </div>
+    </ClientOnly>
   );
 } 
