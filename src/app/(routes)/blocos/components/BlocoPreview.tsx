@@ -21,13 +21,17 @@ export function BlocoPreview({
   onEditarMusicaCompleta,
   onExcluirMusicaCompleta
 }: BlocoPreviewProps) {
+  // Garantir que bloco.musicas sempre seja um array
+  const musicas = bloco.musicas || [];
+  
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !onReordenarMusicas) return;
 
-    const items = Array.from(bloco.musicas);
+    const items = Array.from(musicas);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
+    // Atualiza a ordem das músicas
     onReordenarMusicas(items);
   };
 
@@ -43,7 +47,7 @@ export function BlocoPreview({
     }
   };
 
-  if (bloco.musicas.length === 0) {
+  if (musicas.length === 0) {
     return (
       <div className="text-center py-6">
         <QueueListIcon className="mx-auto h-12 w-12 text-gray-400" />
@@ -64,18 +68,22 @@ export function BlocoPreview({
             ref={provided.innerRef}
             className="space-y-2"
           >
-            {bloco.musicas.map((musica, index) => (
+            {musicas.map((musica, index) => (
               <Draggable
                 key={musica.id}
                 draggableId={`${bloco.id}-${musica.id}`}
                 index={index}
                 isDragDisabled={!onReordenarMusicas}
               >
-                {(provided) => (
+                {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.draggableProps}
-                    className="flex items-center space-x-4 p-3 bg-gray-50 rounded-md hover:bg-gray-100"
+                    className={`flex items-center space-x-4 p-3 rounded-md transition-all duration-200 ${
+                      snapshot.isDragging 
+                        ? 'bg-indigo-50 shadow-md' 
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
                   >
                     <div
                       {...provided.dragHandleProps}
@@ -84,7 +92,11 @@ export function BlocoPreview({
                     >
                       <Bars3Icon className="h-5 w-5 text-gray-400" />
                     </div>
-                    <span className="flex items-center justify-center w-6 h-6 bg-indigo-100 text-indigo-600 rounded-full text-sm font-medium">
+                    <span className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-medium shadow-sm transition-all duration-200 ${
+                      snapshot.isDragging 
+                        ? 'bg-indigo-200 text-indigo-800 scale-110' 
+                        : 'bg-indigo-100 text-indigo-700'
+                    }`}>
                       {index + 1}
                     </span>
                     <div className="flex-1">

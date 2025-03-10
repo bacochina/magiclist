@@ -1,22 +1,51 @@
-# Dependências
-node_modules/
-.pnp
+# dependencies
+/node_modules
+/.pnp
 .pnp.js
 
-# Arquivos de build
-.next/
-out/
-build/
-dist/
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.bak
+*.backup
+*.swp
 
 # Arquivos de cache
 .cache/
-.vercel/
 .turbo/
 
 # Arquivos de ambiente
-.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -24,19 +53,6 @@ dist/
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Arquivos do sistema
-.DS_Store
-Thumbs.db
-
-# Arquivos de backup
-*.tar.gz
-*.zip
-*.bak
-*.backup
 
 # Arquivos de banco de dados
 *.db
@@ -51,16 +67,3 @@ magiclist.tar.gz
 # Arquivos temporários
 *.tmp
 *.temp
-
-# testing
-/coverage
-
-# misc
-*.pem
-
-# next.js
-next-env.d.ts
-
-# IDE
-.vscode/
-.idea/

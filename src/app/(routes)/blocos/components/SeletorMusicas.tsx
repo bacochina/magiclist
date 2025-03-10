@@ -3,7 +3,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Musica } from '@/lib/types';
 import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
-import { MagnifyingGlassIcon, PencilIcon, TrashIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { 
+  MagnifyingGlassIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  FunnelIcon, 
+  XMarkIcon,
+  MusicalNoteIcon,
+  PlusIcon,
+  CheckIcon,
+  CheckCircleIcon,
+  ArrowRightIcon
+} from '@heroicons/react/24/outline';
 
 interface SeletorMusicasProps {
   bandaId: string;
@@ -11,6 +22,8 @@ interface SeletorMusicasProps {
   onAdicionarMusica: (musica: Musica) => void;
   onEditarMusica?: (musica: Musica) => void;
   onRemoverMusica?: (musica: Musica) => void;
+  onConcluir?: () => void;
+  onAdicionarMusicasMultiplas?: (musicas: Musica[]) => void;
 }
 
 interface FiltrosBPM {
@@ -32,13 +45,15 @@ export function SeletorMusicas({
   onAdicionarMusica,
   onEditarMusica,
   onRemoverMusica,
+  onConcluir,
+  onAdicionarMusicasMultiplas
 }: SeletorMusicasProps) {
   const [todasMusicas] = useHydratedLocalStorage<Musica[]>('musicas', []);
-  const [busca, setBusca] = useState('');
-  const [buscaArtista, setBuscaArtista] = useState('');
+  const [termoBusca, setTermoBusca] = useState('');
   const [filtroTom, setFiltroTom] = useState<string>('');
   const [filtroBPM, setFiltroBPM] = useState<FiltrosBPM>({ min: undefined, max: undefined });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [musicasMarcadas, setMusicasMarcadas] = useState<string[]>([]);
 
   const handleRemoverMusica = (musica: Musica) => {
     if (confirm(`Tem certeza que deseja remover a música "${musica.nome}"?`)) {
@@ -47,10 +62,53 @@ export function SeletorMusicas({
   };
 
   const handleLimparFiltros = () => {
-    setBusca('');
-    setBuscaArtista('');
+    setTermoBusca('');
     setFiltroTom('');
     setFiltroBPM({ min: undefined, max: undefined });
+  };
+
+  const handleMarcarMusica = (musica: Musica) => {
+    if (musicasMarcadas.includes(musica.id)) {
+      setMusicasMarcadas(musicasMarcadas.filter(id => id !== musica.id));
+    } else {
+      setMusicasMarcadas([...musicasMarcadas, musica.id]);
+      // Também adiciona a música diretamente
+      onAdicionarMusica(musica);
+    }
+  };
+
+  const handleSelecionarTudo = () => {
+    const todasIds = musicasFiltradas.map(m => m.id);
+    
+    // Verifica se todas as músicas filtradas já estão selecionadas
+    const todasSelecionadas = todasIds.every(id => musicasMarcadas.includes(id));
+    
+    if (todasSelecionadas) {
+      // Se todas já estão selecionadas, desmarca todas
+      setMusicasMarcadas(musicasMarcadas.filter(id => !todasIds.includes(id)));
+    } else {
+      // Caso contrário, seleciona todas
+      const novasMarcadas = [...new Set([...musicasMarcadas, ...todasIds])];
+      setMusicasMarcadas(novasMarcadas);
+      
+      if (onAdicionarMusicasMultiplas) {
+        onAdicionarMusicasMultiplas(musicasFiltradas);
+      } else {
+        // Fallback para adicionar uma por uma
+        musicasFiltradas.forEach(musica => onAdicionarMusica(musica));
+      }
+    }
+  };
+
+  const handleSelecionarMarcados = () => {
+    if (onAdicionarMusicasMultiplas) {
+      const musicasSelecionadas = musicasFiltradas.filter(m => musicasMarcadas.includes(m.id));
+      onAdicionarMusicasMultiplas(musicasSelecionadas);
+    }
+    
+    if (onConcluir) {
+      onConcluir();
+    }
   };
 
   // Lista única de tons para o filtro
@@ -65,52 +123,43 @@ export function SeletorMusicas({
     );
 
     const filtradas = musicasDisponiveis.filter((musica) => {
-      const termoBusca = busca.toLowerCase();
-      const termoArtista = buscaArtista.toLowerCase();
-      const matchNome = musica.nome.toLowerCase().includes(termoBusca);
-      const matchArtista = musica.artista.toLowerCase().includes(termoArtista);
+      const termo = termoBusca.toLowerCase();
+      const matchNomeOuArtista = 
+        musica.nome.toLowerCase().includes(termo) || 
+        musica.artista.toLowerCase().includes(termo);
       const matchTom = !filtroTom || musica.tom === filtroTom;
       const matchBPM = (!filtroBPM.min || musica.bpm >= filtroBPM.min) &&
                       (!filtroBPM.max || musica.bpm <= filtroBPM.max);
 
-      return matchNome && matchArtista && matchTom && matchBPM;
+      return matchNomeOuArtista && matchTom && matchBPM;
     });
 
     // Ordena por nome
     return [...filtradas].sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [busca, buscaArtista, filtroTom, filtroBPM, todasMusicas, musicasSelecionadas]);
+  }, [termoBusca, filtroTom, filtroBPM, todasMusicas, musicasSelecionadas]);
 
-  const temFiltrosAtivos = busca || buscaArtista || filtroTom || filtroBPM.min || filtroBPM.max;
+  const temFiltrosAtivos = termoBusca || filtroTom || filtroBPM.min || filtroBPM.max;
+  
+  // Verifica se todas as músicas filtradas estão selecionadas
+  const todasSelecionadas = musicasFiltradas.length > 0 && 
+    musicasFiltradas.every(musica => musicasMarcadas.includes(musica.id));
 
   return (
     <div className="space-y-4">
       <div className="flex items-center space-x-4">
-        <div className="flex-1 space-y-2">
-          {/* Campo de busca por nome */}
+        <div className="flex-1">
+          {/* Campo de busca unificado */}
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome da música..."
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              placeholder="Buscar por nome ou artista..."
               className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            />
-          </div>
-
-          {/* Campo de busca por artista */}
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              value={buscaArtista}
-              onChange={(e) => setBuscaArtista(e.target.value)}
-              placeholder="Buscar por artista..."
-              className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              autoFocus
             />
           </div>
         </div>
@@ -207,13 +256,36 @@ export function SeletorMusicas({
         </div>
       )}
 
+      {/* Botões de ação para seleção múltipla */}
+      <div className="flex justify-between">
+        <button
+          onClick={handleSelecionarTudo}
+          className="inline-flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+          title={todasSelecionadas ? "Desmarcar todas as músicas" : "Selecionar todas as músicas filtradas"}
+        >
+          <CheckCircleIcon className="h-5 w-5" />
+          <span>{todasSelecionadas ? "Desmarcar Tudo" : "Selecionar Tudo"}</span>
+        </button>
+        
+        <button
+          onClick={handleSelecionarMarcados}
+          className="inline-flex items-center space-x-1 px-3 py-2 text-sm font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100"
+          title="Concluir seleção e adicionar músicas marcadas"
+        >
+          <ArrowRightIcon className="h-5 w-5" />
+          <span>Concluir</span>
+        </button>
+      </div>
+
       <div className="max-h-96 overflow-y-auto">
         {musicasFiltradas.length > 0 ? (
           <ul className="divide-y divide-gray-200">
             {musicasFiltradas.map((musica) => (
               <li
                 key={musica.id}
-                className="flex items-center justify-between py-3 hover:bg-gray-50 px-3 rounded-md"
+                className={`flex items-center justify-between py-3 hover:bg-gray-50 px-3 rounded-md ${
+                  musicasMarcadas.includes(musica.id) ? 'bg-green-50' : ''
+                }`}
               >
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
@@ -242,6 +314,24 @@ export function SeletorMusicas({
                       <TrashIcon className="h-5 w-5" />
                     </button>
                   )}
+                  <button
+                    onClick={() => handleMarcarMusica(musica)}
+                    className={`inline-flex items-center rounded-full p-2 transition-colors duration-200 ${
+                      musicasMarcadas.includes(musica.id)
+                        ? 'text-green-600 bg-green-50 hover:bg-green-100'
+                        : 'text-green-600 bg-green-50 hover:bg-green-100'
+                    }`}
+                    title="Adicionar ao bloco"
+                  >
+                    {musicasMarcadas.includes(musica.id) ? (
+                      <CheckIcon className="h-5 w-5" />
+                    ) : (
+                      <div className="flex items-center">
+                        <MusicalNoteIcon className="h-5 w-5" />
+                        <PlusIcon className="h-3 w-3 -ml-1" />
+                      </div>
+                    )}
+                  </button>
                 </div>
               </li>
             ))}

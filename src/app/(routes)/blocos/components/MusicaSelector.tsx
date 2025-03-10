@@ -11,13 +11,13 @@ interface MusicaSelectorProps {
   onChange: (musicas: Musica[]) => void;
 }
 
-export function MusicaSelector({ musicas, onChange }: MusicaSelectorProps) {
+export function MusicaSelector({ musicas = [], onChange }: MusicaSelectorProps) {
   const [todasMusicas] = useLocalStorage<Musica[]>('musicas', []);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const items = Array.from(musicas);
+    const items = Array.from(musicas || []);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
@@ -25,16 +25,16 @@ export function MusicaSelector({ musicas, onChange }: MusicaSelectorProps) {
   };
 
   const handleRemoveMusica = (musicaId: string) => {
-    onChange(musicas.filter((m) => m.id !== musicaId));
+    onChange((musicas || []).filter((m) => m.id !== musicaId));
   };
 
   const handleAddMusica = () => {
     const musicasDisponiveis = todasMusicas.filter(
-      (m) => !musicas.some((selected) => selected.id === m.id)
+      (m) => !(musicas || []).some((selected) => selected.id === m.id)
     );
 
     if (musicasDisponiveis.length > 0) {
-      onChange([...musicas, musicasDisponiveis[0]]);
+      onChange([...(musicas || []), musicasDisponiveis[0]]);
     }
   };
 
@@ -48,7 +48,7 @@ export function MusicaSelector({ musicas, onChange }: MusicaSelectorProps) {
               ref={provided.innerRef}
               className="space-y-2"
             >
-              {musicas.map((musica, index) => (
+              {(musicas || []).map((musica, index) => (
                 <Draggable
                   key={musica.id}
                   draggableId={musica.id}
@@ -88,7 +88,7 @@ export function MusicaSelector({ musicas, onChange }: MusicaSelectorProps) {
       <button
         type="button"
         onClick={handleAddMusica}
-        disabled={todasMusicas.length === musicas.length}
+        disabled={todasMusicas.length === (musicas || []).length}
         className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
       >
         Adicionar Música

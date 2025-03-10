@@ -1,30 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/components/ui/Modal';
+import { Modal } from '@/components/Modal';
 import { RepertorioForm } from './components/RepertorioForm';
 import { RepertorioPDF } from './components/RepertorioPDF';
 import { CalendarIcon, DocumentArrowDownIcon, QueueListIcon } from '@heroicons/react/24/outline';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Banda } from '@/lib/types';
 
-// Remover dados de exemplo - músicas, blocos e repertórios
-interface Banda {
-  id: string;
-  nome: string;
-}
-
+// Interface para o repertório
 interface Musica {
   id: string;
   nome: string;
   artista: string;
   tom: string;
-  bpm: string;
+  bpm?: string | number;
+  dicas?: string[];
+  observacoes?: string;
 }
 
 interface Bloco {
   id: string;
   nome: string;
-  descricao: string;
+  descricao?: string;
   musicas: Musica[];
 }
 
@@ -34,8 +32,19 @@ interface Repertorio {
   data: string;
   bandaId: string;
   observacoes: string;
-  blocos: Bloco[];
+  blocos: any[]; // Usando any[] para evitar problemas de tipo
 }
+
+// Função para converter BPM de string para número se necessário
+const normalizarBlocos = (blocos: any[]): Bloco[] => {
+  return blocos.map(bloco => ({
+    ...bloco,
+    musicas: bloco.musicas.map((musica: any) => ({
+      ...musica,
+      bpm: typeof musica.bpm === 'string' ? parseInt(musica.bpm, 10) : musica.bpm
+    }))
+  }));
+};
 
 export default function RepertoriosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,7 +86,15 @@ export default function RepertoriosPage() {
           throw new Error('Erro ao carregar repertórios');
         }
         const data = await response.json();
-        setRepertorios(data);
+        
+        // Ordenar repertórios por data (do mais próximo para o mais distante)
+        const repertoriosOrdenados = [...data].sort((a, b) => {
+          const dataA = new Date(a.data).getTime();
+          const dataB = new Date(b.data).getTime();
+          return dataA - dataB; // Ordem crescente (do mais antigo para o mais recente)
+        });
+        
+        setRepertorios(repertoriosOrdenados as Repertorio[]);
       } catch (error) {
         console.error('Erro ao carregar repertórios:', error);
       }
@@ -410,7 +427,7 @@ export default function RepertoriosPage() {
           <div className="h-[calc(100vh-200px)]">
             {repertorioSelecionado.blocos?.length > 0 ? (
               <RepertorioPDF
-                nomeBanda={repertorioSelecionado.bandaId === '1' ? 'Metallica' : 'Iron Maiden'}
+                nomeBanda={bandas.find(b => b.id === repertorioSelecionado.bandaId)?.nome || 'Banda'}
                 nomeRepertorio={repertorioSelecionado.nome}
                 data={repertorioSelecionado.data}
                 blocos={repertorioSelecionado.blocos}

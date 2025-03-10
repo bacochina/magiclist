@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { BlocoForm } from './components/BlocoForm';
 import { ListaBandas } from './components/ListaBandas';
@@ -11,6 +11,7 @@ import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
 import { bandasSeed } from '@/lib/seeds/bandas';
 import { MusicaForm } from './components/MusicaForm';
 import { ClientOnly } from './components/ClientOnly';
+import { gerarMusicasSeed } from '@/lib/seeds/musicas';
 
 // Dados iniciais para os blocos
 const blocosSeedInicial = [
@@ -42,6 +43,31 @@ export default function BlocosPage() {
   const [blocoParaAdicionarMusica, setBlocoParaAdicionarMusica] = useState<Bloco | undefined>();
   const [musicaEmEdicao, setMusicaEmEdicao] = useState<Musica | undefined>();
   const [musicasSelecionadas, setMusicasSelecionadas] = useState<Musica[]>([]);
+
+  // Verificar se existem músicas e adicionar músicas de exemplo se não houver
+  useEffect(() => {
+    if (musicas.length === 0) {
+      // Gerar músicas de exemplo para cada banda
+      const musicasExemplo: Musica[] = [];
+      
+      // Para cada banda, gerar algumas músicas
+      bandas.forEach(banda => {
+        const musicasBanda = gerarMusicasSeed(banda.id).map(m => ({
+          id: Math.random().toString(36).substr(2, 9),
+          nome: m.nome,
+          artista: m.artista,
+          tom: m.tom,
+          bpm: m.bpm,
+          observacoes: m.observacoes
+        }));
+        
+        // Adicionar apenas as primeiras 3 músicas de cada banda para não sobrecarregar
+        musicasExemplo.push(...musicasBanda.slice(0, 3));
+      });
+      
+      setMusicas(musicasExemplo);
+    }
+  }, [bandas, musicas.length, setMusicas]);
 
   const blocosDaBanda = bandaSelecionada
     ? blocos.filter((bloco) => bloco.bandaId === bandaSelecionada.id)
@@ -115,12 +141,52 @@ export default function BlocosPage() {
     if (blocoParaAdicionarMusica) {
       setBlocos(blocos.map(bloco => 
         bloco.id === blocoParaAdicionarMusica.id
-          ? { ...bloco, musicas: [...bloco.musicas, musica] }
+          ? { 
+              ...bloco, 
+              musicas: bloco.musicas ? [...bloco.musicas, musica] : [musica] 
+            }
           : bloco
       ));
-      setModalMusicasAberto(false);
-      setBlocoParaAdicionarMusica(undefined);
     }
+  };
+
+  const handleSelecionarMusicasMultiplas = (musicasSelecionadas: Musica[]) => {
+    if (blocoParaAdicionarMusica) {
+      // Obtém os IDs das músicas selecionadas
+      const idsSelecionados = musicasSelecionadas.map(m => m.id);
+      
+      // Obtém as músicas atuais do bloco
+      const musicasAtuais = blocoParaAdicionarMusica.musicas || [];
+      
+      // Como não temos acesso direto às músicas filtradas aqui,
+      // vamos considerar que as músicas selecionadas são as que estão sendo manipuladas
+      const musicasParaManter = musicasAtuais.filter(m => 
+        // Mantém músicas que não estão na lista de selecionados (não foram manipuladas)
+        !musicasSelecionadas.some(selecionada => selecionada.id === m.id) || 
+        // Ou que estão na lista de selecionados
+        idsSelecionados.includes(m.id)
+      );
+      
+      // Adiciona as novas músicas que não estavam no bloco
+      const novasMusicas = musicasSelecionadas.filter(m => 
+        !musicasAtuais.some(existente => existente.id === m.id)
+      );
+      
+      // Atualiza o bloco com a combinação de músicas para manter e novas músicas
+      setBlocos(blocos.map(bloco => 
+        bloco.id === blocoParaAdicionarMusica.id
+          ? { 
+              ...bloco, 
+              musicas: [...musicasParaManter, ...novasMusicas]
+            }
+          : bloco
+      ));
+    }
+  };
+
+  const handleConcluirSelecao = () => {
+    setModalMusicasAberto(false);
+    setBlocoParaAdicionarMusica(undefined);
   };
 
   const handleSubmitMusica = (data: Partial<Musica>) => {
@@ -135,11 +201,13 @@ export default function BlocosPage() {
       // Atualiza a música em todos os blocos que a contêm
       setBlocos(blocos.map(bloco => ({
         ...bloco,
-        musicas: bloco.musicas.map(m =>
-          m.id === musicaEmEdicao.id
-            ? { ...m, ...data }
-            : m
-        )
+        musicas: bloco.musicas 
+          ? bloco.musicas.map(m =>
+              m.id === musicaEmEdicao.id
+                ? { ...m, ...data }
+                : m
+            )
+          : []
       })));
     } else {
       const novaMusica: Musica = {
@@ -168,7 +236,9 @@ export default function BlocosPage() {
     // Remove a música de todos os blocos que a contêm
     setBlocos(blocos.map(bloco => ({
       ...bloco,
-      musicas: bloco.musicas.filter(m => m.id !== musica.id)
+      musicas: bloco.musicas 
+        ? bloco.musicas.filter(m => m.id !== musica.id)
+        : []
     })));
   };
 
@@ -234,8 +304,10 @@ export default function BlocosPage() {
           {blocoParaAdicionarMusica && bandaSelecionada && (
             <SeletorMusicas
               bandaId={bandaSelecionada.id}
-              musicasSelecionadas={blocoParaAdicionarMusica.musicas}
+              musicasSelecionadas={blocoParaAdicionarMusica.musicas || []}
               onAdicionarMusica={handleSelecionarMusica}
+              onAdicionarMusicasMultiplas={handleSelecionarMusicasMultiplas}
+              onConcluir={handleConcluirSelecao}
             />
           )}
         </Modal>

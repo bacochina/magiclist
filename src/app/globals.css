@@ -1,3 +1,133 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Gradientes de texto */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400;
+}
+
+/* Botões */
+.btn-primary {
+  @apply px-4 py-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white rounded-lg 
+         hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300
+         transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 
+         transition-all duration-300 transform hover:scale-105 
+         focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50;
+}
+
+/* Cards */
+.card {
+  @apply bg-white/10 backdrop-blur-lg rounded-xl p-6 
+         border border-white/10 transition-all duration-300 
+         hover:border-white/20 hover:bg-white/15;
+}
+
+/* Inputs */
+.input {
+  @apply bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white 
+         focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
+         placeholder-gray-400;
+}
+
+/* Tabelas */
+.table {
+  @apply w-full text-left border-collapse;
+}
+
+.table th {
+  @apply px-6 py-3 bg-white/5 text-xs font-medium text-gray-300 uppercase tracking-wider;
+}
+
+.table td {
+  @apply px-6 py-4 border-t border-white/5;
+}
+
+/* Modal */
+.modal {
+  @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+}
+
+.modal-content {
+  @apply bg-gradient-to-br from-gray-900 to-black rounded-xl p-6 max-w-2xl w-full
+         border border-white/10 shadow-2xl transform transition-all duration-300;
+}
+
+/* Tooltips */
+.tooltip {
+  @apply absolute z-10 px-3 py-2 text-sm font-medium text-white bg-black rounded-lg shadow-lg
+         -translate-y-full -translate-x-1/2 opacity-0 invisible
+         transition-all duration-200 transform;
+}
+
+.tooltip-trigger:hover .tooltip {
+  @apply opacity-100 visible;
+}

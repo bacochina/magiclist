@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { BlocosOrdenados } from './BlocosOrdenados';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { Modal } from '@/components/ui/Modal';
+import { Modal } from '@/components/Modal';
 
 const repertorioSchema = z.object({
   nome: z.string().min(1, 'O nome é obrigatório'),

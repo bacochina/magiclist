@@ -1,6 +1,7 @@
 'use client';
 
 import { Document, Page, Text, View, StyleSheet, PDFViewer } from '@react-pdf/renderer';
+import { useEffect } from 'react';
 
 // Criar estilos para o PDF
 const styles = StyleSheet.create({
@@ -85,13 +86,15 @@ const styles = StyleSheet.create({
   },
 });
 
+// Interfaces adaptadas para o componente
 interface Musica {
   id: string;
   nome: string;
   artista: string;
   tom: string;
-  bpm?: string;
+  bpm?: number | string;
   dicas?: string[];
+  observacoes?: string;
 }
 
 interface Bloco {
@@ -109,6 +112,11 @@ interface RepertorioPDFProps {
 }
 
 export function RepertorioPDF({ nomeBanda, nomeRepertorio, data, blocos }: RepertorioPDFProps) {
+  // Adicionar log para depuração
+  useEffect(() => {
+    console.log('RepertorioPDF renderizado com:', { nomeBanda, nomeRepertorio, data, blocos });
+  }, [nomeBanda, nomeRepertorio, data, blocos]);
+
   // Função para formatar o número da música com zeros à esquerda
   const formatarNumeroMusica = (numero: number) => {
     return numero.toString().padStart(2, '0');
@@ -188,11 +196,14 @@ export function RepertorioPDF({ nomeBanda, nomeRepertorio, data, blocos }: Reper
     );
   } catch (error) {
     console.error('Erro ao renderizar PDF:', error);
+    console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
+    console.error('Dados recebidos:', { nomeBanda, nomeRepertorio, data, blocos });
+    
     return (
       <div className="flex items-center justify-center h-[800px] bg-gray-50">
         <div className="text-center">
           <p className="text-red-600 font-medium">Erro ao carregar o PDF</p>
-          <p className="text-gray-500 mt-2">Por favor, tente novamente mais tarde</p>
+          <p className="text-gray-500 mt-2">Por favor, verifique o console para mais detalhes</p>
         </div>
       </div>
     );
