@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -59,13 +59,18 @@ const menuGroups: MenuGroup[] = [
   }
 ];
 
-export function Navigation() {
+export default function Navigation() {
   const pathname = usePathname();
   const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroup(openGroup === groupId ? null : groupId);
   };
+
+  // Fechar o submenu quando a rota muda
+  useEffect(() => {
+    setOpenGroup(null);
+  }, [pathname]);
 
   return (
     <nav className="bg-white shadow-md">
@@ -134,6 +139,7 @@ export function Navigation() {
                                     : 'text-gray-700 hover:bg-gray-50'
                                 }`}
                                 role="menuitem"
+                                onClick={() => setOpenGroup(null)}
                               >
                                 {item.title}
                               </Link>

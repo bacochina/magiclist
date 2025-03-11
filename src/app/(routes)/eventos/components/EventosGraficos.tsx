@@ -61,9 +61,9 @@ const coresBordaTipoEvento: Record<TipoEvento, string> = {
 // Cores de fundo para os cards de estatísticas
 const coresBackgroundTipoEvento: Record<TipoEvento | 'total', string> = {
   total: 'rgba(75, 85, 99, 0.6)',
-  show: 'rgba(147, 51, 234, 0.6)',
-  ensaio: 'rgba(59, 130, 246, 0.6)',
-  reuniao: 'rgba(16, 185, 129, 0.6)',
+  show: 'rgba(22, 163, 74, 0.6)', // Verde (green-600)
+  ensaio: 'rgba(234, 88, 12, 0.6)', // Laranja (orange-600)
+  reuniao: 'rgba(202, 138, 4, 0.6)', // Amarelo (yellow-600)
 };
 
 export function EventosGraficos({ eventos }: EventosGraficosProps) {

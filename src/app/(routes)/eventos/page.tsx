@@ -46,6 +46,8 @@ export default function EventosPage() {
   const [eventoEmEdicao, setEventoEmEdicao] = useState<Evento | undefined>();
   const [modalRelatorioAberto, setModalRelatorioAberto] = useState(false);
   const [eventoParaRelatorio, setEventoParaRelatorio] = useState<Evento | undefined>();
+  const [mostrarBotaoTopo, setMostrarBotaoTopo] = useState(false);
+  const [gerandoPDF, setGerandoPDF] = useState(false);
   
   // Filtros
   const [busca, setBusca] = useState('');
@@ -70,6 +72,20 @@ export default function EventosPage() {
   useEffect(() => {
     // Tenta popular com eventos de exemplo se houver poucos eventos
     popularEventosExemplo();
+  }, []);
+
+  // Efeito para mostrar/esconder o botão de voltar ao topo
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setMostrarBotaoTopo(true);
+      } else {
+        setMostrarBotaoTopo(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Filtra eventos baseado nos critérios
@@ -237,6 +253,8 @@ export default function EventosPage() {
   // Função para gerar o PDF do relatório
   const gerarPDF = (evento: Evento) => {
     try {
+      setGerandoPDF(true);
+      
       // Criar um novo documento PDF
       const doc = new jsPDF();
       
@@ -248,7 +266,7 @@ export default function EventosPage() {
       // Tipo e status
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      let tipoTexto = evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : evento.tipo;
+      let tipoTexto = evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : 'Reunião';
       let statusTexto = '';
       switch (evento.status) {
         case 'agendado': statusTexto = 'Agendado'; break;
@@ -260,39 +278,318 @@ export default function EventosPage() {
       
       doc.text(`Tipo: ${tipoTexto} | Status: ${statusTexto}`, 105, 30, { align: 'center' });
       
+      let yPos = 40;
+      
       // Informações básicas
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('Informações Básicas', 14, 40);
-      doc.line(14, 42, 196, 42);
+      doc.text('Informações Básicas', 14, yPos);
+      doc.line(14, yPos + 2, 196, yPos + 2);
+      yPos += 10;
       
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Data: ${formatarData(evento.data)}`, 14, 50);
-      doc.text(`Horário: ${evento.horaInicio} às ${evento.horaFim}`, 14, 57);
-      doc.text(`Local: ${evento.local}`, 14, 64);
+      doc.text(`Data: ${formatarData(evento.data)}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Horário: ${evento.horaInicio} às ${evento.horaFim}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Local: ${evento.local}`, 14, yPos);
+      yPos += 7;
       
       const nomeBanda = getNomeBanda(evento.bandaId) || 'Não especificada';
-      doc.text(`Banda: ${nomeBanda}`, 14, 71);
+      doc.text(`Banda: ${nomeBanda}`, 14, yPos);
+      yPos += 7;
       
       if (evento.endereco) {
-        doc.text(`Endereço: ${evento.endereco}`, 14, 78);
+        doc.text(`Endereço: ${evento.endereco}`, 14, yPos);
+        yPos += 7;
       }
       
       // Descrição
       if (evento.descricao) {
-        doc.text('Descrição:', 14, 85);
+        doc.text('Descrição:', 14, yPos);
+        yPos += 7;
         const descricaoLinhas = doc.splitTextToSize(evento.descricao, 180);
-        doc.text(descricaoLinhas, 14, 92);
+        doc.text(descricaoLinhas, 14, yPos);
+        yPos += descricaoLinhas.length * 5 + 5;
+      }
+      
+      // Informações financeiras (para shows)
+      if (evento.tipo === 'show' && evento.valorCache) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Informações Financeiras', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Cachê: R$ ${evento.valorCache.toFixed(2)}`, 14, yPos);
+        yPos += 7;
+        
+        if (evento.custos && evento.custos.length > 0) {
+          doc.text('Custos:', 14, yPos);
+          yPos += 7;
+          
+          evento.custos.forEach(custo => {
+            doc.text(`- ${custo.descricao}: R$ ${custo.valor}`, 20, yPos);
+            yPos += 5;
+          });
+          
+          yPos += 2;
+        }
+      }
+      
+      // Contatos (para shows)
+      if (evento.tipo === 'show' && (evento.contatoLocal || evento.contatoTecnico)) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Contatos', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        
+        if (evento.contatoLocal) {
+          doc.text(`Contato do Local: ${evento.contatoLocal}`, 14, yPos);
+          yPos += 5;
+          if (evento.telefoneLocal) {
+            doc.text(`Telefone: ${evento.telefoneLocal}`, 14, yPos);
+            yPos += 5;
+          }
+        }
+        
+        if (evento.contatoTecnico) {
+          doc.text(`Contato Técnico: ${evento.contatoTecnico}`, 14, yPos);
+          yPos += 5;
+          if (evento.telefoneTecnico) {
+            doc.text(`Telefone: ${evento.telefoneTecnico}`, 14, yPos);
+            yPos += 5;
+          }
+        }
+        
+        if (evento.horarioPassagemSom) {
+          doc.text(`Horário de Passagem de Som: ${evento.horarioPassagemSom}`, 14, yPos);
+          yPos += 5;
+        }
+        
+        if (evento.observacoesContato) {
+          doc.text('Observações:', 14, yPos);
+          yPos += 5;
+          const obsLinhas = doc.splitTextToSize(evento.observacoesContato, 180);
+          doc.text(obsLinhas, 14, yPos);
+          yPos += obsLinhas.length * 5 + 2;
+        }
+        
+        yPos += 5;
+      }
+      
+      // Equipamentos
+      if ((evento.equipamentosNecessarios && evento.equipamentosNecessarios.length > 0) || 
+          (evento.equipamentosExistentes && evento.equipamentosExistentes.length > 0)) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Equipamentos', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        
+        if (evento.equipamentosNecessarios && evento.equipamentosNecessarios.length > 0) {
+          doc.text('Equipamentos Necessários:', 14, yPos);
+          yPos += 5;
+          
+          evento.equipamentosNecessarios.forEach(eq => {
+            doc.text(`- ${eq.descricao} (${eq.quantidade})`, 20, yPos);
+            yPos += 5;
+          });
+          
+          yPos += 2;
+        }
+        
+        if (evento.equipamentosExistentes && evento.equipamentosExistentes.length > 0) {
+          doc.text('Equipamentos Existentes:', 14, yPos);
+          yPos += 5;
+          
+          evento.equipamentosExistentes.forEach(eq => {
+            doc.text(`- ${eq.descricao} (${eq.quantidade})`, 20, yPos);
+            yPos += 5;
+          });
+          
+          yPos += 2;
+        }
+        
+        if (evento.observacoesEquipamentos) {
+          doc.text('Observações:', 14, yPos);
+          yPos += 5;
+          const obsLinhas = doc.splitTextToSize(evento.observacoesEquipamentos, 180);
+          doc.text(obsLinhas, 14, yPos);
+          yPos += obsLinhas.length * 5 + 2;
+        }
+        
+        yPos += 5;
+      }
+      
+      // Verificar se precisa de uma nova página
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      // Informações de viagem
+      if (evento.itensViagem && evento.itensViagem.length > 0) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Itens de Viagem', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        
+        evento.itensViagem.forEach(item => {
+          doc.text(`- ${item.descricao} (R$ ${parseFloat(item.valor.toString()).toFixed(2)})`, 20, yPos);
+          yPos += 5;
+          doc.text(`  Data: ${formatarData(item.data)} | Responsável: ${item.responsavelCusto}`, 20, yPos);
+          yPos += 7;
+        });
+        
+        yPos += 5;
+      }
+      
+      // Informações de hospedagem
+      if (evento.hospedagem && evento.hospedagem.local) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Hospedagem', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        
+        doc.text(`Local: ${evento.hospedagem.local}`, 14, yPos);
+        yPos += 5;
+        
+        if (evento.hospedagem.endereco) {
+          doc.text(`Endereço: ${evento.hospedagem.endereco}`, 14, yPos);
+          yPos += 5;
+        }
+        
+        doc.text(`Check-in: ${formatarData(evento.hospedagem.dataCheckIn)} às ${evento.hospedagem.horaCheckIn}`, 14, yPos);
+        yPos += 5;
+        doc.text(`Check-out: ${formatarData(evento.hospedagem.dataCheckOut)} às ${evento.hospedagem.horaCheckOut}`, 14, yPos);
+        yPos += 5;
+        
+        if (evento.hospedagem.valor) {
+          doc.text(`Valor: R$ ${parseFloat(evento.hospedagem.valor.toString()).toFixed(2)}`, 14, yPos);
+          yPos += 5;
+          doc.text(`Responsável: ${evento.hospedagem.responsavelCusto}`, 14, yPos);
+          yPos += 5;
+        }
+        
+        doc.text(`Quantidade de Quartos: ${evento.hospedagem.quantidadeQuartos}`, 14, yPos);
+        yPos += 5;
+        
+        if (evento.hospedagem.distribuicaoQuartos) {
+          doc.text(`Distribuição: ${evento.hospedagem.distribuicaoQuartos}`, 14, yPos);
+          yPos += 5;
+        }
+        
+        if (evento.hospedagem.incluiCafe) {
+          doc.text('Inclui Café da Manhã: Sim', 14, yPos);
+          yPos += 5;
+          
+          if (evento.hospedagem.horarioCafeInicio && evento.hospedagem.horarioCafeFim) {
+            doc.text(`Horário do Café: ${evento.hospedagem.horarioCafeInicio} às ${evento.hospedagem.horarioCafeFim}`, 14, yPos);
+            yPos += 5;
+          }
+        } else {
+          doc.text('Inclui Café da Manhã: Não', 14, yPos);
+          yPos += 5;
+        }
+        
+        if (evento.hospedagem.contatoHotel) {
+          doc.text(`Contato do Hotel: ${evento.hospedagem.contatoHotel}`, 14, yPos);
+          yPos += 5;
+          
+          if (evento.hospedagem.telefoneHotel) {
+            doc.text(`Telefone: ${evento.hospedagem.telefoneHotel}`, 14, yPos);
+            yPos += 5;
+          }
+        }
+        
+        if (evento.hospedagem.redeWifi) {
+          doc.text(`Rede Wi-Fi: ${evento.hospedagem.redeWifi}`, 14, yPos);
+          yPos += 5;
+          
+          if (evento.hospedagem.senhaWifi) {
+            doc.text(`Senha: ${evento.hospedagem.senhaWifi}`, 14, yPos);
+            yPos += 5;
+          }
+        }
+        
+        if (evento.hospedagem.observacoes) {
+          doc.text('Observações:', 14, yPos);
+          yPos += 5;
+          const obsLinhas = doc.splitTextToSize(evento.hospedagem.observacoes, 180);
+          doc.text(obsLinhas, 14, yPos);
+          yPos += obsLinhas.length * 5 + 2;
+        }
+        
+        yPos += 5;
+      }
+      
+      // Verificar se precisa de uma nova página
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      // Participantes
+      if (evento.integrantesIds && evento.integrantesIds.length > 0) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Participantes', 14, yPos);
+        doc.line(14, yPos + 2, 196, yPos + 2);
+        yPos += 10;
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        
+        const integrantesNomes = evento.integrantesIds.map(id => {
+          const integrante = integrantes.find(i => i.id === id);
+          return integrante ? `${integrante.nome} (${integrante.funcao})` : id;
+        });
+        
+        integrantesNomes.forEach(nome => {
+          doc.text(`- ${nome}`, 20, yPos);
+          yPos += 5;
+        });
+        
+        yPos += 5;
       }
       
       // Salvar o PDF
       const nomeArquivo = `Relatório_${evento.titulo.replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
       doc.save(nomeArquivo);
+      
+      setGerandoPDF(false);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
+      setGerandoPDF(false);
     }
+  };
+
+  // Função para voltar ao topo da página
+  const voltarAoTopo = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   return (
@@ -304,6 +601,16 @@ export default function EventosPage() {
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
       />
+
+      {/* Overlay de carregamento para geração de PDF */}
+      {gerandoPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+            <p className="text-gray-700 font-medium">Gerando PDF...</p>
+          </div>
+        </div>
+      )}
 
       {/* Conteúdo da página */}
       <div className="relative z-10 p-6">
@@ -1029,6 +1336,29 @@ export default function EventosPage() {
           </div>
         </div>
       </div>
+
+      {/* Overlay de carregamento para geração de PDF */}
+      {gerandoPDF && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
+            <p className="text-gray-700 font-medium">Gerando PDF...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Botão para voltar ao topo */}
+      {mostrarBotaoTopo && (
+        <button
+          onClick={voltarAoTopo}
+          className="fixed bottom-6 right-6 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200 z-50"
+          aria-label="Voltar ao topo"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 } 
