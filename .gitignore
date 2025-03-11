@@ -67,3 +67,5 @@ magiclist.tar.gz
 # Arquivos temporários
 *.tmp
 *.temp
+backups/*.tar.gz
+backups/

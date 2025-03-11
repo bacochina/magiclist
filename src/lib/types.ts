@@ -91,9 +91,18 @@ export interface Evento {
     quantidadeQuartos: number;
     distribuicaoQuartos?: string;
     incluiCafe: boolean;
+    horarioCafeInicio?: string;
+    horarioCafeFim?: string;
     observacoes?: string;
     contatoHotel?: string;
     telefoneHotel?: string;
+    redeWifi?: string;
+    senhaWifi?: string;
+    quartos?: {
+      numero: string;
+      andar: string;
+      ocupantes: string[];
+    }[];
   };
 }
 

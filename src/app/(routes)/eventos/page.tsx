@@ -6,6 +6,7 @@ import { Evento, TipoEvento, StatusEvento, Banda, Integrante, Musica } from '@/l
 import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
 import { ClientOnly } from '../blocos/components/ClientOnly';
 import { EventoForm } from './components/EventoForm';
+import { EventosGraficos } from './components/EventosGraficos';
 import { format, parseISO, isAfter, isBefore, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -23,9 +24,16 @@ import {
   XCircleIcon,
   ClockIcon as ClockIconSolid,
   MusicalNoteIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  ViewColumnsIcon,
+  TableCellsIcon,
+  ChartBarIcon,
+  ChartPieIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { popularEventosExemplo } from './data/eventos-exemplo';
+import { useRouter } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 
 export default function EventosPage() {
   const [eventos, setEventos] = useHydratedLocalStorage<Evento[]>('eventos', []);
@@ -46,9 +54,23 @@ export default function EventosPage() {
   const [filtroBanda, setFiltroBanda] = useState<string>('');
   const [filtroPeriodo, setFiltroPeriodo] = useState<'todos' | 'passados' | 'hoje' | 'futuros'>('todos');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  // Estado para controlar a visibilidade da seção de estatísticas
+  const [mostrarEstatisticas, setMostrarEstatisticas] = useState(true);
 
   // Ordenação
   const [ordenacao, setOrdenacao] = useState<'data-asc' | 'data-desc' | 'titulo-asc' | 'titulo-desc'>('data-asc');
+  
+  // Modo de visualização
+  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'tabela'>('cartoes');
+  const [mostrarGraficos, setMostrarGraficos] = useState(false);
+
+  const router = useRouter();
+
+  // Verifica se deve popular com eventos de exemplo
+  useEffect(() => {
+    // Tenta popular com eventos de exemplo se houver poucos eventos
+    popularEventosExemplo();
+  }, []);
 
   // Filtra eventos baseado nos critérios
   const eventosFiltrados = useMemo(() => {
@@ -181,11 +203,11 @@ export default function EventosPage() {
   const getIconeTipoEvento = (tipo: TipoEvento) => {
     switch (tipo) {
       case 'show':
-        return <MusicalNoteIcon className="h-5 w-5 text-purple-500" />;
+        return <MusicalNoteIcon className="h-5 w-5 text-green-600" />;
       case 'ensaio':
-        return <ClockIconSolid className="h-5 w-5 text-blue-500" />;
+        return <ClockIconSolid className="h-5 w-5 text-orange-500" />;
       case 'reuniao':
-        return <ChatBubbleLeftRightIcon className="h-5 w-5 text-green-500" />;
+        return <ChatBubbleLeftRightIcon className="h-5 w-5 text-yellow-500" />;
       default:
         return <CalendarIcon className="h-5 w-5 text-gray-500" />;
     }
@@ -195,7 +217,7 @@ export default function EventosPage() {
   const getCorStatus = (status: StatusEvento) => {
     switch (status) {
       case 'agendado':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-orange-100 text-orange-800';
       case 'confirmado':
         return 'bg-green-100 text-green-800';
       case 'cancelado':
@@ -210,6 +232,67 @@ export default function EventosPage() {
   // Função para formatar a data
   const formatarData = (dataISO: string) => {
     return format(parseISO(dataISO), 'dd/MM/yyyy', { locale: ptBR });
+  };
+
+  // Função para gerar o PDF do relatório
+  const gerarPDF = (evento: Evento) => {
+    try {
+      // Criar um novo documento PDF
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Relatório: ${evento.titulo}`, 105, 20, { align: 'center' });
+      
+      // Tipo e status
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      let tipoTexto = evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : evento.tipo;
+      let statusTexto = '';
+      switch (evento.status) {
+        case 'agendado': statusTexto = 'Agendado'; break;
+        case 'confirmado': statusTexto = 'Confirmado'; break;
+        case 'cancelado': statusTexto = 'Cancelado'; break;
+        case 'concluido': statusTexto = 'Concluído'; break;
+        default: statusTexto = evento.status;
+      }
+      
+      doc.text(`Tipo: ${tipoTexto} | Status: ${statusTexto}`, 105, 30, { align: 'center' });
+      
+      // Informações básicas
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Informações Básicas', 14, 40);
+      doc.line(14, 42, 196, 42);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Data: ${formatarData(evento.data)}`, 14, 50);
+      doc.text(`Horário: ${evento.horaInicio} às ${evento.horaFim}`, 14, 57);
+      doc.text(`Local: ${evento.local}`, 14, 64);
+      
+      const nomeBanda = getNomeBanda(evento.bandaId) || 'Não especificada';
+      doc.text(`Banda: ${nomeBanda}`, 14, 71);
+      
+      if (evento.endereco) {
+        doc.text(`Endereço: ${evento.endereco}`, 14, 78);
+      }
+      
+      // Descrição
+      if (evento.descricao) {
+        doc.text('Descrição:', 14, 85);
+        const descricaoLinhas = doc.splitTextToSize(evento.descricao, 180);
+        doc.text(descricaoLinhas, 14, 92);
+      }
+      
+      // Salvar o PDF
+      const nomeArquivo = `Relatório_${evento.titulo.replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
+      doc.save(nomeArquivo);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
+    }
   };
 
   return (
@@ -242,57 +325,95 @@ export default function EventosPage() {
 
             <div className="mb-8 bg-white shadow rounded-lg overflow-hidden">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">Filtros e Busca</h2>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <h2 className="text-sm font-medium text-gray-900 mb-3">Filtros e Busca</h2>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0 md:space-x-3">
                   <div className="relative flex-1">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                      <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
                     </div>
                     <input
                       type="text"
                       value={busca}
                       onChange={(e) => setBusca(e.target.value)}
                       placeholder="Buscar eventos por título, local ou descrição..."
-                      className="block w-full rounded-md border-gray-300 pl-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm shadow-sm"
+                      className="block w-full rounded-md border-gray-300 pl-9 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm h-8"
                     />
                   </div>
                   
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3">
                     <select
                       value={ordenacao}
                       onChange={(e) => setOrdenacao(e.target.value as any)}
-                      className="rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm shadow-sm"
+                      className="rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm text-gray-900 font-medium h-8"
+                      style={{ color: '#111827' }}
                     >
-                      <option value="data-asc">Data (mais próxima)</option>
-                      <option value="data-desc">Data (mais distante)</option>
-                      <option value="titulo-asc">Título (A-Z)</option>
-                      <option value="titulo-desc">Título (Z-A)</option>
+                      <option value="data-asc" className="font-medium text-gray-900">Data (mais próxima)</option>
+                      <option value="data-desc" className="font-medium text-gray-900">Data (mais distante)</option>
+                      <option value="titulo-asc" className="font-medium text-gray-900">Título (A-Z)</option>
+                      <option value="titulo-desc" className="font-medium text-gray-900">Título (Z-A)</option>
                     </select>
+                    
+                    <div className="flex items-center space-x-1 border rounded-md overflow-hidden h-8">
+                      <button
+                        onClick={() => setModoVisualizacao('cartoes')}
+                        className={`p-1.5 transition-colors duration-200 ${
+                          modoVisualizacao === 'cartoes'
+                            ? 'bg-indigo-100 text-indigo-700'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                        title="Visualizar em cartões"
+                      >
+                        <ViewColumnsIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setModoVisualizacao('tabela')}
+                        className={`p-1.5 transition-colors duration-200 ${
+                          modoVisualizacao === 'tabela'
+                            ? 'bg-indigo-100 text-indigo-700'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                        title="Visualizar em tabela"
+                      >
+                        <TableCellsIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                    
+                    <button
+                      onClick={() => setMostrarGraficos(!mostrarGraficos)}
+                      className={`inline-flex items-center p-1.5 rounded-md transition-colors duration-200 h-8 w-8 ${
+                        mostrarGraficos
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      title="Mostrar gráficos"
+                    >
+                      <ChartBarIcon className="h-4 w-4" />
+                    </button>
                     
                     <button
                       onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                      className={`inline-flex items-center p-2 rounded-md transition-colors duration-200 ${
+                      className={`inline-flex items-center p-1.5 rounded-md transition-colors duration-200 h-8 w-8 ${
                         mostrarFiltros
                           ? 'bg-indigo-100 text-indigo-700'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                       title="Filtros avançados"
                     >
-                      <AdjustmentsHorizontalIcon className="h-5 w-5" />
+                      <AdjustmentsHorizontalIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
                 
                 {mostrarFiltros && (
-                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                      <label htmlFor="filtroTipo" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="filtroTipo" className="block text-xs font-medium text-gray-700 mb-1">
                         Tipo de Evento
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         <button
                           onClick={() => setFiltroTipo('todos')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroTipo === 'todos' 
                               ? 'bg-gray-900 text-white' 
                               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
@@ -302,48 +423,48 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroTipo('show')}
-                          className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
                             filtroTipo === 'show' 
-                              ? 'bg-purple-600 text-white' 
-                              : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                              ? 'bg-green-600 text-white' 
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
                           }`}
                         >
-                          <MusicalNoteIcon className="h-4 w-4 mr-1" />
+                          <MusicalNoteIcon className="h-3 w-3 mr-1" />
                           Shows
                         </button>
                         <button
                           onClick={() => setFiltroTipo('ensaio')}
-                          className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
                             filtroTipo === 'ensaio' 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                              ? 'bg-orange-600 text-white' 
+                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                           }`}
                         >
-                          <ClockIconSolid className="h-4 w-4 mr-1" />
+                          <ClockIconSolid className="h-3 w-3 mr-1" />
                           Ensaios
                         </button>
                         <button
                           onClick={() => setFiltroTipo('reuniao')}
-                          className={`px-3 py-1 rounded-full text-sm flex items-center ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
                             filtroTipo === 'reuniao' 
-                              ? 'bg-green-600 text-white' 
-                              : 'bg-green-50 text-green-700 hover:bg-green-100'
+                              ? 'bg-yellow-600 text-white' 
+                              : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                           }`}
                         >
-                          <ChatBubbleLeftRightIcon className="h-4 w-4 mr-1" />
+                          <ChatBubbleLeftRightIcon className="h-3 w-3 mr-1" />
                           Reuniões
                         </button>
                       </div>
                     </div>
                     
                     <div>
-                      <label htmlFor="filtroStatus" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="filtroStatus" className="block text-xs font-medium text-gray-700 mb-1">
                         Status
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         <button
                           onClick={() => setFiltroStatus('todos')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroStatus === 'todos' 
                               ? 'bg-gray-900 text-white' 
                               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
@@ -353,17 +474,17 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroStatus('agendado')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroStatus === 'agendado' 
-                              ? 'bg-yellow-500 text-white' 
-                              : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+                              ? 'bg-orange-500 text-white' 
+                              : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
                           }`}
                         >
                           Agendado
                         </button>
                         <button
                           onClick={() => setFiltroStatus('confirmado')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroStatus === 'confirmado' 
                               ? 'bg-green-600 text-white' 
                               : 'bg-green-50 text-green-700 hover:bg-green-100'
@@ -373,7 +494,7 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroStatus('cancelado')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroStatus === 'cancelado' 
                               ? 'bg-red-600 text-white' 
                               : 'bg-red-50 text-red-700 hover:bg-red-100'
@@ -383,7 +504,7 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroStatus('concluido')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroStatus === 'concluido' 
                               ? 'bg-blue-600 text-white' 
                               : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
@@ -395,18 +516,19 @@ export default function EventosPage() {
                     </div>
                     
                     <div>
-                      <label htmlFor="filtroBanda" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="filtroBanda" className="block text-xs font-medium text-gray-700 mb-1">
                         Banda
                       </label>
                       <select
                         id="filtroBanda"
                         value={filtroBanda}
                         onChange={(e) => setFiltroBanda(e.target.value)}
-                        className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm shadow-sm"
+                        className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm text-gray-900 font-medium h-7"
+                        style={{ color: '#111827' }}
                       >
-                        <option value="">Todas as bandas</option>
+                        <option value="" className="font-medium text-gray-900">Todas as bandas</option>
                         {bandas.map((banda) => (
-                          <option key={banda.id} value={banda.id}>
+                          <option key={banda.id} value={banda.id} className="font-medium text-gray-900">
                             {banda.nome}
                           </option>
                         ))}
@@ -414,13 +536,13 @@ export default function EventosPage() {
                     </div>
                     
                     <div>
-                      <label htmlFor="filtroPeriodo" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="filtroPeriodo" className="block text-xs font-medium text-gray-700 mb-1">
                         Período
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         <button
                           onClick={() => setFiltroPeriodo('todos')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroPeriodo === 'todos' 
                               ? 'bg-gray-900 text-white' 
                               : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
@@ -430,7 +552,7 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroPeriodo('passados')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroPeriodo === 'passados' 
                               ? 'bg-gray-600 text-white' 
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -440,7 +562,7 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroPeriodo('hoje')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroPeriodo === 'hoje' 
                               ? 'bg-indigo-600 text-white' 
                               : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
@@ -450,7 +572,7 @@ export default function EventosPage() {
                         </button>
                         <button
                           onClick={() => setFiltroPeriodo('futuros')}
-                          className={`px-3 py-1 rounded-full text-sm ${
+                          className={`px-2.5 py-0.5 rounded-full text-xs ${
                             filtroPeriodo === 'futuros' 
                               ? 'bg-teal-600 text-white' 
                               : 'bg-teal-50 text-teal-700 hover:bg-teal-100'
@@ -465,14 +587,52 @@ export default function EventosPage() {
               </div>
               
               {/* Estatísticas rápidas */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 border-b border-gray-200">
-                <div className="p-4 text-center">
-                  <p className="text-sm font-medium text-gray-500">Total de Eventos</p>
-                  <p className="mt-1 text-3xl font-semibold text-gray-900">{eventos.length}</p>
+              <div className="border-b border-gray-200">
+                <div className="flex justify-between items-center px-4 py-2 bg-gray-50">
+                  <h3 className="text-xs font-medium text-gray-700">Resumo de Eventos</h3>
+                  <button
+                    onClick={() => setMostrarEstatisticas(!mostrarEstatisticas)}
+                    className="flex items-center justify-center h-6 w-6 text-gray-500 hover:text-gray-700 focus:outline-none transition-colors rounded-full hover:bg-gray-200"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      className={`h-4 w-4 transition-transform duration-300 ${mostrarEstatisticas ? 'rotate-180' : ''}`} 
+                      viewBox="0 0 20 20" 
+                      fill="currentColor"
+                    >
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-sm font-medium text-gray-500">Eventos Futuros</p>
-                  <p className="mt-1 text-3xl font-semibold text-indigo-600">
+                
+                {mostrarEstatisticas && (
+                  <div className="overflow-x-auto">
+                    <div className="grid grid-cols-7 divide-x min-w-full">
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Eventos</p>
+                        <p className="mt-1 text-2xl font-semibold text-gray-900">{eventos.length}</p>
+                      </div>
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Shows</p>
+                        <p className="mt-1 text-2xl font-semibold text-green-600">
+                          {eventos.filter(e => e.tipo === 'show').length}
+                        </p>
+                      </div>
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Ensaios</p>
+                        <p className="mt-1 text-2xl font-semibold text-orange-600">
+                          {eventos.filter(e => e.tipo === 'ensaio').length}
+                        </p>
+                      </div>
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Reuniões</p>
+                        <p className="mt-1 text-2xl font-semibold text-yellow-600">
+                          {eventos.filter(e => e.tipo === 'reuniao').length}
+                        </p>
+                      </div>
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Futuros</p>
+                        <p className="mt-1 text-2xl font-semibold text-indigo-600">
                     {eventos.filter(e => {
                       const dataEvento = parseISO(e.data);
                       const hoje = new Date();
@@ -480,22 +640,33 @@ export default function EventosPage() {
                     }).length}
                   </p>
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-sm font-medium text-gray-500">Hoje</p>
-                  <p className="mt-1 text-3xl font-semibold text-green-600">
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Hoje</p>
+                        <p className="mt-1 text-2xl font-semibold text-green-600">
                     {eventos.filter(e => isToday(parseISO(e.data))).length}
                   </p>
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-sm font-medium text-gray-500">Concluídos</p>
-                  <p className="mt-1 text-3xl font-semibold text-blue-600">
+                      <div className="p-3 text-center">
+                        <p className="text-xs font-medium text-gray-500">Concluídos</p>
+                        <p className="mt-1 text-2xl font-semibold text-blue-600">
                     {eventos.filter(e => e.status === 'concluido').length}
                   </p>
                 </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Seção de Gráficos */}
+            {mostrarGraficos && (
+              <div className="mt-8 mb-8 animate-fadeIn">
+                <EventosGraficos eventos={eventos} />
+              </div>
+            )}
+
             {eventosFiltrados.length > 0 ? (
+              modoVisualizacao === 'cartoes' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {eventosFiltrados.map((evento) => (
                   <div 
@@ -503,9 +674,9 @@ export default function EventosPage() {
                     className="bg-white shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-100"
                   >
                     <div className={`px-4 py-3 sm:px-6 flex justify-between items-start ${
-                      evento.tipo === 'show' ? 'bg-purple-50' : 
-                      evento.tipo === 'ensaio' ? 'bg-blue-50' : 
-                      'bg-green-50'
+                        evento.tipo === 'show' ? 'bg-green-100' : 
+                        evento.tipo === 'ensaio' ? 'bg-orange-100' : 
+                        'bg-yellow-100'
                     }`}>
                       <div className="flex items-center">
                         {getIconeTipoEvento(evento.tipo)}
@@ -599,6 +770,116 @@ export default function EventosPage() {
                   </div>
                 ))}
               </div>
+              ) : (
+                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Evento
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Data/Hora
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Local
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Banda
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Detalhes
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ações
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {eventosFiltrados.map((evento) => (
+                          <tr key={evento.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-100">
+                                  {getIconeTipoEvento(evento.tipo)}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{evento.titulo}</div>
+                                  <div className="text-sm text-gray-500">
+                                    {evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : 'Reunião'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{formatarData(evento.data)}</div>
+                              <div className="text-sm text-gray-500">{evento.horaInicio} às {evento.horaFim}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{evento.local}</div>
+                              <div className="text-sm text-gray-500 truncate max-w-[200px]">{evento.endereco}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {evento.bandaId ? getNomeBanda(evento.bandaId) : '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCorStatus(evento.status)}`}>
+                                {evento.status === 'agendado' && 'Agendado'}
+                                {evento.status === 'confirmado' && 'Confirmado'}
+                                {evento.status === 'cancelado' && 'Cancelado'}
+                                {evento.status === 'concluido' && 'Concluído'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {evento.tipo === 'show' && evento.valorCache && (
+                                <div className="text-green-600 font-medium">R$ {evento.valorCache.toFixed(2)}</div>
+                              )}
+                              {evento.tipo === 'ensaio' && evento.musicasEnsaio && (
+                                <div>{evento.musicasEnsaio.length} músicas</div>
+                              )}
+                              {evento.tipo === 'reuniao' && evento.decisoesTomadas && (
+                                <div>{evento.decisoesTomadas.length} decisões</div>
+                              )}
+                              <div className="text-xs text-gray-400 mt-1">
+                                {evento.integrantesIds.length} integrante{evento.integrantesIds.length !== 1 ? 's' : ''}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => handleGerarRelatorio(evento)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Gerar relatório"
+                                >
+                                  <DocumentTextIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleEditarEvento(evento)}
+                                  className="text-gray-600 hover:text-gray-900"
+                                  title="Editar evento"
+                                >
+                                  <PencilIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleExcluirEvento(evento.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Excluir evento"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
             ) : (
               <div className="text-center py-16 bg-white shadow overflow-hidden sm:rounded-lg">
                 <CalendarIcon className="mx-auto h-16 w-16 text-gray-400" />
@@ -654,96 +935,93 @@ export default function EventosPage() {
             >
               {eventoParaRelatorio && (
                 <div className="space-y-6">
-                  <p className="text-sm text-gray-500">
-                    Escolha o formato do relatório para o evento <strong>{eventoParaRelatorio.titulo}</strong>.
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Visualizar Relatório</h3>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Visualize o relatório completo no navegador antes de baixar.
-                      </p>
-                      <button
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                      >
-                        <DocumentTextIcon className="h-5 w-5 mr-2" />
-                        Visualizar PDF
-                      </button>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Baixar Relatório</h3>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Baixe o relatório diretamente para o seu dispositivo.
-                      </p>
-                      <button
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
-                      >
-                        <DocumentTextIcon className="h-5 w-5 mr-2" />
-                        Baixar PDF
-                      </button>
-                    </div>
+                  {/* Título principal do relatório */}
+                  <div className="text-center mb-4">
+                    <h2 className="text-xl font-bold text-gray-800">Selecione as seções para incluir no relatório:</h2>
                   </div>
-                  
-                  <div className="mt-6 border-t border-gray-200 pt-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Opções Adicionais</h3>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <input
-                          id="incluirIntegrantes"
-                          type="checkbox"
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                          defaultChecked
-                        />
-                        <label htmlFor="incluirIntegrantes" className="ml-2 block text-sm text-gray-900">
-                          Incluir lista de integrantes
-                        </label>
+
+                  {/* Conteúdo do relatório que será capturado para o PDF */}
+                  <div id="relatorio-content" className="space-y-6">
+                    {/* Informações básicas */}
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-lg font-bold text-indigo-700">1. Informações Básicas</h4>
+                        <div 
+                          className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 cursor-pointer hover:bg-indigo-200 transition-colors"
+                          onClick={() => {
+                            const element = document.getElementById('secao-info-basicas');
+                            const icon = document.getElementById('icon-info-basicas');
+                            if (element && icon) {
+                              element.classList.toggle('hidden');
+                              icon.classList.toggle('hidden');
+                            }
+                          }}
+                        >
+                          <svg id="icon-info-basicas" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
                       </div>
-                      
-                      {eventoParaRelatorio.tipo === 'show' && (
-                        <div className="flex items-center">
-                          <input
-                            id="incluirRepertorio"
-                            type="checkbox"
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            defaultChecked
-                          />
-                          <label htmlFor="incluirRepertorio" className="ml-2 block text-sm text-gray-900">
-                            Incluir repertório completo
-                          </label>
+                      <div id="secao-info-basicas">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-gray-500">Data</p>
+                            <p className="font-medium">{formatarData(eventoParaRelatorio.data)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Horário</p>
+                            <p className="font-medium">{eventoParaRelatorio.horaInicio} às {eventoParaRelatorio.horaFim}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Local</p>
+                            <p className="font-medium">{eventoParaRelatorio.local}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-500">Banda</p>
+                            <p className="font-medium">{getNomeBanda(eventoParaRelatorio.bandaId) || 'Não especificada'}</p>
+                          </div>
                         </div>
-                      )}
-                      
-                      {eventoParaRelatorio.tipo === 'ensaio' && (
-                        <div className="flex items-center">
-                          <input
-                            id="incluirObjetivos"
-                            type="checkbox"
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            defaultChecked
-                          />
-                          <label htmlFor="incluirObjetivos" className="ml-2 block text-sm text-gray-900">
-                            Incluir objetivos e pauta do ensaio
-                          </label>
-                        </div>
-                      )}
-                      
-                      {eventoParaRelatorio.tipo === 'reuniao' && (
-                        <div className="flex items-center">
-                          <input
-                            id="incluirAta"
-                            type="checkbox"
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            defaultChecked
-                          />
-                          <label htmlFor="incluirAta" className="ml-2 block text-sm text-gray-900">
-                            Incluir ata completa da reunião
-                          </label>
-                        </div>
-                      )}
+
+                        {eventoParaRelatorio.endereco && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-500">Endereço</p>
+                            <p className="font-medium">{eventoParaRelatorio.endereco}</p>
+                          </div>
+                        )}
+
+                        {eventoParaRelatorio.descricao && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-500">Descrição</p>
+                            <p className="font-medium">{eventoParaRelatorio.descricao}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Outras seções do relatório... */}
+                  </div>
+
+                  {/* Botões de ação */}
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setModalRelatorioAberto(false);
+                        setEventoParaRelatorio(undefined);
+                      }}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Fechar
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (eventoParaRelatorio) {
+                          gerarPDF(eventoParaRelatorio);
+                        }
+                      }}
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Gerar PDF
+                    </button>
                   </div>
                 </div>
               )}
