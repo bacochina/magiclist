@@ -18,9 +18,10 @@ type MusicaFormData = z.infer<typeof musicaSchema>;
 interface MusicaFormProps {
   musica?: Musica;
   onSubmit: (data: MusicaFormData) => void;
+  onCancel?: () => void;
 }
 
-export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
+export function MusicaForm({ musica, onSubmit, onCancel }: MusicaFormProps) {
   const {
     register,
     handleSubmit,
@@ -46,7 +47,7 @@ export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
           <input
             type="text"
             id="nome"
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-800"
             {...register('nome')}
           />
           {errors.nome && (
@@ -63,7 +64,7 @@ export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
           <input
             type="text"
             id="artista"
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-800"
             {...register('artista')}
           />
           {errors.artista && (
@@ -80,7 +81,7 @@ export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
           <input
             type="text"
             id="tom"
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-800"
             {...register('tom')}
           />
           {errors.tom && (
@@ -98,7 +99,7 @@ export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
             type="number"
             id="bpm"
             min="1"
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-800"
             {...register('bpm', { valueAsNumber: true })}
           />
           {errors.bpm && (
@@ -115,13 +116,22 @@ export function MusicaForm({ musica, onSubmit }: MusicaFormProps) {
           <textarea
             id="observacoes"
             rows={3}
-            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+            className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md text-gray-800"
             {...register('observacoes')}
           />
         </div>
       </div>
 
       <div className="flex justify-end space-x-4">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Cancelar
+          </button>
+        )}
         <button
           type="submit"
           disabled={isSubmitting}

@@ -120,7 +120,7 @@ export function IntegranteForm({ integrante, bandas, onSubmit }: IntegranteFormP
           Bandas
         </label>
         <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-2">
-          {bandas.map((banda) => (
+          {Array.isArray(bandas) && bandas.map((banda) => (
             <div key={banda.id} className="flex items-center mb-2">
               <input
                 type="checkbox"

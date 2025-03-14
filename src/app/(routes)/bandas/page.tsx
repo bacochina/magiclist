@@ -11,8 +11,12 @@ import {
   PlusIcon,
   MusicalNoteIcon,
   UserGroupIcon,
-  XMarkIcon
+  XMarkIcon,
+  ViewColumnsIcon,
+  TableCellsIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
+import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 
 export default function BandasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +25,10 @@ export default function BandasPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [mostraForm, setMostraForm] = useState(false);
+  // Modo de visualização
+  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'lista'>('lista');
+  // Busca
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     carregarBandas();
@@ -40,6 +48,14 @@ export default function BandasPage() {
       setCarregando(false);
     }
   };
+
+  // Filtra bandas baseado na busca
+  const bandasFiltradas = bandas.filter(
+    (banda) =>
+      banda.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      (banda.genero && banda.genero.toLowerCase().includes(busca.toLowerCase())) ||
+      (banda.descricao && banda.descricao.toLowerCase().includes(busca.toLowerCase()))
+  );
 
   const handleSubmit = async (banda: Omit<Banda, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -69,20 +85,28 @@ export default function BandasPage() {
     setIsModalOpen(true);
   };
 
-  const handleExcluir = async (bandaId: string) => {
-    if (confirm('Tem certeza que deseja excluir esta banda?')) {
+  const handleExcluirBanda = async (banda: Banda) => {
+    const confirmado = await confirmar(
+      'Excluir banda',
+      'Tem certeza que deseja excluir esta banda?',
+      'warning'
+    );
+    
+    if (confirmado) {
       try {
         setErro(null);
-        const res = await fetch(`/api/bandas?id=${bandaId}`, {
+        const res = await fetch(`/api/bandas?id=${banda.id}`, {
           method: 'DELETE',
         });
 
         if (!res.ok) throw new Error('Erro ao excluir banda');
 
-        setBandas(bandas.filter(banda => banda.id !== bandaId));
+        setBandas(bandas.filter(banda => banda.id !== banda.id));
+        alertaSucesso('Banda excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir banda:', error);
         setErro('Erro ao excluir banda. Por favor, tente novamente.');
+        alertaErro('Erro ao excluir a banda');
       }
     }
   };
@@ -121,73 +145,160 @@ export default function BandasPage() {
             </div>
             
             <div className="px-4 py-6 sm:px-0">
-              <div className="bg-white/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-semibold text-gray-900 flex items-center">
-                    <MusicalNoteIcon className="h-6 w-6 mr-2 text-purple-600" />
+              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                  <h2 className="text-2xl font-semibold text-gray-100 flex items-center">
+                    <MusicalNoteIcon className="h-6 w-6 mr-2 text-purple-400" />
                     Minhas Bandas
                   </h2>
-                  <div className="space-x-4">
-                    <button 
-                      onClick={() => {
-                        console.log("Botão Nova Banda clicado");
-                        setMostraForm(true);
-                      }} 
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                    >
-                      <PlusIcon className="h-5 w-5 mr-2" />
-                      Nova Banda
-                    </button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Campo de busca */}
+                    <div className="relative flex-1 min-w-[200px]">
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder="Buscar bandas..."
+                        className="block w-full rounded-md border border-gray-600 bg-gray-700 text-gray-200 pl-10 py-2 focus:border-purple-500 focus:ring-purple-500 sm:text-sm h-10"
+                      />
+                    </div>
+                    
+                    {/* Botões de visualização */}
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setModoVisualizacao('lista')}
+                        className={`p-2 rounded-md ${
+                          modoVisualizacao === 'lista'
+                            ? 'bg-purple-700 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                        title="Visualização em lista"
+                      >
+                        <TableCellsIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => setModoVisualizacao('cartoes')}
+                        className={`p-2 rounded-md ${
+                          modoVisualizacao === 'cartoes'
+                            ? 'bg-purple-700 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                        title="Visualização em cartões"
+                      >
+                        <ViewColumnsIcon className="h-5 w-5" />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setMostraForm(true);
+                        }} 
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      >
+                        <PlusIcon className="h-5 w-5 mr-2" />
+                        Nova Banda
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {erro && (
-                  <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded relative" role="alert">
+                  <div className="mb-6 bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded relative" role="alert">
                     <span className="block sm:inline">{erro}</span>
                   </div>
                 )}
 
-                {bandas.length > 0 ? (
-                  <div className="bg-white shadow overflow-hidden sm:rounded-md border border-gray-200">
-                    <ul className="divide-y divide-gray-200">
-                      {bandas.map((banda) => (
-                        <li key={banda.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <h3 className="text-lg font-medium text-gray-900">{banda.nome}</h3>
-                                <p className="text-sm text-gray-500">{banda.genero}</p>
+                {bandasFiltradas.length > 0 ? (
+                  modoVisualizacao === 'lista' ? (
+                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+                      <ul className="divide-y divide-gray-700">
+                        {bandasFiltradas.map((banda) => (
+                          <li key={banda.id} className="px-6 py-4 hover:bg-gray-700 transition-colors duration-150">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-lg font-medium text-gray-100">{banda.nome}</h3>
+                                  <p className="text-sm text-gray-400">{banda.genero}</p>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleEditar(banda)}
+                                    className="p-2 text-blue-400 hover:text-blue-300 rounded-full hover:bg-blue-900/50"
+                                    title="Editar banda"
+                                  >
+                                    <PencilIcon className="h-5 w-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleExcluirBanda(banda)}
+                                    className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
+                                    title="Excluir banda"
+                                  >
+                                    <TrashIcon className="h-5 w-5" />
+                                  </button>
+                                </div>
                               </div>
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={() => handleEditar(banda)}
-                                  className="p-2 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50"
-                                  title="Editar banda"
-                                >
-                                  <PencilIcon className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={() => handleExcluir(banda.id)}
-                                  className="p-2 text-red-600 hover:text-red-800 rounded-full hover:bg-red-50"
-                                  title="Excluir banda"
-                                >
-                                  <TrashIcon className="h-5 w-5" />
-                                </button>
-                              </div>
+                              
+                              {banda.descricao && (
+                                <p className="text-sm text-gray-300">{banda.descricao}</p>
+                              )}
                             </div>
-                            
-                            {banda.descricao && (
-                              <p className="text-sm text-gray-600">{banda.descricao}</p>
-                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {bandasFiltradas.map((banda) => (
+                        <div 
+                          key={banda.id} 
+                          className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
+                        >
+                          <div className="px-4 py-3 sm:px-6 flex justify-between items-start bg-purple-900">
+                            <div className="flex items-center">
+                              <MusicalNoteIcon className="h-5 w-5 text-purple-300" />
+                              <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{banda.nome}</h3>
+                            </div>
                           </div>
-                        </li>
+                          <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
+                            <div className="space-y-3">
+                              <div className="flex items-center text-sm">
+                                <p className="text-gray-200 font-medium">Gênero: {banda.genero || 'Não especificado'}</p>
+                              </div>
+                              
+                              {banda.descricao && (
+                                <div className="mt-2 text-sm text-gray-300">
+                                  {banda.descricao}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-end items-center bg-gray-900">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditar(banda)}
+                                className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+                                title="Editar banda"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleExcluirBanda(banda)}
+                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                title="Excluir banda"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
-                  </div>
+                    </div>
+                  )
                 ) : (
-                  <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
                     <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
+                      className="mx-auto h-12 w-12 text-gray-500"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -200,15 +311,14 @@ export default function BandasPage() {
                         d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
                       />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma banda cadastrada</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Comece criando sua primeira banda para gerenciar seus repertórios.
+                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhuma banda encontrada</h3>
+                    <p className="mt-1 text-sm text-gray-400">
+                      {busca ? 'Tente uma busca diferente ou ' : 'Comece criando sua primeira banda para gerenciar seus repertórios.'}
                     </p>
                     <div className="mt-6">
                       <button
                         type="button"
                         onClick={() => {
-                          console.log("Botão Criar Banda clicado");
                           setMostraForm(true);
                         }}
                         className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"

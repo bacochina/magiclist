@@ -32,6 +32,16 @@ export type TipoEvento = 'show' | 'ensaio' | 'reuniao';
 // Status do evento
 export type StatusEvento = 'agendado' | 'confirmado' | 'cancelado' | 'concluido';
 
+export interface Repertorio {
+  id: string;
+  nome: string;
+  descricao?: string;
+  bandaId?: string;
+  blocos?: string[]; // IDs dos blocos no repertório
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 // Interface para Evento
 export interface Evento {
   id: string;
@@ -88,11 +98,16 @@ export interface Evento {
     horaCheckOut: string;
     valor: number;
     responsavelCusto: string;
-    quantidadeQuartos: number;
-    distribuicaoQuartos?: string;
+    numeroRecepcao?: string;
     incluiCafe: boolean;
     horarioCafeInicio?: string;
     horarioCafeFim?: string;
+    incluiAlmoco: boolean;
+    horarioAlmocoInicio?: string;
+    horarioAlmocoFim?: string;
+    incluiJantar: boolean;
+    horarioJantarInicio?: string;
+    horarioJantarFim?: string;
     observacoes?: string;
     contatoHotel?: string;
     telefoneHotel?: string;
@@ -110,6 +125,6 @@ export interface Bloco {
   id: string;
   nome: string;
   descricao?: string;
-  bandaId: string;
-  musicas: Musica[];
+  bandaId?: string;
+  musicas: string[]; // IDs das músicas no bloco
 } 

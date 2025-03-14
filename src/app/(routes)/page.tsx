@@ -1,3 +1,17 @@
+"use client";
+
+import Swal, { 
+  alertaSucesso, 
+  alertaErro, 
+  alertaInfo, 
+  alertaAviso, 
+  confirmar, 
+  alerta, 
+  alertaHTML, 
+  inputTexto, 
+  alertaComTempo
+} from '@/lib/sweetalert';
+
 export default function Home() {
   return (
     <main className="min-h-screen relative">
@@ -81,6 +95,98 @@ export default function Home() {
                 </svg>
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* Seção de demonstração do SweetAlert2 */}
+        <div className="mt-8 p-6 bg-gray-800 rounded-lg">
+          <h2 className="text-xl font-semibold text-white mb-4">Demonstração do SweetAlert2</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => alertaSucesso('Operação realizada com sucesso!')}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta de Sucesso
+            </button>
+            <button
+              onClick={() => alertaErro('Ocorreu um erro na operação!')}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta de Erro
+            </button>
+            <button
+              onClick={() => alertaInfo('Esta é uma informação importante.')}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta de Informação
+            </button>
+            <button
+              onClick={() => alertaAviso('Atenção! Esta ação requer cuidado.')}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta de Aviso
+            </button>
+            <button
+              onClick={async () => {
+                const confirmado = await confirmar(
+                  'Confirmação',
+                  'Tem certeza que deseja realizar esta ação?',
+                  'question'
+                );
+                if (confirmado) {
+                  alertaSucesso('Ação confirmada!');
+                } else {
+                  alertaInfo('Ação cancelada!');
+                }
+              }}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Confirmação
+            </button>
+            <button
+              onClick={() => alerta('Título', 'Esta é uma mensagem de alerta padrão.', 'info')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta Padrão
+            </button>
+            <button
+              onClick={() => alertaHTML(
+                'Alerta com HTML', 
+                '<b>HTML</b> formatado com <i>estilos</i> e <u>elementos</u>', 
+                'info'
+              )}
+              className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta com HTML
+            </button>
+            <button
+              onClick={async () => {
+                const texto = await inputTexto(
+                  'Digite um valor',
+                  'Insira seu texto abaixo:',
+                  'Digite aqui...'
+                );
+                if (texto) {
+                  alertaSucesso(`Você digitou: "${texto}"`);
+                } else {
+                  alertaInfo('Entrada cancelada');
+                }
+              }}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Input de Texto
+            </button>
+            <button
+              onClick={() => alertaComTempo(
+                'Alerta Temporizado',
+                'Este alerta fechará automaticamente em 3 segundos',
+                'info',
+                3000
+              )}
+              className="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-4 rounded"
+            >
+              Alerta Temporizado
+            </button>
           </div>
         </div>
       </div>

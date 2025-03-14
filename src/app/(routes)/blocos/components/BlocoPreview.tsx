@@ -3,6 +3,8 @@
 import { Bloco, Musica } from '@/lib/types';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { QueueListIcon, Bars3Icon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { confirmar } from '@/lib/sweetalert';
+import { useState, useEffect } from 'react';
 
 interface BlocoPreviewProps {
   bloco: Bloco;
@@ -21,13 +23,42 @@ export function BlocoPreview({
   onEditarMusicaCompleta,
   onExcluirMusicaCompleta
 }: BlocoPreviewProps) {
-  // Garantir que bloco.musicas sempre seja um array
-  const musicas = bloco.musicas || [];
+  // Estado para armazenar as músicas como objetos Musica
+  const [musicasCompletas, setMusicasCompletas] = useState<Musica[]>([]);
+  
+  // Efeito para simular a obtenção de músicas completas a partir dos IDs
+  useEffect(() => {
+    // Em um ambiente real, isso seria uma chamada à API ou ao banco de dados
+    // Simulando a obtenção de músicas completas a partir dos IDs
+    const obterMusicasCompletas = async () => {
+      // Simulação: converter os IDs em objetos de música
+      const musicasSimuladas: Musica[] = (bloco.musicas || []).map((musicaId, index) => {
+        // Se o ID já for um objeto Musica, simplesmente retorne-o
+        if (typeof musicaId === 'object' && musicaId !== null && 'id' in musicaId) {
+          return musicaId as Musica;
+        }
+        
+        // Caso contrário, crie um objeto Musica simulado a partir do ID
+        return {
+          id: musicaId as string,
+          nome: `Música ${index + 1}`,
+          artista: 'Artista Simulado',
+          tom: 'C',
+          bpm: 120,
+          observacoes: 'Música simulada',
+        };
+      });
+      
+      setMusicasCompletas(musicasSimuladas);
+    };
+    
+    obterMusicasCompletas();
+  }, [bloco.musicas]);
   
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !onReordenarMusicas) return;
 
-    const items = Array.from(musicas);
+    const items = Array.from(musicasCompletas);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
@@ -35,19 +66,31 @@ export function BlocoPreview({
     onReordenarMusicas(items);
   };
 
-  const handleRemoverMusica = (musica: Musica) => {
-    if (confirm(`Tem certeza que deseja remover a música "${musica.nome}" do bloco?`)) {
+  const handleRemoverMusica = async (musica: Musica) => {
+    const confirmado = await confirmar(
+      'Remover música', 
+      `Tem certeza que deseja remover a música "${musica.nome}" do bloco?`,
+      'warning'
+    );
+    
+    if (confirmado) {
       onRemoverMusica?.(musica.id);
     }
   };
 
-  const handleExcluirMusicaCompleta = (musica: Musica) => {
-    if (confirm(`Tem certeza que deseja excluir completamente a música "${musica.nome}"?\nEla será removida de todos os blocos.`)) {
+  const handleExcluirMusicaCompleta = async (musica: Musica) => {
+    const confirmado = await confirmar(
+      'Excluir música',
+      `Tem certeza que deseja excluir completamente a música "${musica.nome}"?\nEla será removida de todos os blocos.`,
+      'warning'
+    );
+    
+    if (confirmado) {
       onExcluirMusicaCompleta?.(musica);
     }
   };
 
-  if (musicas.length === 0) {
+  if (musicasCompletas.length === 0) {
     return (
       <div className="text-center py-6">
         <QueueListIcon className="mx-auto h-12 w-12 text-gray-400" />
@@ -68,7 +111,7 @@ export function BlocoPreview({
             ref={provided.innerRef}
             className="space-y-2"
           >
-            {musicas.map((musica, index) => (
+            {musicasCompletas.map((musica, index) => (
               <Draggable
                 key={musica.id}
                 draggableId={`${bloco.id}-${musica.id}`}

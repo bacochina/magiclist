@@ -18,7 +18,7 @@ export function ListaBandas({ bandas, onSelectBanda, bandaSelecionada }: ListaBa
       </div>
       <div className="border-t border-gray-200">
         <ul role="list" className="divide-y divide-gray-200">
-          {bandas.map((banda) => (
+          {Array.isArray(bandas) ? bandas.map((banda) => (
             <li key={banda.id}>
               <button
                 onClick={() => onSelectBanda(banda)}
@@ -42,7 +42,7 @@ export function ListaBandas({ bandas, onSelectBanda, bandaSelecionada }: ListaBa
                 <ChevronRightIcon className="ml-4 h-5 w-5 text-gray-400" />
               </button>
             </li>
-          ))}
+          )) : null}
         </ul>
       </div>
     </div>

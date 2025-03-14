@@ -14,8 +14,11 @@ import {
   FunnelIcon,
   XMarkIcon,
   AdjustmentsHorizontalIcon,
-  MusicalNoteIcon
+  MusicalNoteIcon,
+  ViewColumnsIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline';
+import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 
 interface FiltrosBPM {
   min?: number;
@@ -51,6 +54,8 @@ export default function MusicasPage() {
   const [filtroTom, setFiltroTom] = useState<string>('');
   const [filtroBPM, setFiltroBPM] = useState<FiltrosBPM>({ min: undefined, max: undefined });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  // Modo de visualização
+  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'lista'>('lista');
 
   const handleAdicionarMusica = () => {
     setMusicaEmEdicao(undefined);
@@ -62,9 +67,21 @@ export default function MusicasPage() {
     setModalAberto(true);
   };
 
-  const handleExcluirMusica = (musica: Musica) => {
-    if (confirm(`Tem certeza que deseja excluir a música "${musica.nome}"?`)) {
-      setMusicas(musicas.filter(m => m.id !== musica.id));
+  const handleExcluirMusica = async (musica: Musica) => {
+    const confirmado = await confirmar(
+      'Excluir música',
+      `Tem certeza que deseja excluir a música "${musica.nome}"?`,
+      'warning'
+    );
+    
+    if (confirmado) {
+      try {
+        setMusicas(musicas.filter(m => m.id !== musica.id));
+        alertaSucesso('Música excluída com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir música:', error);
+        alertaErro('Erro ao excluir a música');
+      }
     }
   };
 
@@ -140,248 +157,283 @@ export default function MusicasPage() {
       <div className="relative z-10 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <h1 className="text-3xl font-bold text-white mb-6">Músicas</h1>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-semibold text-gray-900">Minhas Músicas</h1>
-              <button
-                onClick={handleAdicionarMusica}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Nova Música
-              </button>
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
+                <MusicalNoteIcon className="h-8 w-8 mr-2" />
+                Músicas
+              </h1>
             </div>
 
-            {/* Barra de pesquisa unificada */}
-            <div className="mb-6">
-              <div className="relative flex items-center">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Buscar por música ou artista..."
-                  className="block w-full rounded-md border-gray-300 pl-10 pr-12 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-12"
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-2 space-x-1">
-                  {temFiltrosAtivos && (
+            <div className="px-4 py-6 sm:px-0">
+              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <MusicalNoteIcon className="h-6 w-6 mr-2 text-amber-400" />
+                    <span className="text-xl font-semibold text-gray-100">Minhas Músicas</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    {/* Campo de busca */}
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                      <input
+                        type="text"
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder="Buscar músicas..."
+                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    
+                    {/* Botão de filtros */}
                     <button
-                      onClick={handleLimparFiltros}
-                      className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                      title="Limpar filtros"
+                      onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                      className={`p-2 rounded-md ${
+                        mostrarFiltros
+                          ? 'bg-amber-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                      title="Filtros avançados"
                     >
-                      <XMarkIcon className="h-5 w-5" />
+                      <AdjustmentsHorizontalIcon className="h-5 w-5" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                    className={`p-1.5 rounded-md ${
-                      mostrarFiltros
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                    title="Filtros avançados"
-                  >
-                    <AdjustmentsHorizontalIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Filtros avançados */}
-            {mostrarFiltros && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Filtro de Tom */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                      <MusicalNoteIcon className="h-4 w-4 mr-1 text-indigo-500" />
-                      Tom
-                    </label>
-                    <div className="flex flex-wrap gap-2">
+                    
+                    {/* Botões de visualização */}
+                    <div className="flex items-center">
                       <button
-                        onClick={() => setFiltroTom('')}
-                        className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-                          !filtroTom 
-                            ? 'bg-indigo-100 text-indigo-700 font-medium' 
-                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        onClick={() => setModoVisualizacao('lista')}
+                        className={`p-2 rounded-l-md ${
+                          modoVisualizacao === 'lista'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
+                        title="Visualização em lista"
                       >
-                        Todos
+                        <TableCellsIcon className="h-5 w-5" />
                       </button>
-                      {tons.map((tom) => (
-                        <button
-                          key={tom}
-                          onClick={() => setFiltroTom(tom)}
-                          className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-                            filtroTom === tom 
-                              ? 'bg-indigo-100 text-indigo-700 font-medium' 
-                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
+                      <button
+                        onClick={() => setModoVisualizacao('cartoes')}
+                        className={`p-2 rounded-r-md ${
+                          modoVisualizacao === 'cartoes'
+                            ? 'bg-amber-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                        title="Visualização em cartões"
+                      >
+                        <ViewColumnsIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                    
+                    <button
+                      onClick={handleAdicionarMusica}
+                      className="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-sm"
+                    >
+                      <PlusIcon className="h-5 w-5 mr-1" />
+                      Nova Música
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filtros avançados */}
+                {mostrarFiltros && (
+                  <div className="mb-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Filtro de Tom */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-200 mb-2 flex items-center">
+                          <MusicalNoteIcon className="h-4 w-4 mr-1 text-amber-400" />
+                          Tom
+                        </label>
+                        <select
+                          value={filtroTom}
+                          onChange={(e) => setFiltroTom(e.target.value)}
+                          className="block w-full rounded-md border-gray-600 bg-gray-700 text-gray-200 focus:border-amber-500 focus:ring-amber-500 sm:text-sm"
                         >
-                          {tom}
+                          <option value="">Todos os tons</option>
+                          {tons.map((tom) => (
+                            <option key={tom} value={tom}>
+                              {tom}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Filtro de BPM */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-200 mb-2">
+                          Andamento (BPM)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {faixasBPM.map((faixa) => (
+                            <button
+                              key={faixa.label}
+                              onClick={() => setFiltroBPM({ min: faixa.min, max: faixa.max })}
+                              className={`px-3 py-2 text-sm rounded-md ${
+                                filtroBPM.min === faixa.min && filtroBPM.max === faixa.max
+                                  ? 'bg-amber-600 text-white'
+                                  : 'bg-gray-600 text-gray-200 hover:bg-gray-500'
+                              }`}
+                            >
+                              {faixa.label} ({faixa.descricao})
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão para limpar filtros */}
+                    {temFiltrosAtivos && (
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          onClick={handleLimparFiltros}
+                          className="inline-flex items-center px-3 py-1.5 text-sm text-gray-200 bg-gray-600 hover:bg-gray-500 rounded-md"
+                        >
+                          <XMarkIcon className="h-4 w-4 mr-1" />
+                          Limpar filtros
                         </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Lista de músicas */}
+                {musicasFiltradas.length > 0 ? (
+                  modoVisualizacao === 'lista' ? (
+                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+                      <ul className="divide-y divide-gray-700">
+                        {musicasFiltradas.map((musica) => (
+                          <li key={musica.id} className="px-6 py-4 hover:bg-gray-700 transition-colors duration-150">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-lg font-medium text-gray-100">{musica.nome}</h3>
+                                  <p className="text-sm text-gray-400">{musica.artista}</p>
+                                </div>
+                                <div className="flex space-x-2">
+                                  <button
+                                    onClick={() => handleEditarMusica(musica)}
+                                    className="p-2 text-amber-400 hover:text-amber-300 rounded-full hover:bg-amber-900/50"
+                                    title="Editar música"
+                                  >
+                                    <PencilIcon className="h-5 w-5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleExcluirMusica(musica)}
+                                    className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
+                                    title="Excluir música"
+                                  >
+                                    <TrashIcon className="h-5 w-5" />
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                                  Tom: {musica.tom || 'N/A'}
+                                </span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                                  BPM: {musica.bpm || 'N/A'}
+                                </span>
+                              </div>
+                              
+                              {musica.observacoes && (
+                                <p className="text-sm text-gray-300">{musica.observacoes}</p>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {musicasFiltradas.map((musica) => (
+                        <div 
+                          key={musica.id} 
+                          className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
+                        >
+                          <div className="px-4 py-3 sm:px-6 flex justify-between items-start bg-amber-900">
+                            <div className="flex items-center">
+                              <MusicalNoteIcon className="h-5 w-5 text-amber-300" />
+                              <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{musica.nome}</h3>
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
+                            <div className="space-y-3">
+                              <div className="flex items-center text-sm">
+                                <p className="text-gray-200 font-medium">Artista: {musica.artista || 'Não especificado'}</p>
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-2">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                                  Tom: {musica.tom || 'N/A'}
+                                </span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                                  BPM: {musica.bpm || 'N/A'}
+                                </span>
+                              </div>
+                              
+                              {musica.observacoes && (
+                                <div className="mt-2 text-sm text-gray-300">
+                                  <p className="font-medium mb-1">Observações:</p>
+                                  <p>{musica.observacoes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-end items-center bg-gray-900">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEditarMusica(musica)}
+                                className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors duration-200"
+                                title="Editar música"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleExcluirMusica(musica)}
+                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                                title="Excluir música"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Filtro de BPM */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Velocidade (BPM)
-                    </label>
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setFiltroBPM({ min: undefined, max: undefined })}
-                          className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-                            !filtroBPM.min && !filtroBPM.max
-                              ? 'bg-indigo-100 text-indigo-700 font-medium' 
-                              : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                          }`}
-                        >
-                          Todos
-                        </button>
-                        {faixasBPM.map((faixa) => (
-                          <button
-                            key={faixa.label}
-                            onClick={() => setFiltroBPM({ min: faixa.min, max: faixa.max })}
-                            className={`px-3 py-1.5 text-xs rounded-full transition-colors ${
-                              filtroBPM.min === faixa.min && filtroBPM.max === faixa.max
-                                ? 'bg-indigo-100 text-indigo-700 font-medium' 
-                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                            }`}
-                            title={faixa.descricao}
-                          >
-                            {faixa.label}
-                          </button>
-                        ))}
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="number"
-                          placeholder="Min BPM"
-                          value={filtroBPM.min || ''}
-                          onChange={(e) => setFiltroBPM({ ...filtroBPM, min: e.target.value ? Number(e.target.value) : undefined })}
-                          className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        />
-                        <span className="text-gray-500">-</span>
-                        <input
-                          type="number"
-                          placeholder="Max BPM"
-                          value={filtroBPM.max || ''}
-                          onChange={(e) => setFiltroBPM({ ...filtroBPM, max: e.target.value ? Number(e.target.value) : undefined })}
-                          className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        />
-                      </div>
+                  )
+                ) : (
+                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
+                    <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-500" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhuma música encontrada</h3>
+                    <p className="mt-1 text-sm text-gray-400">
+                      {busca || filtroTom || filtroBPM.min || filtroBPM.max
+                        ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
+                        : 'Comece adicionando sua primeira música ao catálogo.'}
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={handleAdicionarMusica}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                      >
+                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                        Nova Música
+                      </button>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
-
-            {/* Resultados e estatísticas */}
-            <div className="flex justify-between items-center mb-3 text-sm text-gray-500">
-              <div>
-                {musicasFiltradas.length} {musicasFiltradas.length === 1 ? 'música encontrada' : 'músicas encontradas'}
-                {temFiltrosAtivos && ' com os filtros aplicados'}
-              </div>
-              {temFiltrosAtivos && (
-                <button
-                  onClick={handleLimparFiltros}
-                  className="text-indigo-600 hover:text-indigo-800 flex items-center"
-                >
-                  <XMarkIcon className="h-4 w-4 mr-1" />
-                  Limpar filtros
-                </button>
-              )}
             </div>
 
-            {/* Lista de músicas */}
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              {musicasFiltradas.length > 0 ? (
-                <ul className="divide-y divide-gray-200">
-                  {musicasFiltradas.map((musica) => (
-                    <li key={musica.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center">
-                            <p className="text-sm font-medium text-indigo-600 truncate mr-2">
-                              {musica.nome}
-                            </p>
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                              {musica.tom}
-                            </span>
-                          </div>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {musica.artista}
-                          </p>
-                          <div className="mt-1 flex items-center">
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                              BPM: {musica.bpm}
-                            </span>
-                            {musica.observacoes && (
-                              <p className="ml-2 text-xs text-gray-500 truncate">
-                                {musica.observacoes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleEditarMusica(musica)}
-                            className="inline-flex items-center text-indigo-600 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 rounded-full p-2 transition-colors duration-200"
-                            title="Editar música"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleExcluirMusica(musica)}
-                            className="inline-flex items-center text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 rounded-full p-2 transition-colors duration-200"
-                            title="Excluir música"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-center py-12">
-                  <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-300" />
-                  <p className="mt-2 text-sm text-gray-500">
-                    {temFiltrosAtivos
-                      ? 'Nenhuma música encontrada com os filtros aplicados'
-                      : 'Nenhuma música cadastrada. Clique em "Nova Música" para começar.'}
-                  </p>
-                  {temFiltrosAtivos && (
-                    <button
-                      onClick={handleLimparFiltros}
-                      className="mt-3 inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-                    >
-                      Limpar filtros
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Modal de Edição/Criação de Música */}
             <Modal
               title={musicaEmEdicao ? 'Editar Música' : 'Nova Música'}
               isOpen={modalAberto}
-              onClose={() => {
-                setModalAberto(false);
-                setMusicaEmEdicao(undefined);
-              }}
+              onClose={() => setModalAberto(false)}
             >
               <MusicaForm
                 musica={musicaEmEdicao}
                 onSubmit={handleSubmit}
+                onCancel={() => setModalAberto(false)}
               />
             </Modal>
           </div>

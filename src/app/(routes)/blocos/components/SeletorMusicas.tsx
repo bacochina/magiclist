@@ -15,6 +15,7 @@ import {
   CheckCircleIcon,
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
+import { confirmar } from '@/lib/sweetalert';
 
 interface SeletorMusicasProps {
   bandaId: string;
@@ -55,8 +56,14 @@ export function SeletorMusicas({
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [musicasMarcadas, setMusicasMarcadas] = useState<string[]>([]);
 
-  const handleRemoverMusica = (musica: Musica) => {
-    if (confirm(`Tem certeza que deseja remover a música "${musica.nome}"?`)) {
+  const handleRemoverMusica = async (musica: Musica) => {
+    const confirmado = await confirmar(
+      'Remover música',
+      `Tem certeza que deseja remover a música "${musica.nome}"?`,
+      'warning'
+    );
+    
+    if (confirmado) {
       onRemoverMusica?.(musica);
     }
   };

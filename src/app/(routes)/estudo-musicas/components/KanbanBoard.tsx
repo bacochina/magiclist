@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 
 interface Banda {
   id: string;
@@ -38,7 +39,6 @@ export default function KanbanBoard() {
   const [notas, setNotas] = useState<string>('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEstudo, setSelectedEstudo] = useState<EstudoMusica | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedEstudoId, setSelectedEstudoId] = useState<string | null>(null);
 
   // Carregar estudos e músicas
@@ -186,39 +186,12 @@ export default function KanbanBoard() {
     }
   };
 
-  // Função para excluir um estudo
-  const handleDeleteEstudo = async () => {
-    if (!selectedEstudoId) return;
-
-    try {
-      const response = await fetch(`/api/estudo-musicas/${selectedEstudoId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao excluir estudo');
-      }
-
-      setEstudos(estudos.filter((e) => e.id !== selectedEstudoId));
-      setIsDeleteModalOpen(false);
-      setSelectedEstudoId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
-    }
-  };
-
   // Função para abrir o modal de edição
   const openEditModal = (estudo: EstudoMusica) => {
     setSelectedEstudo(estudo);
     setSelectedStatus(estudo.status);
     setNotas(estudo.notas || '');
     setIsEditModalOpen(true);
-  };
-
-  // Função para abrir o modal de exclusão
-  const openDeleteModal = (estudoId: string) => {
-    setSelectedEstudoId(estudoId);
-    setIsDeleteModalOpen(true);
   };
 
   if (isLoading) {
@@ -283,12 +256,36 @@ export default function KanbanBoard() {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => openEditModal(estudo)}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-indigo-500 hover:text-indigo-700"
                               >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => openDeleteModal(estudo.id)}
+                                onClick={async () => {
+                                  const confirmado = await confirmar(
+                                    'Confirmar Exclusão',
+                                    'Tem certeza que deseja remover esta música do seu estudo?',
+                                    'warning'
+                                  );
+                                  
+                                  if (confirmado) {
+                                    try {
+                                      const response = await fetch(`/api/estudo-musicas/${estudo.id}`, {
+                                        method: 'DELETE',
+                                      });
+                                
+                                      if (!response.ok) {
+                                        throw new Error('Erro ao excluir estudo');
+                                      }
+                                
+                                      setEstudos(estudos.filter((e) => e.id !== estudo.id));
+                                      alertaSucesso('Estudo removido com sucesso!');
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+                                      alertaErro('Erro ao excluir estudo');
+                                    }
+                                  }
+                                }}
                                 className="text-red-500 hover:text-red-700"
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -344,12 +341,36 @@ export default function KanbanBoard() {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => openEditModal(estudo)}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-indigo-500 hover:text-indigo-700"
                               >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => openDeleteModal(estudo.id)}
+                                onClick={async () => {
+                                  const confirmado = await confirmar(
+                                    'Confirmar Exclusão',
+                                    'Tem certeza que deseja remover esta música do seu estudo?',
+                                    'warning'
+                                  );
+                                  
+                                  if (confirmado) {
+                                    try {
+                                      const response = await fetch(`/api/estudo-musicas/${estudo.id}`, {
+                                        method: 'DELETE',
+                                      });
+                                
+                                      if (!response.ok) {
+                                        throw new Error('Erro ao excluir estudo');
+                                      }
+                                
+                                      setEstudos(estudos.filter((e) => e.id !== estudo.id));
+                                      alertaSucesso('Estudo removido com sucesso!');
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+                                      alertaErro('Erro ao excluir estudo');
+                                    }
+                                  }
+                                }}
                                 className="text-red-500 hover:text-red-700"
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -405,12 +426,36 @@ export default function KanbanBoard() {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => openEditModal(estudo)}
-                                className="text-blue-500 hover:text-blue-700"
+                                className="text-indigo-500 hover:text-indigo-700"
                               >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => openDeleteModal(estudo.id)}
+                                onClick={async () => {
+                                  const confirmado = await confirmar(
+                                    'Confirmar Exclusão',
+                                    'Tem certeza que deseja remover esta música do seu estudo?',
+                                    'warning'
+                                  );
+                                  
+                                  if (confirmado) {
+                                    try {
+                                      const response = await fetch(`/api/estudo-musicas/${estudo.id}`, {
+                                        method: 'DELETE',
+                                      });
+                                
+                                      if (!response.ok) {
+                                        throw new Error('Erro ao excluir estudo');
+                                      }
+                                
+                                      setEstudos(estudos.filter((e) => e.id !== estudo.id));
+                                      alertaSucesso('Estudo removido com sucesso!');
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+                                      alertaErro('Erro ao excluir estudo');
+                                    }
+                                  }
+                                }}
                                 className="text-red-500 hover:text-red-700"
                               >
                                 <TrashIcon className="h-4 w-4" />
@@ -598,65 +643,6 @@ export default function KanbanBoard() {
                       onClick={handleEditEstudo}
                     >
                       Salvar
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
-
-      {/* Modal de confirmação de exclusão */}
-      <Transition appear show={isDeleteModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={() => setIsDeleteModalOpen(false)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                    Confirmar Exclusão
-                  </Dialog.Title>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      Tem certeza que deseja remover esta música do seu estudo?
-                    </p>
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                      onClick={() => setIsDeleteModalOpen(false)}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                      onClick={handleDeleteEstudo}
-                    >
-                      Excluir
                     </button>
                   </div>
                 </Dialog.Panel>

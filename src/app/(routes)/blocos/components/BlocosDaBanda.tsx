@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { useState } from 'react';
+import { confirmar } from '@/lib/sweetalert';
 
 interface BlocosDaBandaProps {
   banda: Banda;
@@ -59,8 +60,14 @@ export function BlocosDaBanda({
     }));
   };
 
-  const handleExcluirBloco = (blocoId: string, blocoNome: string) => {
-    if (confirm(`Tem certeza que deseja excluir o bloco "${blocoNome}"?`)) {
+  const handleExcluirBloco = async (blocoId: string, blocoNome: string) => {
+    const confirmado = await confirmar(
+      'Excluir bloco', 
+      `Tem certeza que deseja excluir o bloco "${blocoNome}"?`,
+      'warning'
+    );
+    
+    if (confirmado) {
       onExcluirBloco(blocoId);
     }
   };
