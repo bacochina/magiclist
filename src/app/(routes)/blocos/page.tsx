@@ -288,125 +288,125 @@ export default function BlocosPage() {
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen relative">
-        {/* Background específico para blocos */}
-        <div 
-          className="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 20h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM6 20h4v4H6v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
+    <div className="min-h-screen relative">
+      {/* Background específico para blocos */}
+      <div 
+        className="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 20h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM6 20h4v4H6v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }}
+      />
 
-        {/* Conteúdo da página */}
-        <div className="relative z-10 p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-              <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                  <MusicalNoteIcon className="h-8 w-8 mr-2" />
-                  Blocos Musicais
-                </h1>
-              </div>
+      {/* Conteúdo da página */}
+      <div className="relative z-10 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
+                <MusicalNoteIcon className="h-8 w-8 mr-2" />
+                Blocos Musicais
+              </h1>
+            </div>
 
-              <div className="px-4 py-6 sm:px-0">
-                <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center">
-                      <MusicalNoteIcon className="h-5 w-5 mr-1.5 text-indigo-400" />
-                      <span className="text-lg font-semibold text-gray-100">Meus Blocos</span>
+            <div className="px-4 py-6 sm:px-0">
+              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <MusicalNoteIcon className="h-5 w-5 mr-1.5 text-indigo-400" />
+                    <span className="text-lg font-semibold text-gray-100">Meus Blocos</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {/* Campo de busca */}
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder="Buscar blocos..."
+                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-7 pr-2 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
                     </div>
-                    
-                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                      {/* Campo de busca */}
-                      <div className="relative">
-                        <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <input
-                          type="text"
-                          value={busca}
-                          onChange={(e) => setBusca(e.target.value)}
-                          placeholder="Buscar blocos..."
-                          className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-7 pr-2 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
 
-                      {/* Filtro de bandas */}
-                      <select
-                        value={bandaSelecionada || ''}
-                        onChange={(e) => setBandaSelecionada(e.target.value || null)}
-                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="">Todas as bandas</option>
-                        {Array.isArray(bandas) && bandas.map((banda) => (
-                          <option key={banda.id} value={banda.id}>
-                            {banda.nome}
-                          </option>
-                        ))}
-                      </select>
-                      
-                      {/* Botões de visualização */}
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => setModoVisualizacao('lista')}
-                          className={`p-1.5 rounded-l-md ${
-                            modoVisualizacao === 'lista'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                          title="Visualização em lista"
-                        >
-                          <TableCellsIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setModoVisualizacao('cartoes')}
-                          className={`p-1.5 rounded-r-md ${
-                            modoVisualizacao === 'cartoes'
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                          title="Visualização em cartões"
-                        >
-                          <ViewColumnsIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                      
+                    {/* Filtro de bandas */}
+                    <select
+                      value={bandaSelecionada || ''}
+                      onChange={(e) => setBandaSelecionada(e.target.value || null)}
+                      className="bg-gray-700/50 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Todas as bandas</option>
+                      {Array.isArray(bandas) && bandas.map((banda) => (
+                        <option key={banda.id} value={banda.id}>
+                          {banda.nome}
+                        </option>
+                      ))}
+                    </select>
+                    
+                    {/* Botões de visualização */}
+                    <div className="flex items-center">
                       <button
-                        onClick={handleAdicionarBloco}
-                        className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
+                        onClick={() => setModoVisualizacao('lista')}
+                        className={`p-1.5 rounded-l-md ${
+                          modoVisualizacao === 'lista'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                        title="Visualização em lista"
                       >
-                        <PlusIcon className="h-4 w-4 mr-1" />
-                        Novo Bloco
+                        <TableCellsIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setModoVisualizacao('cartoes')}
+                        className={`p-1.5 rounded-r-md ${
+                          modoVisualizacao === 'cartoes'
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                        title="Visualização em cartões"
+                      >
+                        <ViewColumnsIcon className="h-4 w-4" />
                       </button>
                     </div>
+                    
+                    <button
+                      onClick={handleAdicionarBloco}
+                      className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-1" />
+                      Novo Bloco
+                    </button>
                   </div>
+                </div>
 
-                  {/* Lista de blocos com drag and drop */}
-                  {blocosFiltrados.length > 0 ? (
-                    bandaSelecionada && Array.isArray(bandas) ? (
-                      <div className="bg-white rounded-lg shadow overflow-hidden">
-                        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                          <div>
-                            <h3 className="text-lg font-medium leading-6 text-gray-900">
-                              Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
-                            </h3>
-                            <p className="mt-1 text-sm text-gray-500">
-                              {blocosFiltrados.length} {blocosFiltrados.length === 1 ? 'bloco' : 'blocos'} cadastrados
-                            </p>
-                          </div>
-                          <button
-                            onClick={handleAdicionarBloco}
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                          >
-                            <PlusIcon className="h-5 w-5 mr-2" />
-                            Novo Bloco
-                          </button>
+                {/* Lista de blocos com drag and drop */}
+                {blocosFiltrados.length > 0 ? (
+                  bandaSelecionada && Array.isArray(bandas) ? (
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                      <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+                        <div>
+                          <h3 className="text-lg font-medium leading-6 text-gray-900">
+                            Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {blocosFiltrados.length} {blocosFiltrados.length === 1 ? 'bloco' : 'blocos'} cadastrados
+                          </p>
                         </div>
-                        <div className="border-t border-gray-200">
-                          {blocosFiltrados.length > 0 ? (
+                        <button
+                          onClick={handleAdicionarBloco}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          <PlusIcon className="h-5 w-5 mr-2" />
+                          Novo Bloco
+                        </button>
+                      </div>
+                      <div className="border-t border-gray-200">
+                        {blocosFiltrados.length > 0 ? (
                             <div className="space-y-4">
-                              {blocosFiltrados.map((bloco, index) => (
+                                  {blocosFiltrados.map((bloco, index) => (
                                 <DraggableBlocoItem
                                   key={bloco.id}
-                                  index={index}
+                                                              index={index}
                                   bloco={bloco}
                                   bandas={bandas}
                                   musicas={musicas}
@@ -417,20 +417,20 @@ export default function BlocosPage() {
                                   onAdicionarMusica={handleAdicionarMusicaAoBloco}
                                 />
                               ))}
-                            </div>
-                          ) : (
-                            <div className="text-center py-12">
-                              <p className="text-sm text-gray-500">
-                                Esta banda ainda não possui blocos cadastrados.
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                                              </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <p className="text-sm text-gray-500">
+                              Esta banda ainda não possui blocos cadastrados.
+                            </p>
+                          </div>
+                        )}
                       </div>
-                    ) : modoVisualizacao === 'lista' ? (
-                      <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
+                    </div>
+                  ) : modoVisualizacao === 'lista' ? (
+                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
                         <div className="space-y-4">
-                          {blocosFiltrados.map((bloco, index) => (
+                        {blocosFiltrados.map((bloco, index) => (
                             <DraggableBlocoItem
                               key={bloco.id}
                               index={index}
@@ -445,7 +445,7 @@ export default function BlocosPage() {
                             />
                           ))}
                         </div>
-                      </div>
+                    </div>
                     ) : (
                       <BlocosGrid 
                         blocos={blocosFiltrados}
@@ -456,27 +456,27 @@ export default function BlocosPage() {
                         onExcluirBloco={handleExcluirBloco}
                         onAdicionarMusica={handleAdicionarMusicaAoBloco}
                       />
-                    )
-                  ) : (
-                    <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                      <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-500" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
-                      <p className="mt-1 text-sm text-gray-400">
-                        {busca || bandaSelecionada
-                          ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
-                          : 'Comece adicionando seu primeiro bloco musical.'}
-                      </p>
-                      <div className="mt-6">
-                        <button
-                          onClick={handleAdicionarBloco}
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                          Novo Bloco
-                        </button>
-                      </div>
+                  )
+                ) : (
+                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
+                    <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-500" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
+                    <p className="mt-1 text-sm text-gray-400">
+                      {busca || bandaSelecionada
+                        ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
+                        : 'Comece adicionando seu primeiro bloco musical.'}
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={handleAdicionarBloco}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                        Novo Bloco
+                      </button>
                     </div>
-                  )}
+                  </div>
+                )}
                 </div>
               </div>
             </div>
