@@ -6,16 +6,33 @@ import { Banda, Repertorio } from '@/lib/types';
 import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
 import { RepertorioForm } from './components/RepertorioForm';
 import { ClientOnly } from '../blocos/components/ClientOnly';
+import Link from 'next/link';
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  PlusIcon, 
-  MagnifyingGlassIcon,
-  CalendarIcon,
-  ViewColumnsIcon,
-  TableCellsIcon
-} from '@heroicons/react/24/outline';
+  Calendar,
+  Search, 
+  Filter, 
+  Plus,
+  Edit,
+  Trash2,
+  List,
+  Grid,
+  Music,
+  Users
+} from 'lucide-react';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
+
+// Card de estatísticas para a página de repertórios
+const RepertorioStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+  <div className="stat-card p-5">
+    <div className="flex items-center space-x-3 mb-2">
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    </div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+  </div>
+);
 
 export default function RepertoriosPage() {
   const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', []);
@@ -129,9 +146,10 @@ export default function RepertoriosPage() {
       buscarRepertorios();
       setModalAberto(false);
       setRepertorioEmEdicao(null);
+      alertaSucesso(`Repertório ${repertorioEmEdicao ? 'atualizado' : 'criado'} com sucesso!`);
     } catch (error) {
       console.error('Erro ao salvar repertório:', error);
-      alert(`Erro ao ${repertorioEmEdicao ? 'atualizar' : 'criar'} repertório. Por favor, tente novamente.`);
+      alertaErro(`Erro ao ${repertorioEmEdicao ? 'atualizar' : 'criar'} repertório. Por favor, tente novamente.`);
     }
   };
 
@@ -158,280 +176,319 @@ export default function RepertoriosPage() {
     });
   };
 
+  // Calcular estatísticas
+  const totalRepertorios = repertorios.length;
+  const bandasComRepertorios = new Set(
+    repertorios
+      .filter(rep => rep.bandaId)
+      .map(rep => rep.bandaId)
+  ).size;
+  const blocosEmRepertorios = repertorios.reduce(
+    (total, rep) => total + (rep.blocos?.length || 0), 
+    0
+  );
+
   return (
-    <div className="min-h-screen relative">
-      {/* Background específico para repertórios */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-green-900 via-teal-900 to-emerald-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 20h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM6 20h4v4H6v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Conteúdo da página */}
-      <div className="relative z-10 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <CalendarIcon className="h-8 w-8 mr-2" />
-                Repertórios
-              </h1>
-            </div>
-
-            <div className="px-4 py-6 sm:px-0">
-              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <CalendarIcon className="h-5 w-5 mr-1.5 text-emerald-400" />
-                    <span className="text-lg font-semibold text-gray-100">Meus Repertórios</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    {/* Campo de busca */}
-                    <div className="relative">
-                      <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder="Buscar..."
-                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-7 pr-2 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    
-                    {/* Filtro de bandas */}
-                    <select
-                      value={bandaSelecionada || ''}
-                      onChange={(e) => setBandaSelecionada(e.target.value || null)}
-                      className="bg-gray-700/50 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value="">Todas</option>
-                      {Array.isArray(bandas) && bandas.map((banda) => (
-                        <option key={banda.id} value={banda.id}>
-                          {banda.nome}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    {/* Botões de visualização */}
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => setModoVisualizacao('lista')}
-                        className={`p-1.5 rounded-l-md ${
-                          modoVisualizacao === 'lista'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em lista"
-                      >
-                        <TableCellsIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setModoVisualizacao('cartoes')}
-                        className={`p-1.5 rounded-r-md ${
-                          modoVisualizacao === 'cartoes'
-                            ? 'bg-emerald-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em cartões"
-                      >
-                        <ViewColumnsIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    
-                    <button
-                      onClick={handleAdicionarRepertorio}
-                      className="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Novo
-                    </button>
-                  </div>
-                </div>
-
-                {/* Conteúdo principal */}
-                {carregando ? (
-                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                    <div className="animate-pulse flex flex-col items-center">
-                      <div className="h-12 w-12 bg-gray-700 rounded-full mb-4"></div>
-                      <div className="h-4 bg-gray-700 rounded w-48 mb-2"></div>
-                      <div className="h-3 bg-gray-700 rounded w-32"></div>
-                    </div>
-                    <p className="mt-4 text-gray-400">Carregando repertórios...</p>
-                  </div>
-                ) : erro ? (
-                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                    <div className="text-red-500 mb-2">⚠️</div>
-                    <h3 className="text-lg font-medium text-gray-200 mb-2">Erro ao carregar dados</h3>
-                    <p className="text-gray-400">{erro}</p>
-                    <button
-                      onClick={buscarRepertorios}
-                      className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-md"
-                    >
-                      Tentar novamente
-                    </button>
-                  </div>
-                ) : repertoriosFiltrados.length > 0 ? (
-                  modoVisualizacao === 'lista' ? (
-                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
-                      <ul className="divide-y divide-gray-700">
-                        {repertoriosFiltrados.map((repertorio) => (
-                          <li key={repertorio.id} className="px-6 py-4 hover:bg-gray-700 transition-colors duration-150">
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h3 className="text-lg font-medium text-gray-100">{repertorio.nome}</h3>
-                                  {repertorio.descricao && (
-                                    <p className="text-sm text-gray-400">{repertorio.descricao}</p>
-                                  )}
-                                </div>
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => handleEditarRepertorio(repertorio)}
-                                    className="p-2 text-emerald-400 hover:text-emerald-300 rounded-full hover:bg-emerald-900/50"
-                                    title="Editar repertório"
-                                  >
-                                    <PencilIcon className="h-5 w-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleExcluirRepertorio(repertorio.id)}
-                                    className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
-                                    title="Excluir repertório"
-                                  >
-                                    <TrashIcon className="h-5 w-5" />
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-2">
-                                {repertorio.bandaId && (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                                    Banda: {Array.isArray(bandas) ? bandas.find(b => b.id === repertorio.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
-                                  </span>
-                                )}
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                                  Criado em: {formatarData(repertorio.createdAt)}
-                                </span>
-                                {repertorio.blocos && (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                                    {repertorio.blocos.length} {repertorio.blocos.length === 1 ? 'bloco' : 'blocos'}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {repertoriosFiltrados.map((repertorio) => (
-                        <div 
-                          key={repertorio.id} 
-                          className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
-                        >
-                          <div className="px-4 py-3 sm:px-6 flex justify-between items-start bg-emerald-900">
-                            <div className="flex items-center">
-                              <CalendarIcon className="h-5 w-5 text-emerald-300" />
-                              <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{repertorio.nome}</h3>
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
-                            <div className="space-y-3">
-                              {repertorio.descricao && (
-                                <p className="text-sm text-gray-300">{repertorio.descricao}</p>
-                              )}
-                              
-                              <div className="flex flex-wrap gap-2">
-                                {repertorio.bandaId && (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                                    Banda: {Array.isArray(bandas) ? bandas.find(b => b.id === repertorio.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
-                                  </span>
-                                )}
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                                  Criado em: {formatarData(repertorio.createdAt)}
-                                </span>
-                              </div>
-                              
-                              {repertorio.blocos && repertorio.blocos.length > 0 ? (
-                                <div>
-                                  <h4 className="text-sm font-medium text-gray-300 mb-2">Blocos:</h4>
-                                  <div className="text-sm text-gray-400">
-                                    {repertorio.blocos.length} {repertorio.blocos.length === 1 ? 'bloco' : 'blocos'} neste repertório
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-sm text-gray-500">Nenhum bloco adicionado a este repertório</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-end items-center bg-gray-900">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditarRepertorio(repertorio)}
-                                className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors duration-200"
-                                title="Editar repertório"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleExcluirRepertorio(repertorio.id)}
-                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                                title="Excluir repertório"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                    <CalendarIcon className="mx-auto h-12 w-12 text-gray-500" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum repertório encontrado</h3>
-                    <p className="mt-1 text-sm text-gray-400">
-                      {busca || bandaSelecionada
-                        ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
-                        : 'Comece adicionando seu primeiro repertório.'}
-                    </p>
-                    <div className="mt-6">
-                      <button
-                        onClick={handleAdicionarRepertorio}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                      >
-                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                        Novo Repertório
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Modal
-              title={repertorioEmEdicao ? 'Editar Repertório' : 'Novo Repertório'}
-              isOpen={modalAberto}
-              onClose={() => {
-                setModalAberto(false);
-                setRepertorioEmEdicao(null);
-              }}
-            >
-              <RepertorioForm
-                repertorio={repertorioEmEdicao || undefined}
-                bandas={bandas}
-                onSubmit={handleSubmit}
-                onCancel={() => {
-                  setModalAberto(false);
-                  setRepertorioEmEdicao(null);
-                }}
-              />
-            </Modal>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Repertórios</h1>
+          <p className="text-gray-400">Organize seus repertórios para shows e ensaios</p>
         </div>
       </div>
+
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <RepertorioStatCard 
+          title="Total de Repertórios" 
+          value={totalRepertorios} 
+          icon={<Calendar size={20} />}
+        />
+        <RepertorioStatCard 
+          title="Bandas com Repertórios" 
+          value={bandasComRepertorios} 
+          icon={<Users size={20} />}
+        />
+        <RepertorioStatCard 
+          title="Blocos em Repertórios" 
+          value={blocosEmRepertorios} 
+          icon={<Music size={20} />}
+        />
+      </div>
+
+      {carregando ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      ) : (
+        <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+          {/* Filtros e Busca */}
+          <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
+            <div className="relative flex-1 min-w-[250px]">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar repertórios..."
+                className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <Filter size={18} className="text-gray-400" />
+                <select
+                  value={bandaSelecionada || ''}
+                  onChange={(e) => setBandaSelecionada(e.target.value || null)}
+                  className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="">Todas as bandas</option>
+                  {Array.isArray(bandas) && bandas.map((banda) => (
+                    <option key={banda.id} value={banda.id}>
+                      {banda.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+                    
+              {/* Botões de visualização - Lista primeiro, depois cartões */}
+              <div className="flex items-center space-x-1 ml-auto">
+                <button
+                  type="button"
+                  className={`p-2 rounded-l ${
+                    modoVisualizacao === 'lista'
+                      ? 'bg-gray-700 text-gray-100'
+                      : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                  }`}
+                  onClick={() => setModoVisualizacao('lista')}
+                  title="Visualização em Lista"
+                >
+                  <List size={18} />
+                </button>
+                <button
+                  type="button"
+                  className={`p-2 rounded-r ${
+                    modoVisualizacao === 'cartoes'
+                      ? 'bg-gray-700 text-gray-100'
+                      : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                  }`}
+                  onClick={() => setModoVisualizacao('cartoes')}
+                  title="Visualização em Cartões"
+                >
+                  <Grid size={18} />
+                </button>
+              </div>
+                    
+              <button
+                onClick={handleAdicionarRepertorio}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center space-x-1"
+              >
+                <Plus size={16} />
+                <span>Novo Repertório</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Conteúdo principal */}
+          {erro ? (
+            <div className="text-center py-12">
+              <div className="text-red-500 mb-2 text-4xl">⚠️</div>
+              <h3 className="mt-2 text-lg font-medium text-gray-200">Erro ao carregar dados</h3>
+              <p className="mt-1 text-sm text-gray-400">{erro}</p>
+              <button
+                onClick={buscarRepertorios}
+                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : repertoriosFiltrados.length > 0 ? (
+            modoVisualizacao === 'lista' ? (
+              /* Visualização em Lista */
+              <div className="p-6 space-y-4">
+                {repertoriosFiltrados.map((repertorio) => (
+                  <div 
+                    key={repertorio.id} 
+                    className="px-6 py-4 bg-gray-800 hover:bg-gray-750 transition-colors duration-150 border-b border-gray-700"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-100">{repertorio.nome}</h3>
+                          {repertorio.descricao && (
+                            <p className="text-sm text-gray-400">{repertorio.descricao}</p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditarRepertorio(repertorio)}
+                            className="p-2 text-indigo-400 hover:text-indigo-300 rounded-full hover:bg-indigo-900/50"
+                            title="Editar repertório"
+                          >
+                            <Edit className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleExcluirRepertorio(repertorio.id)}
+                            className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
+                            title="Excluir repertório"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {repertorio.bandaId && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                            Banda: {Array.isArray(bandas) ? bandas.find(b => b.id === repertorio.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                          Criado em: {formatarData(repertorio.createdAt)}
+                        </span>
+                        {repertorio.blocos && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                            {repertorio.blocos.length} {repertorio.blocos.length === 1 ? 'bloco' : 'blocos'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Visualização em Cartões */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
+                {repertoriosFiltrados.map((repertorio) => (
+                  <div 
+                    key={repertorio.id} 
+                    className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
+                  >
+                    {/* Cabeçalho do cartão */}
+                    <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
+                      <div className="flex items-center w-full">
+                        <div className="flex-1 min-w-0">
+                          <h3 
+                            className="text-base font-medium text-white leading-tight line-clamp-2 text-center"
+                            title={repertorio.nome || ''}
+                          >
+                            {repertorio.nome}
+                          </h3>
+                        </div>
+                      </div>
+                      {repertorio.bandaId && (
+                        <div className="mt-1 flex items-center justify-center w-full">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
+                            {Array.isArray(bandas) ? bandas.find(b => b.id === repertorio.bandaId)?.nome || 'Banda' : 'Banda'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Corpo do cartão */}
+                    <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
+                      {/* Descrição (se houver) */}
+                      {repertorio.descricao && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-400 font-medium mb-0.5">Descrição</p>
+                          <p className="text-gray-300 text-sm line-clamp-2">{repertorio.descricao}</p>
+                        </div>
+                      )}
+                      
+                      {/* Data de criação */}
+                      <div className="flex items-start mb-3">
+                        <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+                          <Calendar size={16} className="text-indigo-300" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium mb-0.5">Criado em</p>
+                          <p className="text-gray-300 text-sm">{formatarData(repertorio.createdAt)}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Blocos */}
+                      <div className="flex items-start">
+                        <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+                          <Music size={16} className="text-indigo-300" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium mb-0.5">Blocos</p>
+                          {repertorio.blocos && repertorio.blocos.length > 0 ? (
+                            <p className="text-gray-300 text-sm">{repertorio.blocos.length} {repertorio.blocos.length === 1 ? 'bloco' : 'blocos'}</p>
+                          ) : (
+                            <p className="text-gray-500 text-sm">Nenhum bloco adicionado</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Rodapé com ações */}
+                    <div className="px-4 py-3 bg-gray-850 border-t border-gray-700 flex justify-end">
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handleEditarRepertorio(repertorio)}
+                          className="p-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300"
+                          title="Editar repertório"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleExcluirRepertorio(repertorio.id)}
+                          className="p-1.5 rounded-md bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white"
+                          title="Excluir repertório"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="text-center py-12">
+              <Calendar className="mx-auto h-12 w-12 text-gray-500" />
+              <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum repertório encontrado</h3>
+              <p className="mt-1 text-sm text-gray-400">
+                {busca || bandaSelecionada
+                  ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
+                  : 'Comece adicionando seu primeiro repertório.'}
+              </p>
+              <div className="mt-6">
+                <button
+                  onClick={handleAdicionarRepertorio}
+                  className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Novo Repertório
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Modal
+        title={repertorioEmEdicao ? 'Editar Repertório' : 'Novo Repertório'}
+        isOpen={modalAberto}
+        onClose={() => {
+          setModalAberto(false);
+          setRepertorioEmEdicao(null);
+        }}
+      >
+        <RepertorioForm
+          repertorio={repertorioEmEdicao || undefined}
+          bandas={bandas}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setModalAberto(false);
+            setRepertorioEmEdicao(null);
+          }}
+        />
+      </Modal>
     </div>
   );
 } 

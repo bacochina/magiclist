@@ -1,359 +1,483 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Modal } from '@/components/ui/Modal';
-import { BandaForm } from './components/BandaForm';
-import { Banda } from '@/lib/types';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  PlusIcon,
-  MusicalNoteIcon,
-  UserGroupIcon,
-  XMarkIcon,
-  ViewColumnsIcon,
-  TableCellsIcon,
-  MagnifyingGlassIcon
-} from '@heroicons/react/24/outline';
+  Plus, 
+  Search, 
+  Filter, 
+  Music, 
+  Users, 
+  FileEdit, 
+  Trash2, 
+  Eye,
+  List,
+  Grid,
+  MusicIcon
+} from 'lucide-react';
+import { Banda } from '@/lib/types';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
+import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
+import { useRouter } from 'next/navigation';
 
-export default function BandasPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bandaEditando, setBandaEditando] = useState<Banda | undefined>(undefined);
-  const [bandas, setBandas] = useState<Banda[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
-  const [mostraForm, setMostraForm] = useState(false);
-  // Modo de visualização
-  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'lista'>('lista');
-  // Busca
-  const [busca, setBusca] = useState('');
+// Card de estatísticas para a página de bandas
+const BandaStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+  <div className="stat-card p-5">
+    <div className="flex items-center space-x-3 mb-2">
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    </div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+  </div>
+);
+
+// Componente de tabela de bandas
+const BandasTable = ({ bandas, onDelete, onView, onEdit }: { 
+  bandas: Banda[]; 
+  onDelete: (id: string) => void;
+  onView: (id: string) => void;
+  onEdit: (id: string) => void;
+}) => {
+  const [sortColumn, setSortColumn] = useState<string>('nome');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [bandasFiltradas, setBandasFiltradas] = useState<Banda[]>(Array.isArray(bandas) ? bandas : []);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroGenero, setFiltroGenero] = useState<string>('todos');
+  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
 
   useEffect(() => {
-    carregarBandas();
+    // Filtrar por busca e gênero
+    let filtered = Array.isArray(bandas) ? [...bandas] : [];
+    
+    if (searchTerm) {
+      filtered = filtered.filter(banda => 
+        (banda.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (banda.genero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (banda.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (filtroGenero !== 'todos') {
+      filtered = filtered.filter(banda => 
+        banda.genero === filtroGenero
+      );
+    }
+    
+    // Ordenar
+    filtered = [...filtered].sort((a, b) => {
+      if (sortColumn === 'nome') {
+        const nomeA = (a.nome || '');
+        const nomeB = (b.nome || '');
+        return sortDirection === 'asc' 
+          ? nomeA.localeCompare(nomeB) 
+          : nomeB.localeCompare(nomeA);
+      }
+      if (sortColumn === 'genero') {
+        const generoA = a.genero || '';
+        const generoB = b.genero || '';
+        return sortDirection === 'asc' 
+          ? generoA.localeCompare(generoB) 
+          : generoB.localeCompare(generoA);
+      }
+      return 0;
+    });
+    
+    setBandasFiltradas(filtered);
+  }, [bandas, sortColumn, sortDirection, searchTerm, filtroGenero]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Extrair lista única de gêneros para o filtro
+  const generos = ['todos', ...new Set(Array.isArray(bandas) ? bandas.map(e => e.genero).filter(Boolean) : [])];
+
+  return (
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+      {/* Filtros e Busca */}
+      <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex-1 min-w-[250px]">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar bandas..." 
+            className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
+            <Filter size={18} className="text-gray-400" />
+            <select
+              className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={filtroGenero}
+              onChange={(e) => setFiltroGenero(e.target.value)}
+            >
+              {generos.map(genero => (
+                <option key={genero} value={genero}>
+                  {genero === 'todos' ? 'Todos os gêneros' : genero}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Botões de visualização - Lista primeiro, depois cartões */}
+          <div className="flex items-center space-x-1 ml-auto">
+            <button
+              type="button"
+              className={`p-2 rounded-l ${
+                modoVisualizacao === 'lista'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              }`}
+              onClick={() => setModoVisualizacao('lista')}
+              title="Visualização em Lista"
+            >
+              <List size={18} />
+            </button>
+            <button
+              type="button"
+              className={`p-2 rounded-r ${
+                modoVisualizacao === 'cartoes'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              }`}
+              onClick={() => setModoVisualizacao('cartoes')}
+              title="Visualização em Cartões"
+            >
+              <Grid size={18} />
+            </button>
+          </div>
+
+          <Link href="/bandas/nova" className="btn-primary">
+            <Plus size={18} className="mr-1" />
+            Nova Banda
+          </Link>
+        </div>
+      </div>
+      
+      {bandasFiltradas.length > 0 ? (
+        modoVisualizacao === 'lista' ? (
+          /* Tabela */
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead>
+                <tr>
+                  <th 
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'nome' ? 'text-white' : ''}`}
+                    onClick={() => handleSort('nome')}
+                  >
+                    <div className="flex items-center">
+                      <span>Nome</span>
+                      {sortColumn === 'nome' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'genero' ? 'text-white' : ''}`}
+                    onClick={() => handleSort('genero')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <Music size={14} />
+                      <span>Gênero</span>
+                      {sortColumn === 'genero' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Descrição
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {bandasFiltradas.map((banda) => (
+                  <tr key={banda.id} className="hover:bg-gray-750">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                      {banda.nome}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <span className="px-2 py-1 bg-purple-900 bg-opacity-40 text-purple-300 rounded-full text-xs">
+                        {banda.genero || 'Não definido'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-300">
+                      {banda.descricao || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => onView(banda.id)}
+                          className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Visualizar"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={() => onEdit(banda.id)}
+                          className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                          title="Editar"
+                        >
+                          <FileEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => onDelete(banda.id)}
+                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Visualização em Cartões */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
+            {bandasFiltradas.map((banda) => (
+              <div 
+                key={banda.id} 
+                className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
+              >
+                {/* Cabeçalho do cartão */}
+                <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
+                  <div className="flex items-center w-full">
+                    <div className="flex-1 min-w-0">
+                      <h3 
+                        className="text-base font-medium text-white leading-tight line-clamp-2 text-center"
+                        title={banda.nome || ''}
+                      >
+                        {banda.nome}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex items-center justify-center w-full">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
+                      {banda.genero || 'Gênero não definido'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Corpo do cartão */}
+                <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
+                  <div className="space-y-3">
+                    {/* Descrição (se houver) */}
+                    {banda.descricao ? (
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-0.5">Descrição</p>
+                        <p className="text-gray-300 text-sm line-clamp-3">{banda.descricao}</p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-16 text-center text-gray-500">
+                        <p className="text-sm">Sem descrição</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Rodapé com ações */}
+                <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onView(banda.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
+                      title="Visualizar banda"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onEdit(banda.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
+                      title="Editar banda"
+                    >
+                      <FileEdit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(banda.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
+                      title="Excluir banda"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        <div className="p-8 text-center">
+          <div className="text-gray-400">Nenhuma banda encontrada</div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function BandasPage() {
+  const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', []);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchBandas() {
+      try {
+        const response = await fetch('/api/bandas');
+        if (response.ok) {
+          const data = await response.json();
+          setBandas(data.bandas || []);
+        } else {
+          console.error('Erro ao buscar bandas');
+          // Usando dados simulados se a API falhar
+          setBandas([
+            {
+              id: '1',
+              nome: 'Rock Stars',
+              genero: 'Rock',
+              descricao: 'Banda especializada em rock clássico anos 70 e 80'
+            },
+            {
+              id: '2',
+              nome: 'Electric Sound',
+              genero: 'Pop',
+              descricao: 'Covers de músicas pop contemporâneas'
+            },
+            {
+              id: '3',
+              nome: 'Acoustic Trio',
+              genero: 'MPB/Acústico',
+              descricao: 'Formato reduzido para eventos intimistas'
+            },
+            {
+              id: '4',
+              nome: 'Jazz Quartet',
+              genero: 'Jazz',
+              descricao: 'Especializada em standards de jazz e bossa nova'
+            },
+            {
+              id: '5',
+              nome: 'Baile Total',
+              genero: 'Baile/Dançante',
+              descricao: 'Repertório variado para festas dançantes'
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar bandas:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchBandas();
   }, []);
 
-  const carregarBandas = async () => {
-    try {
-      const response = await fetch('/api/bandas');
-      if (!response.ok) {
-        throw new Error('Erro ao carregar bandas');
-      }
-      const data = await response.json();
-      setBandas(data.bandas || []);
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setCarregando(false);
+  const handleDelete = async (id: string) => {
+    if (!Array.isArray(bandas)) {
+      alertaErro('Não foi possível excluir a banda');
+      return;
     }
-  };
-
-  // Filtra bandas baseado na busca
-  const bandasFiltradas = bandas.filter(
-    (banda) =>
-      banda.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      (banda.genero && banda.genero.toLowerCase().includes(busca.toLowerCase())) ||
-      (banda.descricao && banda.descricao.toLowerCase().includes(busca.toLowerCase()))
-  );
-
-  const handleSubmit = async (banda: Omit<Banda, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      const response = await fetch('/api/bandas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(banda),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao criar banda');
-      }
-
-      await carregarBandas();
-      setMostraForm(false);
-      setBandaEditando(undefined);
-    } catch (error) {
-      console.error('Erro:', error);
-      alert('Erro ao criar banda');
-    }
-  };
-
-  const handleEditar = (banda: Banda) => {
-    setBandaEditando(banda);
-    setIsModalOpen(true);
-  };
-
-  const handleExcluirBanda = async (banda: Banda) => {
+    
+    const banda = bandas.find(b => b.id === id);
+    
+    if (!banda) return;
+    
     const confirmado = await confirmar(
       'Excluir banda',
-      'Tem certeza que deseja excluir esta banda?',
+      `Tem certeza que deseja excluir a banda "${banda.nome}"?`,
       'warning'
     );
     
     if (confirmado) {
       try {
-        setErro(null);
-        const res = await fetch(`/api/bandas?id=${banda.id}`, {
-          method: 'DELETE',
-        });
-
-        if (!res.ok) throw new Error('Erro ao excluir banda');
-
-        setBandas(bandas.filter(banda => banda.id !== banda.id));
+        setBandas(bandas.filter(banda => banda.id !== id));
         alertaSucesso('Banda excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir banda:', error);
-        setErro('Erro ao excluir banda. Por favor, tente novamente.');
         alertaErro('Erro ao excluir a banda');
       }
     }
   };
 
-  if (carregando) {
-    return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleView = (id: string) => {
+    // Na implementação real, redireciona para a página de visualização
+    console.log('Visualizar banda:', id);
+  };
+
+  const handleEdit = (id: string) => {
+    // Usar o router do Next.js para navegação
+    router.push(`/bandas/editar/${id}`);
+  };
+
+  // Calcula estatísticas
+  const totalBandas = Array.isArray(bandas) ? bandas.length : 0;
+  const generosUnicos = new Set(Array.isArray(bandas) ? bandas.map(b => b.genero).filter(Boolean) : []).size;
+  
+  // Número estimado de músicos (assumindo uma média de 5 por banda)
+  const musicosEstimados = totalBandas * 5;
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background específico para bandas */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M15 35h30v-2H15v2zm0-8h30v-2H15v2zm0-8h30v-2H15v2zm0-8h30V9H15v2zm0-8h30V1H15v2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Conteúdo da página */}
-      <div className="relative z-10 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <UserGroupIcon className="h-8 w-8 mr-2" />
-                Bandas
-              </h1>
-            </div>
-            
-            <div className="px-4 py-6 sm:px-0">
-              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                  <h2 className="text-2xl font-semibold text-gray-100 flex items-center">
-                    <MusicalNoteIcon className="h-6 w-6 mr-2 text-purple-400" />
-                    Minhas Bandas
-                  </h2>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Campo de busca */}
-                    <div className="relative flex-1 min-w-[200px]">
-                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder="Buscar bandas..."
-                        className="block w-full rounded-md border border-gray-600 bg-gray-700 text-gray-200 pl-10 py-2 focus:border-purple-500 focus:ring-purple-500 sm:text-sm h-10"
-                      />
-                    </div>
-                    
-                    {/* Botões de visualização */}
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => setModoVisualizacao('lista')}
-                        className={`p-2 rounded-md ${
-                          modoVisualizacao === 'lista'
-                            ? 'bg-purple-700 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em lista"
-                      >
-                        <TableCellsIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setModoVisualizacao('cartoes')}
-                        className={`p-2 rounded-md ${
-                          modoVisualizacao === 'cartoes'
-                            ? 'bg-purple-700 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em cartões"
-                      >
-                        <ViewColumnsIcon className="h-5 w-5" />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setMostraForm(true);
-                        }} 
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2" />
-                        Nova Banda
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {erro && (
-                  <div className="mb-6 bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded relative" role="alert">
-                    <span className="block sm:inline">{erro}</span>
-                  </div>
-                )}
-
-                {bandasFiltradas.length > 0 ? (
-                  modoVisualizacao === 'lista' ? (
-                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
-                      <ul className="divide-y divide-gray-700">
-                        {bandasFiltradas.map((banda) => (
-                          <li key={banda.id} className="px-6 py-4 hover:bg-gray-700 transition-colors duration-150">
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h3 className="text-lg font-medium text-gray-100">{banda.nome}</h3>
-                                  <p className="text-sm text-gray-400">{banda.genero}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                  <button
-                                    onClick={() => handleEditar(banda)}
-                                    className="p-2 text-blue-400 hover:text-blue-300 rounded-full hover:bg-blue-900/50"
-                                    title="Editar banda"
-                                  >
-                                    <PencilIcon className="h-5 w-5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleExcluirBanda(banda)}
-                                    className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
-                                    title="Excluir banda"
-                                  >
-                                    <TrashIcon className="h-5 w-5" />
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              {banda.descricao && (
-                                <p className="text-sm text-gray-300">{banda.descricao}</p>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {bandasFiltradas.map((banda) => (
-                        <div 
-                          key={banda.id} 
-                          className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
-                        >
-                          <div className="px-4 py-3 sm:px-6 flex justify-between items-start bg-purple-900">
-                            <div className="flex items-center">
-                              <MusicalNoteIcon className="h-5 w-5 text-purple-300" />
-                              <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{banda.nome}</h3>
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
-                            <div className="space-y-3">
-                              <div className="flex items-center text-sm">
-                                <p className="text-gray-200 font-medium">Gênero: {banda.genero || 'Não especificado'}</p>
-                              </div>
-                              
-                              {banda.descricao && (
-                                <div className="mt-2 text-sm text-gray-300">
-                                  {banda.descricao}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-end items-center bg-gray-900">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditar(banda)}
-                                className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
-                                title="Editar banda"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleExcluirBanda(banda)}
-                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                                title="Excluir banda"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-                      />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhuma banda encontrada</h3>
-                    <p className="mt-1 text-sm text-gray-400">
-                      {busca ? 'Tente uma busca diferente ou ' : 'Comece criando sua primeira banda para gerenciar seus repertórios.'}
-                    </p>
-                    <div className="mt-6">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMostraForm(true);
-                        }}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-                      >
-                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                        Criar Banda
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <Modal
-              isOpen={isModalOpen || mostraForm}
-              onClose={() => {
-                setIsModalOpen(false);
-                setMostraForm(false);
-                setBandaEditando(undefined);
-              }}
-              title={bandaEditando ? 'Editar Banda' : 'Nova Banda'}
-            >
-              <BandaForm
-                banda={bandaEditando}
-                onSubmit={handleSubmit}
-                onCancel={() => {
-                  setIsModalOpen(false);
-                  setMostraForm(false);
-                  setBandaEditando(undefined);
-                }}
-              />
-            </Modal>
-          </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Bandas</h1>
+          <p className="text-gray-400">Gerencie suas bandas e projetos musicais</p>
         </div>
       </div>
+      
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <BandaStatCard 
+          title="Total de Bandas" 
+          value={totalBandas} 
+          icon={<Music size={20} />}
+        />
+        <BandaStatCard 
+          title="Gêneros musicais" 
+          value={generosUnicos} 
+          icon={<Music size={20} />}
+        />
+        <BandaStatCard 
+          title="Músicos estimados" 
+          value={musicosEstimados} 
+          icon={<Users size={20} />}
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      ) : (
+        <BandasTable 
+          bandas={bandas} 
+          onDelete={handleDelete}
+          onView={handleView}
+          onEdit={handleEdit}
+        />
+      )}
     </div>
   );
 } 

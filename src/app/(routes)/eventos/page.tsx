@@ -1,1404 +1,799 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Modal } from '@/components/ui/Modal';
-import { Evento, TipoEvento, StatusEvento, Banda, Integrante, Musica } from '@/lib/types';
-import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
-import { ClientOnly } from '../blocos/components/ClientOnly';
-import { EventoForm } from './components/EventoForm';
-import { EventosGraficos } from './components/EventosGraficos';
-import { format, parseISO, isAfter, isBefore, isToday } from 'date-fns';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  PlusIcon, 
-  MagnifyingGlassIcon,
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
-  AdjustmentsHorizontalIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon as ClockIconSolid,
-  MusicalNoteIcon,
-  ChatBubbleLeftRightIcon,
-  ViewColumnsIcon,
-  TableCellsIcon,
-  ChartBarIcon,
-  ChartPieIcon
-} from '@heroicons/react/24/outline';
-import Link from 'next/link';
-import { popularEventosExemplo } from './data/eventos-exemplo';
+  Calendar, 
+  BarChart2, 
+  PieChart, 
+  TrendingUp, 
+  Users, 
+  Clock, 
+  MapPin, 
+  Music, 
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Clock3,
+  ArrowRight,
+  LineChart,
+  Layers
+} from 'lucide-react';
+import { Evento, Banda, TipoEvento } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { jsPDF } from 'jspdf';
-import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
+import { Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  BarElement, 
+  ArcElement,
+  Title, 
+  Tooltip, 
+  Legend,
+  Filler 
+} from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function EventosPage() {
-  const [eventos, setEventos] = useHydratedLocalStorage<Evento[]>('eventos', []);
-  const [bandas] = useHydratedLocalStorage<Banda[]>('bandas', []);
-  const [integrantes] = useHydratedLocalStorage<Integrante[]>('integrantes', []);
-  const [musicas] = useHydratedLocalStorage<Musica[]>('musicas', []);
-  const [repertorios] = useHydratedLocalStorage<{ id: string; nome: string; musicas: string[] }[]>('repertorios', []);
-  
-  const [modalAberto, setModalAberto] = useState(false);
-  const [eventoEmEdicao, setEventoEmEdicao] = useState<Evento | undefined>();
-  const [modalRelatorioAberto, setModalRelatorioAberto] = useState(false);
-  const [eventoParaRelatorio, setEventoParaRelatorio] = useState<Evento | undefined>();
-  const [mostrarBotaoTopo, setMostrarBotaoTopo] = useState(false);
-  const [gerandoPDF, setGerandoPDF] = useState(false);
-  
-  // Filtros
-  const [busca, setBusca] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState<TipoEvento | 'todos'>('todos');
-  const [filtroStatus, setFiltroStatus] = useState<StatusEvento | 'todos'>('todos');
-  const [filtroBanda, setFiltroBanda] = useState<string>('');
-  const [filtroPeriodo, setFiltroPeriodo] = useState<'todos' | 'passados' | 'hoje' | 'futuros'>('todos');
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  // Estado para controlar a visibilidade da seção de estatísticas
-  const [mostrarEstatisticas, setMostrarEstatisticas] = useState(true);
+// Registrando os componentes necessários do Chart.js
+ChartJS.register(
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  BarElement, 
+  ArcElement,
+  Title, 
+  Tooltip, 
+  Legend,
+  Filler
+);
 
-  // Ordenação
-  const [ordenacao, setOrdenacao] = useState<'data-asc' | 'data-desc' | 'titulo-asc' | 'titulo-desc'>('data-asc');
-  
-  // Modo de visualização
-  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'tabela'>('cartoes');
-  const [mostrarGraficos, setMostrarGraficos] = useState(false);
+// Componente de card de estatísticas
+const StatCard = ({ 
+  title, 
+  value, 
+  icon, 
+  trend, 
+  color 
+}: { 
+  title: string; 
+  value: string | number; 
+  icon: React.ReactNode; 
+  trend?: { value: string; up: boolean } | null; 
+  color: string 
+}) => (
+  <div className={`p-6 rounded-xl border ${color} bg-gray-800/60 hover:bg-gray-800/80 transition-all shadow-lg`}>
+    <div className="flex items-center justify-between">
+      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-700/50">
+        {icon}
+      </div>
+      {trend && (
+        <div className={`text-xs flex items-center ${trend.up ? 'text-green-400' : 'text-red-400'}`}>
+          <span>{trend.value}</span>
+          <TrendingUp className={`h-3 w-3 ml-1 ${!trend.up && 'transform rotate-180'}`} />
+        </div>
+      )}
+    </div>
+    <h3 className="mt-4 text-gray-400 text-sm font-medium">{title}</h3>
+    <div className="mt-1 text-3xl font-bold">{value}</div>
+  </div>
+);
 
-  const router = useRouter();
-
-  // Verifica se deve popular com eventos de exemplo
-  useEffect(() => {
-    // Tenta popular com eventos de exemplo se houver poucos eventos
-    popularEventosExemplo();
-  }, []);
-
-  // Efeito para mostrar/esconder o botão de voltar ao topo
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setMostrarBotaoTopo(true);
-      } else {
-        setMostrarBotaoTopo(false);
-      }
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Filtra eventos baseado nos critérios
-  const eventosFiltrados = useMemo(() => {
-    return eventos
-      .filter(evento => {
-        // Filtro de busca
-        const termoBusca = busca.toLowerCase();
-        const matchBusca = 
-          evento.titulo.toLowerCase().includes(termoBusca) || 
-          evento.local.toLowerCase().includes(termoBusca) ||
-          (evento.descricao && evento.descricao.toLowerCase().includes(termoBusca));
-        
-        // Filtro de tipo
-        const matchTipo = filtroTipo === 'todos' || evento.tipo === filtroTipo;
-        
-        // Filtro de status
-        const matchStatus = filtroStatus === 'todos' || evento.status === filtroStatus;
-        
-        // Filtro de banda
-        const matchBanda = !filtroBanda || evento.bandaId === filtroBanda;
-        
-        // Filtro de período
-        let matchPeriodo = true;
-        if (filtroPeriodo !== 'todos') {
-          const dataEvento = parseISO(evento.data);
-          const hoje = new Date();
-          
-          if (filtroPeriodo === 'passados') {
-            matchPeriodo = isBefore(dataEvento, hoje) && !isToday(dataEvento);
-          } else if (filtroPeriodo === 'hoje') {
-            matchPeriodo = isToday(dataEvento);
-          } else if (filtroPeriodo === 'futuros') {
-            matchPeriodo = isAfter(dataEvento, hoje) && !isToday(dataEvento);
-          }
-        }
-        
-        return matchBusca && matchTipo && matchStatus && matchBanda && matchPeriodo;
-      })
-      .sort((a, b) => {
-        // Ordenação
-        if (ordenacao === 'data-asc') {
-          return a.data.localeCompare(b.data) || a.horaInicio.localeCompare(b.horaInicio);
-        } else if (ordenacao === 'data-desc') {
-          return b.data.localeCompare(a.data) || b.horaInicio.localeCompare(a.horaInicio);
-        } else if (ordenacao === 'titulo-asc') {
-          return a.titulo.localeCompare(b.titulo);
-        } else {
-          return b.titulo.localeCompare(a.titulo);
-        }
-      });
-  }, [eventos, busca, filtroTipo, filtroStatus, filtroBanda, filtroPeriodo, ordenacao]);
-
-  const handleAdicionarEvento = () => {
-    setEventoEmEdicao(undefined);
-    setModalAberto(true);
+// Componente de card de evento próximo
+const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEvento }) => {
+  const formatarData = (data: string) => {
+    const date = new Date(data);
+    return format(date, 'dd/MM/yyyy', { locale: ptBR });
   };
 
-  const handleEditarEvento = (evento: Evento) => {
-    setEventoEmEdicao(evento);
-    setModalAberto(true);
-  };
-
-  const handleExcluirEvento = async (eventoId: string) => {
-    const evento = eventos.find(e => e.id === eventoId);
-    
-    if (!evento) return;
-    
-    const confirmado = await confirmar(
-      'Excluir evento',
-      `Tem certeza que deseja excluir o evento "${evento.titulo}"?`,
-      'warning'
-    );
-    
-    if (confirmado) {
-      try {
-        setEventos(eventos.filter((e) => e.id !== eventoId));
-        alertaSucesso('Evento excluído com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir evento:', error);
-        alertaErro('Erro ao excluir o evento');
-      }
+  const getEventLink = () => {
+    switch (eventType) {
+      case 'show': return `/eventos/shows/${event.id}`;
+      case 'ensaio': return `/eventos/ensaios/${event.id}`;
+      case 'reuniao': return `/eventos/reunioes/${event.id}`;
+      default: return '/eventos';
     }
   };
 
-  const handleGerarRelatorio = (evento: Evento) => {
-    setEventoParaRelatorio(evento);
-    setModalRelatorioAberto(true);
-  };
-
-  const handleSubmit = (data: Partial<Evento>) => {
-    if (eventoEmEdicao) {
-      setEventos(
-        eventos.map((e) =>
-          e.id === eventoEmEdicao.id
-            ? { ...e, ...data }
-            : e
-        )
-      );
-    } else {
-      const novoEvento: Evento = {
-        id: Math.random().toString(36).substr(2, 9),
-        titulo: data.titulo || '',
-        tipo: data.tipo || 'ensaio',
-        data: data.data || format(new Date(), 'yyyy-MM-dd'),
-        horaInicio: data.horaInicio || '19:00',
-        horaFim: data.horaFim || '22:00',
-        local: data.local || '',
-        endereco: data.endereco,
-        bandaId: data.bandaId,
-        integrantesIds: data.integrantesIds || [],
-        status: data.status || 'agendado',
-        descricao: data.descricao,
-        
-        // Campos específicos para shows
-        valorCache: data.valorCache,
-        contatoLocal: data.contatoLocal,
-        telefoneLocal: data.telefoneLocal,
-        observacoesShow: data.observacoesShow,
-        repertorioId: data.repertorioId,
-        
-        // Campos específicos para ensaios
-        pautaEnsaio: data.pautaEnsaio,
-        objetivosEnsaio: data.objetivosEnsaio,
-        musicasEnsaio: data.musicasEnsaio,
-        
-        // Campos específicos para reuniões
-        pautaReuniao: data.pautaReuniao,
-        ataReuniao: data.ataReuniao,
-        decisoesTomadas: data.decisoesTomadas,
-      };
-      setEventos([...eventos, novoEvento]);
-    }
-    setModalAberto(false);
-    setEventoEmEdicao(undefined);
-  };
-
-  // Função para obter o nome da banda a partir do ID
-  const getNomeBanda = (bandaId?: string) => {
-    if (!bandaId) return '';
-    if (!Array.isArray(bandas)) return '';
-    const banda = bandas.find(b => b.id === bandaId);
-    return banda ? banda.nome : '';
-  };
-
-  // Função para obter o ícone do tipo de evento
-  const getIconeTipoEvento = (tipo: TipoEvento) => {
-    switch (tipo) {
-      case 'show':
-        return <MusicalNoteIcon className="h-5 w-5 text-green-600" />;
-      case 'ensaio':
-        return <ClockIconSolid className="h-5 w-5 text-orange-500" />;
-      case 'reuniao':
-        return <ChatBubbleLeftRightIcon className="h-5 w-5 text-yellow-500" />;
-      default:
-        return <CalendarIcon className="h-5 w-5 text-gray-500" />;
+  const getEventIcon = () => {
+    switch (eventType) {
+      case 'show': return <Calendar className="text-blue-400" />;
+      case 'ensaio': return <Music className="text-purple-400" />;
+      case 'reuniao': return <FileText className="text-green-400" />;
+      default: return <Calendar className="text-blue-400" />;
     }
   };
 
-  // Função para obter a cor de fundo com base no status
-  const getCorStatus = (status: StatusEvento) => {
-    switch (status) {
-      case 'agendado':
-        return 'bg-orange-100 text-orange-800';
-      case 'confirmado':
-        return 'bg-green-100 text-green-800';
-      case 'cancelado':
-        return 'bg-red-100 text-red-800';
-      case 'concluido':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getEventColor = () => {
+    switch (eventType) {
+      case 'show': return 'border-blue-900/40';
+      case 'ensaio': return 'border-purple-900/40';
+      case 'reuniao': return 'border-green-900/40';
+      default: return 'border-blue-900/40';
     }
   };
 
-  // Função para formatar a data
-  const formatarData = (dataISO: string) => {
-    return format(parseISO(dataISO), 'dd/MM/yyyy', { locale: ptBR });
-  };
-
-  // Função para gerar o PDF do relatório
-  const gerarPDF = (evento: Evento) => {
-    try {
-      setGerandoPDF(true);
-      
-      // Criar um novo documento PDF
-      const doc = new jsPDF();
-      
-      // Título
-      doc.setFontSize(18);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Relatório: ${evento.titulo}`, 105, 20, { align: 'center' });
-      
-      // Tipo e status
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      let tipoTexto = evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : 'Reunião';
-      let statusTexto = '';
-      switch (evento.status) {
-        case 'agendado': statusTexto = 'Agendado'; break;
-        case 'confirmado': statusTexto = 'Confirmado'; break;
-        case 'cancelado': statusTexto = 'Cancelado'; break;
-        case 'concluido': statusTexto = 'Concluído'; break;
-        default: statusTexto = evento.status;
-      }
-      
-      doc.text(`Tipo: ${tipoTexto} | Status: ${statusTexto}`, 105, 30, { align: 'center' });
-      
-      let yPos = 40;
-      
-      // Informações básicas
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Informações Básicas', 14, yPos);
-      doc.line(14, yPos + 2, 196, yPos + 2);
-      yPos += 10;
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Data: ${formatarData(evento.data)}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Horário: ${evento.horaInicio} às ${evento.horaFim}`, 14, yPos);
-      yPos += 7;
-      doc.text(`Local: ${evento.local}`, 14, yPos);
-      yPos += 7;
-      
-      const nomeBanda = getNomeBanda(evento.bandaId) || 'Não especificada';
-      doc.text(`Banda: ${nomeBanda}`, 14, yPos);
-      yPos += 7;
-      
-      if (evento.endereco) {
-        doc.text(`Endereço: ${evento.endereco}`, 14, yPos);
-        yPos += 7;
-      }
-      
-      // Descrição
-      if (evento.descricao) {
-        doc.text('Descrição:', 14, yPos);
-        yPos += 7;
-        const descricaoLinhas = doc.splitTextToSize(evento.descricao, 180);
-        doc.text(descricaoLinhas, 14, yPos);
-        yPos += descricaoLinhas.length * 5 + 5;
-      }
-      
-      // Informações financeiras (para shows)
-      if (evento.tipo === 'show' && evento.valorCache) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Informações Financeiras', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Cachê: R$ ${evento.valorCache.toFixed(2)}`, 14, yPos);
-        yPos += 7;
-        
-        if (evento.custos && evento.custos.length > 0) {
-          doc.text('Custos:', 14, yPos);
-          yPos += 7;
-          
-          evento.custos.forEach(custo => {
-            doc.text(`- ${custo.descricao}: R$ ${custo.valor}`, 20, yPos);
-            yPos += 5;
-          });
-          
-          yPos += 2;
-        }
-      }
-      
-      // Contatos (para shows)
-      if (evento.tipo === 'show' && (evento.contatoLocal || evento.contatoTecnico)) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Contatos', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        if (evento.contatoLocal) {
-          doc.text(`Contato do Local: ${evento.contatoLocal}`, 14, yPos);
-          yPos += 5;
-          if (evento.telefoneLocal) {
-            doc.text(`Telefone: ${evento.telefoneLocal}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.contatoTecnico) {
-          doc.text(`Contato Técnico: ${evento.contatoTecnico}`, 14, yPos);
-          yPos += 5;
-          if (evento.telefoneTecnico) {
-            doc.text(`Telefone: ${evento.telefoneTecnico}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.horarioPassagemSom) {
-          doc.text(`Horário de Passagem de Som: ${evento.horarioPassagemSom}`, 14, yPos);
-          yPos += 5;
-        }
-        
-        if (evento.observacoesContato) {
-          doc.text('Observações:', 14, yPos);
-          yPos += 5;
-          const obsLinhas = doc.splitTextToSize(evento.observacoesContato, 180);
-          doc.text(obsLinhas, 14, yPos);
-          yPos += obsLinhas.length * 5 + 2;
-        }
-        
-        yPos += 5;
-      }
-      
-      // Equipamentos
-      if ((evento.equipamentosNecessarios && evento.equipamentosNecessarios.length > 0) || 
-          (evento.equipamentosExistentes && evento.equipamentosExistentes.length > 0)) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Equipamentos', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        if (evento.equipamentosNecessarios && evento.equipamentosNecessarios.length > 0) {
-          doc.text('Equipamentos Necessários:', 14, yPos);
-          yPos += 5;
-          
-          evento.equipamentosNecessarios.forEach(eq => {
-            doc.text(`- ${eq.descricao} (${eq.quantidade})`, 20, yPos);
-            yPos += 5;
-          });
-          
-          yPos += 2;
-        }
-        
-        if (evento.equipamentosExistentes && evento.equipamentosExistentes.length > 0) {
-          doc.text('Equipamentos Existentes:', 14, yPos);
-          yPos += 5;
-          
-          evento.equipamentosExistentes.forEach(eq => {
-            doc.text(`- ${eq.descricao} (${eq.quantidade})`, 20, yPos);
-            yPos += 5;
-          });
-          
-          yPos += 2;
-        }
-        
-        if (evento.observacoesEquipamentos) {
-          doc.text('Observações:', 14, yPos);
-          yPos += 5;
-          const obsLinhas = doc.splitTextToSize(evento.observacoesEquipamentos, 180);
-          doc.text(obsLinhas, 14, yPos);
-          yPos += obsLinhas.length * 5 + 2;
-        }
-        
-        yPos += 5;
-      }
-      
-      // Verificar se precisa de uma nova página
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      // Informações de viagem
-      if (evento.itensViagem && evento.itensViagem.length > 0) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Itens de Viagem', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        evento.itensViagem.forEach(item => {
-          doc.text(`- ${item.descricao} (R$ ${parseFloat(item.valor.toString()).toFixed(2)})`, 20, yPos);
-          yPos += 5;
-          doc.text(`  Data: ${formatarData(item.data)} | Responsável: ${item.responsavelCusto}`, 20, yPos);
-          yPos += 7;
-        });
-        
-        yPos += 5;
-      }
-      
-      // Informações de hospedagem
-      if (evento.hospedagem && evento.hospedagem.local) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Hospedagem', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        doc.text(`Local: ${evento.hospedagem.local}`, 14, yPos);
-        yPos += 5;
-        
-        if (evento.hospedagem.endereco) {
-          doc.text(`Endereço: ${evento.hospedagem.endereco}`, 14, yPos);
-          yPos += 5;
-        }
-        
-        doc.text(`Check-in: ${formatarData(evento.hospedagem.dataCheckIn)} às ${evento.hospedagem.horaCheckIn}`, 14, yPos);
-        yPos += 5;
-        doc.text(`Check-out: ${formatarData(evento.hospedagem.dataCheckOut)} às ${evento.hospedagem.horaCheckOut}`, 14, yPos);
-        yPos += 5;
-        
-        if (evento.hospedagem.valor) {
-          doc.text(`Valor: R$ ${parseFloat(evento.hospedagem.valor.toString()).toFixed(2)}`, 14, yPos);
-          yPos += 5;
-          doc.text(`Responsável: ${evento.hospedagem.responsavelCusto}`, 14, yPos);
-          yPos += 5;
-        }
-        
-        if (evento.hospedagem.numeroRecepcao) {
-          doc.text(`Número da Recepção: ${evento.hospedagem.numeroRecepcao}`, 14, yPos);
-          yPos += 5;
-        }
-        
-        if (evento.hospedagem.incluiCafe) {
-          doc.text('Inclui Café da Manhã: Sim', 14, yPos);
-          yPos += 5;
-          if (evento.hospedagem.horarioCafeInicio && evento.hospedagem.horarioCafeFim) {
-            doc.text(`Horário: ${evento.hospedagem.horarioCafeInicio} às ${evento.hospedagem.horarioCafeFim}`, 14, yPos);
-            yPos += 5;
-          }
-        } else {
-          doc.text('Inclui Café da Manhã: Não', 14, yPos);
-          yPos += 5;
-        }
-        
-        if (evento.hospedagem.incluiAlmoco) {
-          doc.text('Inclui Almoço: Sim', 14, yPos);
-          yPos += 5;
-          if (evento.hospedagem.horarioAlmocoInicio && evento.hospedagem.horarioAlmocoFim) {
-            doc.text(`Horário: ${evento.hospedagem.horarioAlmocoInicio} às ${evento.hospedagem.horarioAlmocoFim}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.hospedagem.incluiJantar) {
-          doc.text('Inclui Jantar: Sim', 14, yPos);
-          yPos += 5;
-          if (evento.hospedagem.horarioJantarInicio && evento.hospedagem.horarioJantarFim) {
-            doc.text(`Horário: ${evento.hospedagem.horarioJantarInicio} às ${evento.hospedagem.horarioJantarFim}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.hospedagem.contatoHotel) {
-          doc.text(`Contato do Hotel: ${evento.hospedagem.contatoHotel}`, 14, yPos);
-          yPos += 5;
-          
-          if (evento.hospedagem.telefoneHotel) {
-            doc.text(`Telefone: ${evento.hospedagem.telefoneHotel}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.hospedagem.redeWifi) {
-          doc.text(`Rede Wi-Fi: ${evento.hospedagem.redeWifi}`, 14, yPos);
-          yPos += 5;
-          
-          if (evento.hospedagem.senhaWifi) {
-            doc.text(`Senha: ${evento.hospedagem.senhaWifi}`, 14, yPos);
-            yPos += 5;
-          }
-        }
-        
-        if (evento.hospedagem.observacoes) {
-          doc.text('Observações:', 14, yPos);
-          yPos += 5;
-          const obsLinhas = doc.splitTextToSize(evento.hospedagem.observacoes, 180);
-          doc.text(obsLinhas, 14, yPos);
-          yPos += obsLinhas.length * 5 + 2;
-        }
-        
-        yPos += 5;
-      }
-      
-      // Verificar se precisa de uma nova página
-      if (yPos > 270) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      // Participantes
-      if (evento.integrantesIds && evento.integrantesIds.length > 0) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Participantes', 14, yPos);
-        doc.line(14, yPos + 2, 196, yPos + 2);
-        yPos += 10;
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        const integrantesNomes = evento.integrantesIds.map(id => {
-          const integrante = integrantes.find(i => i.id === id);
-          return integrante ? `${integrante.nome} (${integrante.funcao})` : id;
-        });
-        
-        integrantesNomes.forEach(nome => {
-          doc.text(`- ${nome}`, 20, yPos);
-          yPos += 5;
-        });
-        
-        yPos += 5;
-      }
-      
-      // Salvar o PDF
-      const nomeArquivo = `Relatório_${evento.titulo.replace(/\s+/g, '_')}_${format(new Date(), 'dd-MM-yyyy')}.pdf`;
-      doc.save(nomeArquivo);
-      
-      setGerandoPDF(false);
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      alert('Ocorreu um erro ao gerar o PDF. Por favor, tente novamente.');
-      setGerandoPDF(false);
+  const getStatusColor = () => {
+    switch (event.status) {
+      case 'agendado': return 'bg-yellow-500/20 text-yellow-300';
+      case 'confirmado': return 'bg-green-500/20 text-green-300';
+      case 'cancelado': return 'bg-red-500/20 text-red-300';
+      case 'concluido': return 'bg-blue-500/20 text-blue-300';
+      default: return 'bg-gray-500/20 text-gray-300';
     }
-  };
-
-  // Função para voltar ao topo da página
-  const voltarAoTopo = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background específico para eventos */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Overlay de carregamento para geração de PDF */}
-      {gerandoPDF && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-            <p className="text-gray-700 font-medium">Gerando PDF...</p>
+    <Link href={getEventLink()} className="block">
+      <div className={`p-4 rounded-lg ${getEventColor()} bg-gray-800 hover:bg-gray-750 transition-all shadow-md`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <div className="p-2 rounded-md bg-gray-700/50 mr-3">
+              {getEventIcon()}
+            </div>
+            <div>
+              <h3 className="font-medium text-white line-clamp-1">{event.titulo || event.nome}</h3>
+              <div className="flex items-center text-sm text-gray-400 mt-0.5">
+                <Calendar className="w-3.5 h-3.5 mr-1" />
+                <span>{formatarData(event.data)}</span>
+              </div>
+            </div>
+          </div>
+          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor()}`}>
+            {event.status}
+          </span>
+        </div>
+        
+        <div className="flex items-center mt-3 space-x-4 text-sm">
+          <div className="flex items-center text-gray-400">
+            <Clock className="w-3.5 h-3.5 mr-1" />
+            <span>{event.horaInicio || event.hora_inicio}</span>
+          </div>
+          <div className="flex items-center text-gray-400 truncate">
+            <MapPin className="w-3.5 h-3.5 mr-1 flex-shrink-0" />
+            <span className="truncate">{event.local || 'Local não definido'}</span>
           </div>
         </div>
-      )}
+        
+        {event.banda && (
+          <div className="mt-3 flex items-center">
+            <span className="text-xs px-2 py-1 rounded-full bg-purple-900/30 text-purple-300">
+              {event.banda.nome}
+            </span>
+          </div>
+        )}
+      </div>
+    </Link>
+  );
+};
 
-      {/* Conteúdo da página */}
-      <div className="relative z-10 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-gray-800/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <CalendarIcon className="h-8 w-8 mr-2" />
-                Eventos
-              </h1>
+// Componente principal do Dashboard
+export default function EventosDashboard() {
+  const [eventos, setEventos] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalEventos: 0,
+    eventosProximos: 0,
+    showsProximos: 0,
+    ensaiosProximos: 0,
+    reunioesProximas: 0,
+    bandasAtivas: 0,
+    percentConcluidos: 0,
+    percentCancelados: 0
+  });
+
+  // Eventos mais próximos de cada tipo
+  const [proximoShow, setProximoShow] = useState<any>(null);
+  const [proximoEnsaio, setProximoEnsaio] = useState<any>(null);
+  const [proximaReuniao, setProximaReuniao] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        // Tentar buscar eventos da API
+        const response = await fetch('/api/eventos');
+        let eventosData;
+        
+        if (response.ok) {
+          eventosData = await response.json();
+        } else {
+          // Se falhar, usar dados mockados
+          eventosData = [
+            // Shows
+            {
+              id: '1',
+              titulo: 'Show de Rock',
+              nome: 'Show de Rock',
+              tipo: 'show' as TipoEvento,
+              status: 'agendado',
+              integrantesIds: [],
+              data: '2025-05-20',
+              horaInicio: '20:00',
+              hora_inicio: '20:00',
+              horaFim: '23:30',
+              hora_termino: '23:30',
+              local: 'Arena Show',
+              banda: { id: '1', nome: 'Rock Stars' },
+              descricao: 'Show especial de aniversário da casa'
+            },
+            {
+              id: '2',
+              titulo: 'Aniversário 30 Anos',
+              nome: 'Aniversário 30 Anos',
+              tipo: 'show' as TipoEvento,
+              status: 'confirmado',
+              integrantesIds: [],
+              data: '2025-04-15',
+              horaInicio: '21:00',
+              hora_inicio: '21:00',
+              horaFim: '03:00',
+              hora_termino: '03:00',
+              local: 'Club House',
+              banda: { id: '2', nome: 'Electric Sound' },
+              descricao: ''
+            },
+            // Ensaios
+            {
+              id: '6',
+              titulo: 'Ensaio Semanal',
+              nome: 'Ensaio Semanal',
+              tipo: 'ensaio' as TipoEvento,
+              status: 'agendado',
+              integrantesIds: [],
+              data: '2025-06-01',
+              horaInicio: '19:00',
+              hora_inicio: '19:00',
+              horaFim: '22:00',
+              hora_termino: '22:00',
+              local: 'Estúdio Central',
+              banda: { id: '1', nome: 'Rock Stars' },
+              descricao: 'Ensaio semanal para preparação de repertório',
+              pautaEnsaio: 'Revisão de novas músicas e ajustes no repertório'
+            },
+            {
+              id: '7',
+              titulo: 'Ensaio Pré-Show',
+              nome: 'Ensaio Pré-Show',
+              tipo: 'ensaio' as TipoEvento,
+              status: 'confirmado',
+              integrantesIds: [],
+              data: '2025-05-18',
+              horaInicio: '14:00',
+              hora_inicio: '14:00',
+              horaFim: '18:00',
+              hora_termino: '18:00',
+              local: 'Sala de Ensaio Premium',
+              banda: { id: '2', nome: 'Electric Sound' },
+              descricao: 'Ensaio final antes do show de aniversário',
+              pautaEnsaio: 'Passar repertório completo e ajustar detalhes técnicos'
+            },
+            // Reuniões
+            {
+              id: '10',
+              titulo: 'Reunião de Planejamento',
+              nome: 'Reunião de Planejamento',
+              tipo: 'reuniao' as TipoEvento,
+              status: 'agendado',
+              integrantesIds: [],
+              data: '2025-06-05',
+              horaInicio: '10:00',
+              hora_inicio: '10:00',
+              horaFim: '12:00',
+              hora_termino: '12:00',
+              local: 'Escritório Central',
+              banda: { id: '1', nome: 'Rock Stars' },
+              descricao: 'Reunião para planejamento de novo álbum',
+              pautaReuniao: 'Discussão sobre orçamento, cronograma e estratégias'
+            },
+            {
+              id: '11',
+              titulo: 'Reunião com Produtora',
+              nome: 'Reunião com Produtora',
+              tipo: 'reuniao' as TipoEvento,
+              status: 'agendado',
+              integrantesIds: [],
+              data: '2025-05-25',
+              horaInicio: '15:00',
+              hora_inicio: '15:00',
+              horaFim: '16:30',
+              hora_termino: '16:30',
+              local: 'Estúdio Produções',
+              banda: { id: '2', nome: 'Electric Sound' },
+              descricao: 'Reunião para discutir detalhes do contrato',
+              pautaReuniao: 'Termos contratuais, valores e datas de shows'
+            }
+          ];
+        }
+        
+        setEventos(eventosData);
+        
+        // Calcular estatísticas
+        const today = new Date();
+        const proximosEventos = eventosData.filter((evento: any) => 
+          new Date(evento.data) >= today &&
+          (evento.status === 'agendado' || evento.status === 'confirmado')
+        );
+        
+        const shows = eventosData.filter((evento: any) => evento.tipo === 'show');
+        const ensaios = eventosData.filter((evento: any) => evento.tipo === 'ensaio');
+        const reunioes = eventosData.filter((evento: any) => evento.tipo === 'reuniao');
+        
+        const proximosShows = shows.filter((evento: any) => 
+          new Date(evento.data) >= today &&
+          (evento.status === 'agendado' || evento.status === 'confirmado')
+        );
+        
+        const proximosEnsaios = ensaios.filter((evento: any) => 
+          new Date(evento.data) >= today &&
+          (evento.status === 'agendado' || evento.status === 'confirmado')
+        );
+        
+        const proximasReunioes = reunioes.filter((evento: any) => 
+          new Date(evento.data) >= today &&
+          (evento.status === 'agendado' || evento.status === 'confirmado')
+        );
+        
+        const bandasUnicas = new Set(eventosData.map((e: any) => e.banda?.nome).filter(Boolean)).size;
+        
+        const concluidos = eventosData.filter((evento: any) => evento.status === 'concluido').length;
+        const cancelados = eventosData.filter((evento: any) => evento.status === 'cancelado').length;
+        const percentConcluidos = eventosData.length > 0 
+          ? Math.round((concluidos / eventosData.length) * 100) 
+          : 0;
+        const percentCancelados = eventosData.length > 0 
+          ? Math.round((cancelados / eventosData.length) * 100) 
+          : 0;
+        
+        setStats({
+          totalEventos: eventosData.length,
+          eventosProximos: proximosEventos.length,
+          showsProximos: proximosShows.length,
+          ensaiosProximos: proximosEnsaios.length,
+          reunioesProximas: proximasReunioes.length,
+          bandasAtivas: bandasUnicas,
+          percentConcluidos,
+          percentCancelados
+        });
+        
+        // Encontrar o próximo evento de cada tipo
+        if (proximosShows.length > 0) {
+          setProximoShow(proximosShows.sort((a: any, b: any) => 
+            new Date(a.data).getTime() - new Date(b.data).getTime()
+          )[0]);
+        }
+        
+        if (proximosEnsaios.length > 0) {
+          setProximoEnsaio(proximosEnsaios.sort((a: any, b: any) => 
+            new Date(a.data).getTime() - new Date(b.data).getTime()
+          )[0]);
+        }
+        
+        if (proximasReunioes.length > 0) {
+          setProximaReuniao(proximasReunioes.sort((a: any, b: any) => 
+            new Date(a.data).getTime() - new Date(b.data).getTime()
+          )[0]);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, []);
+
+  // Distribuição de eventos por tipo
+  const eventDistribution = [
+    { name: 'Shows', value: eventos.filter(e => e.tipo === 'show').length },
+    { name: 'Ensaios', value: eventos.filter(e => e.tipo === 'ensaio').length },
+    { name: 'Reuniões', value: eventos.filter(e => e.tipo === 'reuniao').length }
+  ];
+
+  return (
+    <div className="container mx-auto px-4 py-6">
+      {/* Cabeçalho */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white">Dashboard de Eventos</h1>
+        <p className="text-gray-400 mt-2">Visão geral de shows, ensaios e reuniões</p>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      ) : (
+        <>
+          {/* Cards de Estatísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard
+              title="Total de Eventos"
+              value={stats.totalEventos}
+              icon={<Calendar className="h-6 w-6 text-indigo-400" />}
+              trend={null}
+              color="border-indigo-900/40"
+            />
+            <StatCard
+              title="Eventos Próximos"
+              value={stats.eventosProximos}
+              icon={<Clock3 className="h-6 w-6 text-blue-400" />}
+              trend={null}
+              color="border-blue-900/40"
+            />
+            <StatCard
+              title="Bandas Ativas"
+              value={stats.bandasAtivas}
+              icon={<Users className="h-6 w-6 text-purple-400" />}
+              trend={null}
+              color="border-purple-900/40"
+            />
+            <StatCard
+              title="Taxa de Conclusão"
+              value={`${stats.percentConcluidos}%`}
+              icon={<CheckCircle className="h-6 w-6 text-green-400" />}
+              trend={null}
+              color="border-green-900/40"
+            />
+          </div>
+          
+          {/* Detalhes por Tipo de Evento */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gray-800/60 rounded-xl border border-blue-900/40 p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center">
+                  <Calendar className="mr-2 text-blue-400" /> Shows
+                </h2>
+                <Link href="/eventos/shows" className="text-blue-400 hover:text-blue-300 flex items-center text-sm">
+                  Ver todos <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
+              <div className="flex flex-col space-y-4">
+                <div className="bg-gray-750 p-4 rounded-lg">
+                  <div className="text-3xl font-bold text-white mb-1">{stats.showsProximos}</div>
+                  <div className="text-sm text-gray-400">Shows agendados</div>
+                </div>
+                {proximoShow ? (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Show</h3>
+                    <UpcomingEventCard event={proximoShow} eventType="show" />
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    Nenhum show agendado
+                  </div>
+                )}
+              </div>
             </div>
             
-            <div className="px-4 py-6 sm:px-0">
-              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <div>
-                <p className="text-gray-600">Gerencie shows, ensaios e reuniões da sua banda</p>
+            <div className="bg-gray-800/60 rounded-xl border border-purple-900/40 p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center">
+                  <Music className="mr-2 text-purple-400" /> Ensaios
+                </h2>
+                <Link href="/eventos/ensaios" className="text-purple-400 hover:text-purple-300 flex items-center text-sm">
+                  Ver todos <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
               </div>
-              <button
-                onClick={handleAdicionarEvento}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Novo Evento
-              </button>
-            </div>
-
-                <div className="mb-8 bg-gray-800 shadow rounded-lg overflow-hidden">
-                  <div className="p-6 border-b border-gray-700">
-                    <h2 className="text-sm font-medium text-gray-100 mb-3">Filtros e Busca</h2>
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0 md:space-x-3">
-                  <div className="relative flex-1">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      value={busca}
-                      onChange={(e) => setBusca(e.target.value)}
-                      placeholder="Buscar eventos por título, local ou descrição..."
-                          className="block w-full rounded-md border-gray-300 pl-9 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm h-8"
-                    />
-                  </div>
-                  
-                      <div className="flex items-center space-x-3">
-                    <select
-                      value={ordenacao}
-                      onChange={(e) => setOrdenacao(e.target.value as any)}
-                          className="rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm text-gray-900 font-medium h-8"
-                          style={{ color: '#111827' }}
-                        >
-                          <option value="data-asc" className="font-medium text-gray-900">Data (mais próxima)</option>
-                          <option value="data-desc" className="font-medium text-gray-900">Data (mais distante)</option>
-                          <option value="titulo-asc" className="font-medium text-gray-900">Título (A-Z)</option>
-                          <option value="titulo-desc" className="font-medium text-gray-900">Título (Z-A)</option>
-                    </select>
-                        
-                        <div className="flex items-center space-x-1 border rounded-md overflow-hidden h-8">
-                          <button
-                            onClick={() => setModoVisualizacao('cartoes')}
-                            className={`p-1.5 transition-colors duration-200 ${
-                              modoVisualizacao === 'cartoes'
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
-                            title="Visualizar em cartões"
-                          >
-                            <ViewColumnsIcon className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => setModoVisualizacao('tabela')}
-                            className={`p-1.5 transition-colors duration-200 ${
-                              modoVisualizacao === 'tabela'
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
-                            title="Visualizar em tabela"
-                          >
-                            <TableCellsIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                        
-                        <button
-                          onClick={() => setMostrarGraficos(!mostrarGraficos)}
-                          className={`inline-flex items-center p-1.5 rounded-md transition-colors duration-200 h-8 w-8 ${
-                            mostrarGraficos
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                          title="Mostrar gráficos"
-                        >
-                          <ChartBarIcon className="h-4 w-4" />
-                        </button>
-                    
-                    <button
-                      onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                          className={`inline-flex items-center p-1.5 rounded-md transition-colors duration-200 h-8 w-8 ${
-                        mostrarFiltros
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      title="Filtros avançados"
-                    >
-                          <AdjustmentsHorizontalIcon className="h-4 w-4" />
-                    </button>
-                  </div>
+              <div className="flex flex-col space-y-4">
+                <div className="bg-gray-750 p-4 rounded-lg">
+                  <div className="text-3xl font-bold text-white mb-1">{stats.ensaiosProximos}</div>
+                  <div className="text-sm text-gray-400">Ensaios agendados</div>
                 </div>
-                
-                {mostrarFiltros && (
-                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                          <label htmlFor="filtroTipo" className="block text-xs font-medium text-gray-700 mb-1">
-                        Tipo de Evento
-                      </label>
-                          <div className="flex flex-wrap gap-1.5">
-                        <button
-                          onClick={() => setFiltroTipo('todos')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroTipo === 'todos' 
-                              ? 'bg-gray-900 text-white' 
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                          }`}
-                        >
-                          Todos
-                        </button>
-                        <button
-                          onClick={() => setFiltroTipo('show')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
-                            filtroTipo === 'show' 
-                                  ? 'bg-green-600 text-white' 
-                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          }`}
-                        >
-                              <MusicalNoteIcon className="h-3 w-3 mr-1" />
-                          Shows
-                        </button>
-                        <button
-                          onClick={() => setFiltroTipo('ensaio')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
-                            filtroTipo === 'ensaio' 
-                                  ? 'bg-orange-600 text-white' 
-                                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                          }`}
-                        >
-                              <ClockIconSolid className="h-3 w-3 mr-1" />
-                          Ensaios
-                        </button>
-                        <button
-                          onClick={() => setFiltroTipo('reuniao')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs flex items-center ${
-                            filtroTipo === 'reuniao' 
-                                  ? 'bg-yellow-600 text-white' 
-                                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                          }`}
-                        >
-                              <ChatBubbleLeftRightIcon className="h-3 w-3 mr-1" />
-                          Reuniões
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                          <label htmlFor="filtroStatus" className="block text-xs font-medium text-gray-700 mb-1">
-                        Status
-                      </label>
-                          <div className="flex flex-wrap gap-1.5">
-                        <button
-                          onClick={() => setFiltroStatus('todos')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroStatus === 'todos' 
-                              ? 'bg-gray-900 text-white' 
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                          }`}
-                        >
-                          Todos
-                        </button>
-                        <button
-                          onClick={() => setFiltroStatus('agendado')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroStatus === 'agendado' 
-                                  ? 'bg-orange-500 text-white' 
-                                  : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
-                          }`}
-                        >
-                          Agendado
-                        </button>
-                        <button
-                          onClick={() => setFiltroStatus('confirmado')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroStatus === 'confirmado' 
-                              ? 'bg-green-600 text-white' 
-                              : 'bg-green-50 text-green-700 hover:bg-green-100'
-                          }`}
-                        >
-                          Confirmado
-                        </button>
-                        <button
-                          onClick={() => setFiltroStatus('cancelado')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroStatus === 'cancelado' 
-                              ? 'bg-red-600 text-white' 
-                              : 'bg-red-50 text-red-700 hover:bg-red-100'
-                          }`}
-                        >
-                          Cancelado
-                        </button>
-                        <button
-                          onClick={() => setFiltroStatus('concluido')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroStatus === 'concluido' 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                          }`}
-                        >
-                          Concluído
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div>
-                          <label htmlFor="filtroBanda" className="block text-xs font-medium text-gray-700 mb-1">
-                        Banda
-                      </label>
-                      <select
-                        id="filtroBanda"
-                        value={filtroBanda}
-                        onChange={(e) => setFiltroBanda(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-xs shadow-sm text-gray-900 font-medium h-7"
-                            style={{ color: '#111827' }}
-                      >
-                            <option value="">Todas as bandas</option>
-                        {Array.isArray(bandas) && bandas.map((banda) => (
-                              <option key={banda.id} value={banda.id}>
-                            {banda.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div>
-                          <label htmlFor="filtroPeriodo" className="block text-xs font-medium text-gray-700 mb-1">
-                        Período
-                      </label>
-                          <div className="flex flex-wrap gap-1.5">
-                        <button
-                          onClick={() => setFiltroPeriodo('todos')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroPeriodo === 'todos' 
-                              ? 'bg-gray-900 text-white' 
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                          }`}
-                        >
-                          Todos
-                        </button>
-                        <button
-                          onClick={() => setFiltroPeriodo('passados')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroPeriodo === 'passados' 
-                              ? 'bg-gray-600 text-white' 
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          Passados
-                        </button>
-                        <button
-                          onClick={() => setFiltroPeriodo('hoje')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroPeriodo === 'hoje' 
-                              ? 'bg-indigo-600 text-white' 
-                              : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                          }`}
-                        >
-                          Hoje
-                        </button>
-                        <button
-                          onClick={() => setFiltroPeriodo('futuros')}
-                              className={`px-2.5 py-0.5 rounded-full text-xs ${
-                            filtroPeriodo === 'futuros' 
-                              ? 'bg-teal-600 text-white' 
-                              : 'bg-teal-50 text-teal-700 hover:bg-teal-100'
-                          }`}
-                        >
-                          Futuros
-                        </button>
-                      </div>
-                    </div>
+                {proximoEnsaio ? (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Ensaio</h3>
+                    <UpcomingEventCard event={proximoEnsaio} eventType="ensaio" />
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    Nenhum ensaio agendado
                   </div>
                 )}
               </div>
-              
-              {/* Estatísticas rápidas */}
-                  <div className="border-b border-gray-700">
-                    <div className="flex justify-between items-center px-4 py-2 bg-gray-900">
-                      <h3 className="text-xs font-medium text-gray-300">Resumo de Eventos</h3>
-                      <button
-                        onClick={() => setMostrarEstatisticas(!mostrarEstatisticas)}
-                        className="flex items-center justify-center h-6 w-6 text-gray-500 hover:text-gray-700 focus:outline-none transition-colors rounded-full hover:bg-gray-800"
-                      >
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          className={`h-4 w-4 transition-transform duration-300 ${mostrarEstatisticas ? 'rotate-180' : ''}`} 
-                          viewBox="0 0 20 20" 
-                          fill="currentColor"
-                        >
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                </div>
-                    
-                    {mostrarEstatisticas && (
-                      <div className="overflow-x-auto">
-                        <div className="grid grid-cols-7 divide-x min-w-full">
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Eventos</p>
-                            <p className="mt-1 text-2xl font-semibold text-gray-100">{eventos.length}</p>
-                          </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Shows</p>
-                            <p className="mt-1 text-2xl font-semibold text-green-400">
-                              {eventos.filter(e => e.tipo === 'show').length}
-                            </p>
-                          </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Ensaios</p>
-                            <p className="mt-1 text-2xl font-semibold text-orange-400">
-                              {eventos.filter(e => e.tipo === 'ensaio').length}
-                            </p>
-                          </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Reuniões</p>
-                            <p className="mt-1 text-2xl font-semibold text-yellow-400">
-                              {eventos.filter(e => e.tipo === 'reuniao').length}
-                            </p>
-                          </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Futuros</p>
-                            <p className="mt-1 text-2xl font-semibold text-indigo-400">
-                    {eventos.filter(e => {
-                      const dataEvento = parseISO(e.data);
-                      const hoje = new Date();
-                      return isAfter(dataEvento, hoje) && !isToday(dataEvento);
-                    }).length}
-                  </p>
-                </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Hoje</p>
-                            <p className="mt-1 text-2xl font-semibold text-green-400">
-                    {eventos.filter(e => isToday(parseISO(e.data))).length}
-                  </p>
-                </div>
-                          <div className="p-3 text-center">
-                            <p className="text-xs font-medium text-gray-400">Concluídos</p>
-                            <p className="mt-1 text-2xl font-semibold text-blue-400">
-                    {eventos.filter(e => e.status === 'concluido').length}
-                  </p>
-                </div>
-                        </div>
-                      </div>
-                    )}
-              </div>
             </div>
-
-                {/* Seção de Gráficos */}
-                {mostrarGraficos && (
-                  <div className="mt-8 mb-8 animate-fadeIn">
-                    <EventosGraficos eventos={eventos} />
+            
+            <div className="bg-gray-800/60 rounded-xl border border-green-900/40 p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center">
+                  <FileText className="mr-2 text-green-400" /> Reuniões
+                </h2>
+                <Link href="/eventos/reunioes" className="text-green-400 hover:text-green-300 flex items-center text-sm">
+                  Ver todos <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </div>
+              <div className="flex flex-col space-y-4">
+                <div className="bg-gray-750 p-4 rounded-lg">
+                  <div className="text-3xl font-bold text-white mb-1">{stats.reunioesProximas}</div>
+                  <div className="text-sm text-gray-400">Reuniões agendadas</div>
+                </div>
+                {proximaReuniao ? (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-400 mb-2">Próxima Reunião</h3>
+                    <UpcomingEventCard event={proximaReuniao} eventType="reuniao" />
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    Nenhuma reunião agendada
                   </div>
                 )}
-
-            {eventosFiltrados.length > 0 ? (
-                  modoVisualizacao === 'cartoes' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {eventosFiltrados.map((evento) => (
-                  <div 
-                    key={evento.id} 
-                        className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
-                  >
-                    <div className={`px-4 py-3 sm:px-6 flex justify-between items-start ${
-                            evento.tipo === 'show' ? 'bg-green-900' : 
-                            evento.tipo === 'ensaio' ? 'bg-orange-900' : 
-                            'bg-yellow-900'
-                    }`}>
-                      <div className="flex items-center">
-                        {getIconeTipoEvento(evento.tipo)}
-                            <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{evento.titulo}</h3>
-                      </div>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCorStatus(evento.status)}`}>
-                        {evento.status === 'agendado' && 'Agendado'}
-                        {evento.status === 'confirmado' && 'Confirmado'}
-                        {evento.status === 'cancelado' && 'Cancelado'}
-                        {evento.status === 'concluido' && 'Concluído'}
-                      </span>
-                    </div>
-                        <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
-                      <div className="space-y-3">
-                        <div className="flex items-center text-sm">
-                          <CalendarIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <p className="text-gray-200 font-medium">{formatarData(evento.data)}</p>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <ClockIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <p className="text-gray-200">{evento.horaInicio} às {evento.horaFim}</p>
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <MapPinIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <p className="text-gray-200 truncate max-w-[250px]">{evento.local}</p>
-                        </div>
-                        {evento.bandaId && (
-                          <div className="flex items-center text-sm">
-                            <UserGroupIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                <p className="text-gray-200">Banda: {getNomeBanda(evento.bandaId)}</p>
-                          </div>
-                        )}
-                        {evento.descricao && (
-                              <div className="mt-2 text-sm text-gray-300 line-clamp-2">
-                            {evento.descricao}
-                          </div>
-                        )}
-                        
-                        {/* Informações específicas por tipo de evento */}
-                        {evento.tipo === 'show' && evento.valorCache && (
-                              <div className="flex items-center text-sm mt-2 pt-2 border-t border-gray-700">
-                                <span className="text-gray-200 font-medium">Cachê: </span>
-                                <span className="ml-1 text-green-400 font-medium">R$ {evento.valorCache.toFixed(2)}</span>
-                          </div>
-                        )}
-                        
-                        {evento.tipo === 'ensaio' && evento.musicasEnsaio && evento.musicasEnsaio.length > 0 && (
-                              <div className="flex items-center text-sm mt-2 pt-2 border-t border-gray-700">
-                                <span className="text-gray-200 font-medium">Músicas: </span>
-                                <span className="ml-1 text-gray-300">{evento.musicasEnsaio.length} selecionadas</span>
-                          </div>
-                        )}
-                        
-                        {evento.tipo === 'reuniao' && evento.pautaReuniao && (
-                              <div className="flex items-center text-sm mt-2 pt-2 border-t border-gray-700">
-                                <span className="text-gray-200 font-medium">Pauta definida</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                        <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-between items-center bg-gray-900">
-                      <div className="flex items-center">
-                            <span className="text-xs text-gray-400">
-                          {evento.integrantesIds.length} integrante{evento.integrantesIds.length !== 1 ? 's' : ''}
-                        </span>
-                      </div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleGerarRelatorio(evento)}
-                              className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-200 bg-indigo-900 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                          title="Gerar relatório"
-                        >
-                          <DocumentTextIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditarEvento(evento)}
-                              className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                          title="Editar evento"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleExcluirEvento(evento.id)}
-                              className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                          title="Excluir evento"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Distribuição de Eventos */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg col-span-1 lg:col-span-3">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+                <BarChart2 className="mr-2 text-purple-400" /> Distribuição de Eventos
+              </h2>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                {eventDistribution.map((item) => (
+                  <div key={item.name} className="bg-gray-750 p-4 rounded-lg">
+                    <div className="text-3xl font-bold text-white mb-1">{item.value}</div>
+                    <div className="text-sm text-gray-400">{item.name}</div>
+                    <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
+                      <div 
+                        className={`h-2.5 rounded-full ${
+                          item.name === 'Shows' ? 'bg-blue-500' : 
+                          item.name === 'Ensaios' ? 'bg-purple-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${eventos.length > 0 ? (item.value / eventos.length) * 100 : 0}%` }}
+                      ></div>
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-lg">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-700">
-                          <thead className="bg-gray-900">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Evento
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Data/Hora
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Local
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Banda
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Status
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Detalhes
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                Ações
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-gray-800 divide-y divide-gray-700">
-                            {eventosFiltrados.map((evento) => (
-                              <tr key={evento.id} className="hover:bg-gray-700">
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex items-center">
-                                    <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-gray-700">
-                                      {getIconeTipoEvento(evento.tipo)}
-                                    </div>
-                                    <div className="ml-4">
-                                      <div className="text-sm font-medium text-gray-100">{evento.titulo}</div>
-                                      <div className="text-sm text-gray-400">
-                                        {evento.tipo === 'show' ? 'Show' : evento.tipo === 'ensaio' ? 'Ensaio' : 'Reunião'}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-100">{formatarData(evento.data)}</div>
-                                  <div className="text-sm text-gray-400">{evento.horaInicio} às {evento.horaFim}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="text-sm text-gray-100">{evento.local}</div>
-                                  <div className="text-sm text-gray-400 truncate max-w-[200px]">{evento.endereco}</div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                  {evento.bandaId ? getNomeBanda(evento.bandaId) : '-'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getCorStatus(evento.status)}`}>
-                                    {evento.status === 'agendado' && 'Agendado'}
-                                    {evento.status === 'confirmado' && 'Confirmado'}
-                                    {evento.status === 'cancelado' && 'Cancelado'}
-                                    {evento.status === 'concluido' && 'Concluído'}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                  {evento.tipo === 'show' && evento.valorCache && (
-                                    <div className="text-green-400 font-medium">R$ {evento.valorCache.toFixed(2)}</div>
-                                  )}
-                                  {evento.tipo === 'ensaio' && evento.musicasEnsaio && (
-                                    <div>{evento.musicasEnsaio.length} músicas</div>
-                                  )}
-                                  {evento.tipo === 'reuniao' && evento.decisoesTomadas && (
-                                    <div>{evento.decisoesTomadas.length} decisões</div>
-                                  )}
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    {evento.integrantesIds.length} integrante{evento.integrantesIds.length !== 1 ? 's' : ''}
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <div className="flex justify-end space-x-2">
-                                    <button
-                                      onClick={() => handleGerarRelatorio(evento)}
-                                      className="text-indigo-400 hover:text-indigo-300"
-                                      title="Gerar relatório"
-                                    >
-                                      <DocumentTextIcon className="h-5 w-5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleEditarEvento(evento)}
-                                      className="text-gray-400 hover:text-gray-300"
-                                      title="Editar evento"
-                                    >
-                                      <PencilIcon className="h-5 w-5" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleExcluirEvento(evento.id)}
-                                      className="text-red-400 hover:text-red-300"
-                                      title="Excluir evento"
-                                    >
-                                      <TrashIcon className="h-5 w-5" />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-16 bg-gray-800 shadow overflow-hidden sm:rounded-lg">
-                <CalendarIcon className="mx-auto h-16 w-16 text-gray-400" />
-                    <h3 className="mt-4 text-lg font-medium text-gray-100">Nenhum evento encontrado</h3>
-                    <p className="mt-2 text-sm text-gray-300 max-w-md mx-auto">
-                  {busca || filtroTipo !== 'todos' || filtroStatus !== 'todos' || filtroBanda || filtroPeriodo !== 'todos'
-                    ? 'Tente ajustar os filtros para encontrar o que está procurando.'
-                    : 'Comece criando seu primeiro evento para gerenciar shows, ensaios e reuniões da sua banda.'}
-                </p>
-                <div className="mt-6">
-                  <button
-                    onClick={handleAdicionarEvento}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                  >
-                    <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                    Novo Evento
-                  </button>
+            </div>
+          </div>
+          
+          {/* Seção de Gráficos */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-white mb-6">Análise Gráfica de Eventos</h2>
+            
+            {/* Gráficos - primeira linha */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              {/* Gráfico de Barras - Eventos por Mês */}
+              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <BarChart2 className="mr-2 text-blue-400" /> Eventos por Mês
+                </h3>
+                <div className="h-64">
+                  <Bar 
+                    data={{
+                      labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                      datasets: [
+                        {
+                          label: 'Shows',
+                          data: Array(12).fill(0).map((_, i) => {
+                            return eventos.filter(e => 
+                              e.tipo === 'show' && 
+                              new Date(e.data).getMonth() === i
+                            ).length;
+                          }),
+                          backgroundColor: 'rgba(96, 165, 250, 0.7)',
+                          borderColor: 'rgb(59, 130, 246)',
+                          borderWidth: 1
+                        },
+                        {
+                          label: 'Ensaios',
+                          data: Array(12).fill(0).map((_, i) => {
+                            return eventos.filter(e => 
+                              e.tipo === 'ensaio' && 
+                              new Date(e.data).getMonth() === i
+                            ).length;
+                          }),
+                          backgroundColor: 'rgba(167, 139, 250, 0.7)',
+                          borderColor: 'rgb(139, 92, 246)',
+                          borderWidth: 1
+                        },
+                        {
+                          label: 'Reuniões',
+                          data: Array(12).fill(0).map((_, i) => {
+                            return eventos.filter(e => 
+                              e.tipo === 'reuniao' && 
+                              new Date(e.data).getMonth() === i
+                            ).length;
+                          }),
+                          backgroundColor: 'rgba(110, 231, 183, 0.7)',
+                          borderColor: 'rgb(52, 211, 153)',
+                          borderWidth: 1
+                        }
+                      ]
+                    }}
+                    options={{
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                      }
+                    }}
+                  />
                 </div>
               </div>
-            )}
-
-            {/* Modal de Edição/Criação de Evento */}
-            <Modal
-              title={eventoEmEdicao ? 'Editar Evento' : 'Novo Evento'}
-              isOpen={modalAberto}
-              onClose={() => {
-                setModalAberto(false);
-                setEventoEmEdicao(undefined);
-              }}
-            >
-              <EventoForm
-                evento={eventoEmEdicao}
-                bandas={bandas}
-                integrantes={integrantes}
-                musicas={musicas}
-                repertorios={repertorios.map(r => ({ id: r.id, nome: r.nome }))}
-                onSubmit={handleSubmit}
-                onCancel={() => {
-                  setModalAberto(false);
-                  setEventoEmEdicao(undefined);
-                }}
-              />
-            </Modal>
-
-            {/* Modal de Relatório */}
-            <Modal
-              title={`Relatório: ${eventoParaRelatorio?.titulo || ''}`}
-              isOpen={modalRelatorioAberto}
-              onClose={() => {
-                setModalRelatorioAberto(false);
-                setEventoParaRelatorio(undefined);
-              }}
-            >
-              {eventoParaRelatorio && (
-                <div className="space-y-6">
-                      {/* Título principal do relatório */}
-                      <div className="text-center mb-4">
-                        <h2 className="text-xl font-bold text-gray-800">Selecione as seções para incluir no relatório:</h2>
-                    </div>
-                    
-                      {/* Conteúdo do relatório que será capturado para o PDF */}
-                      <div id="relatorio-content" className="space-y-6">
-                        {/* Informações básicas */}
-                        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="text-lg font-bold text-indigo-700">1. Informações Básicas</h4>
-                            <div 
-                              className="h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 cursor-pointer hover:bg-indigo-200 transition-colors"
-                              onClick={() => {
-                                const element = document.getElementById('secao-info-basicas');
-                                const icon = document.getElementById('icon-info-basicas');
-                                if (element && icon) {
-                                  element.classList.toggle('hidden');
-                                  icon.classList.toggle('hidden');
-                                }
-                              }}
-                            >
-                              <svg id="icon-info-basicas" xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                    </div>
-                  </div>
-                          <div id="secao-info-basicas">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-sm text-gray-500">Data</p>
-                                <p className="font-medium">{formatarData(eventoParaRelatorio.data)}</p>
-                      </div>
-                              <div>
-                                <p className="text-sm text-gray-500">Horário</p>
-                                <p className="font-medium">{eventoParaRelatorio.horaInicio} às {eventoParaRelatorio.horaFim}</p>
-                        </div>
-                              <div>
-                                <p className="text-sm text-gray-500">Local</p>
-                                <p className="font-medium">{eventoParaRelatorio.local}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-500">Banda</p>
-                                <p className="font-medium">{getNomeBanda(eventoParaRelatorio.bandaId) || 'Não especificada'}</p>
-                              </div>
-                            </div>
-
-                            {eventoParaRelatorio.endereco && (
-                              <div className="mt-3">
-                                <p className="text-sm text-gray-500">Endereço</p>
-                                <p className="font-medium">{eventoParaRelatorio.endereco}</p>
-                        </div>
-                      )}
-                      
-                            {eventoParaRelatorio.descricao && (
-                              <div className="mt-3">
-                                <p className="text-sm text-gray-500">Descrição</p>
-                                <p className="font-medium">{eventoParaRelatorio.descricao}</p>
-                        </div>
-                      )}
-                    </div>
-                        </div>
-
-                        {/* Outras seções do relatório... */}
-                      </div>
-
-                      {/* Botões de ação */}
-                      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
-                        <button
-                          onClick={() => {
-                            setModalRelatorioAberto(false);
-                            setEventoParaRelatorio(undefined);
-                          }}
-                          className="px-4 py-2 border border-gray-800 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Fechar
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (eventoParaRelatorio) {
-                              gerarPDF(eventoParaRelatorio);
-                            }
-                          }}
-                          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          Gerar PDF
-                        </button>
-                  </div>
+              
+              {/* Gráfico de Pizza - Distribuição por Tipo */}
+              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <PieChart className="mr-2 text-purple-400" /> Distribuição por Tipo
+                </h3>
+                <div className="h-64 flex justify-center">
+                  <Pie 
+                    data={{
+                      labels: ['Shows', 'Ensaios', 'Reuniões'],
+                      datasets: [
+                        {
+                          data: [
+                            eventos.filter(e => e.tipo === 'show').length,
+                            eventos.filter(e => e.tipo === 'ensaio').length,
+                            eventos.filter(e => e.tipo === 'reuniao').length
+                          ],
+                          backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(139, 92, 246, 0.7)',
+                            'rgba(52, 211, 153, 0.7)'
+                          ],
+                          borderColor: [
+                            'rgb(59, 130, 246)',
+                            'rgb(139, 92, 246)',
+                            'rgb(52, 211, 153)'
+                          ],
+                          borderWidth: 1
+                        }
+                      ]
+                    }}
+                    options={{
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          position: 'right',
+                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                      }
+                    }}
+                  />
                 </div>
-              )}
-            </Modal>
+              </div>
+            </div>
+            
+            {/* Gráficos - segunda linha */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Gráfico de Linha - Tendência de Eventos */}
+              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <LineChart className="mr-2 text-yellow-400" /> Tendência de Eventos
+                </h3>
+                <div className="h-64">
+                  <Line 
+                    data={{
+                      labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                      datasets: [
+                        {
+                          label: 'Total de Eventos',
+                          data: Array(12).fill(0).map((_, i) => {
+                            return eventos.filter(e => 
+                              new Date(e.data).getMonth() === i
+                            ).length;
+                          }),
+                          borderColor: 'rgb(234, 179, 8)',
+                          backgroundColor: 'rgba(234, 179, 8, 0.2)',
+                          tension: 0.3,
+                          fill: true
+                        }
+                      ]
+                    }}
+                    options={{
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Gráfico Combinado (Barras e Linhas) - Status dos Eventos */}
+              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <Layers className="mr-2 text-pink-400" /> Status dos Eventos
+                </h3>
+                <div className="h-64">
+                  <Bar 
+                    data={{
+                      labels: ['Agendados', 'Confirmados', 'Concluídos', 'Cancelados'],
+                      datasets: [
+                        {
+                          label: 'Quantidade',
+                          data: [
+                            eventos.filter(e => e.status === 'agendado').length,
+                            eventos.filter(e => e.status === 'confirmado').length,
+                            eventos.filter(e => e.status === 'concluido').length,
+                            eventos.filter(e => e.status === 'cancelado').length
+                          ],
+                          backgroundColor: [
+                            'rgba(251, 191, 36, 0.7)',
+                            'rgba(52, 211, 153, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(244, 63, 94, 0.7)'
+                          ],
+                          borderColor: [
+                            'rgb(251, 191, 36)',
+                            'rgb(52, 211, 153)',
+                            'rgb(59, 130, 246)',
+                            'rgb(244, 63, 94)'
+                          ],
+                          borderWidth: 1
+                        }
+                      ]
+                    }}
+                    options={{
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        },
+                        x: {
+                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
+                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-        </div>
-      </div>
-
-      {/* Overlay de carregamento para geração de PDF */}
-      {gerandoPDF && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
-            <p className="text-gray-700 font-medium">Gerando PDF...</p>
+          
+          {/* Final do Dashboard */}
+          <div className="text-center text-gray-400 text-sm mb-4">
+            Última atualização: {new Date().toLocaleDateString('pt-BR', { 
+              day: '2-digit', month: '2-digit', year: 'numeric', 
+              hour: '2-digit', minute: '2-digit' 
+            })}
           </div>
-        </div>
-      )}
-
-      {/* Botão para voltar ao topo */}
-      {mostrarBotaoTopo && (
-        <button
-          onClick={voltarAoTopo}
-          className="fixed bottom-6 right-6 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors duration-200 z-50"
-          aria-label="Voltar ao topo"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-          </svg>
-        </button>
+        </>
       )}
     </div>
   );

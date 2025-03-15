@@ -5,6 +5,7 @@ export interface Musica {
   tom: string;
   bpm: number;
   observacoes?: string;
+  bandasIds?: string[]; // IDs das bandas que tocam essa música
 }
 
 export interface Banda {

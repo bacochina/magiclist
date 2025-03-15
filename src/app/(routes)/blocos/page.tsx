@@ -12,20 +12,22 @@ import { BlocosDaBanda } from './components/BlocosDaBanda';
 import BlocosGrid from './components/BlocosGrid';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DragDropContext, DropResult as HelloDropResult } from '@hello-pangea/dnd';
 import DraggableBlocoItem from './components/DraggableBlocoItem';
 import { updateBlocosOrder } from '@/lib/actions';
+import Link from 'next/link';
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  PlusIcon, 
-  MagnifyingGlassIcon,
-  MusicalNoteIcon,
-  ViewColumnsIcon,
-  TableCellsIcon,
-  Bars3Icon,
-  ChevronDownIcon,
-  ChevronUpIcon
-} from '@heroicons/react/24/outline';
+  Music, 
+  Search, 
+  Filter, 
+  Plus,
+  List,
+  Grid,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Tag
+} from 'lucide-react';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 
 // Interface para compatibilidade entre react-dnd e o antigo @hello-pangea/dnd
@@ -63,6 +65,19 @@ const blocosSeedInicial = [
   }
 ];
 
+// Card de estatísticas para a página de blocos
+const BlocoStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+  <div className="stat-card p-5">
+    <div className="flex items-center space-x-3 mb-2">
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    </div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+  </div>
+);
+
 export default function BlocosPage() {
   const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', bandasSeed);
   const [blocos, setBlocos] = useHydratedLocalStorage<Bloco[]>('blocos', blocosSeedInicial);
@@ -73,6 +88,7 @@ export default function BlocosPage() {
   const [blocoEmEdicao, setBlocoEmEdicao] = useState<Bloco | null>(null);
   const [busca, setBusca] = useState('');
   const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'lista'>('lista');
+  const [loading, setLoading] = useState(true);
 
   // Verificar se existem músicas e adicionar músicas de exemplo se não houver
   useEffect(() => {
@@ -97,14 +113,25 @@ export default function BlocosPage() {
       
       setMusicas(musicasExemplo);
     }
+    setLoading(false);
   }, [bandas, musicas.length, setMusicas]);
 
-  const blocosDaBanda = bandaSelecionada
-    ? blocos.filter((bloco) => bloco.bandaId === bandaSelecionada)
+  // Filtrar blocos com base na banda selecionada e na busca
+  const blocosFiltrados = Array.isArray(blocos) 
+    ? blocos.filter(bloco => {
+        // Filtrar por banda
+        const bandaOk = !bandaSelecionada || bloco.bandaId === bandaSelecionada;
+        // Filtrar por busca
+        const buscaOk = !busca || 
+          bloco.nome.toLowerCase().includes(busca.toLowerCase()) ||
+          (bloco.descricao && bloco.descricao.toLowerCase().includes(busca.toLowerCase()));
+        
+        return bandaOk && buscaOk;
+      })
     : [];
 
   const handleSelecionarBanda = (bandaId: string) => {
-    setBandaSelecionada(bandaId === bandaSelecionada ? null : bandaId);
+    setBandaSelecionada(bandaId === '' ? null : bandaId);
   };
 
   const handleAdicionarBloco = () => {
@@ -118,222 +145,259 @@ export default function BlocosPage() {
   };
 
   const handleExcluirBloco = async (id: string) => {
+    const bloco = blocos.find(b => b.id === id);
+    
+    if (!bloco) return;
+    
     const confirmado = await confirmar(
       'Excluir bloco',
-      'Tem certeza que deseja excluir este bloco?',
+      `Tem certeza que deseja excluir o bloco "${bloco.nome}"?`,
       'warning'
     );
     
     if (confirmado) {
-      try {
-        setBlocos(blocos.filter(b => b.id !== id));
-        alertaSucesso('Bloco excluído com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir bloco:', error);
-        alertaErro('Erro ao excluir o bloco');
-      }
+      const novosBlocos = blocos.filter(b => b.id !== id);
+      setBlocos(novosBlocos);
+      alertaSucesso('Bloco excluído com sucesso!');
     }
   };
 
   const handleSubmitBloco = (data: Partial<Bloco>) => {
     if (blocoEmEdicao) {
-      setBlocos(
-        blocos.map((b) =>
+      // Editando um bloco existente
+      const novosBlocos = blocos.map(b => 
           b.id === blocoEmEdicao.id
-            ? { ...b, ...data }
+          ? { ...b, ...data, musicas: b.musicas || [] } 
             : b
-        )
       );
+      
+      setBlocos(novosBlocos);
+      alertaSucesso('Bloco atualizado com sucesso!');
     } else {
+      // Criando um novo bloco
       const novoBloco: Bloco = {
-        id: Math.random().toString(36).substr(2, 9),
-        nome: data.nome || '',
+        id: String(Date.now()),
+        nome: data.nome || 'Novo Bloco',
         descricao: data.descricao || '',
-        musicas: data.musicas || [],
-        bandaId: bandaSelecionada || undefined,
+        bandaId: data.bandaId || bandaSelecionada || undefined,
+        musicas: []
       };
+      
       setBlocos([...blocos, novoBloco]);
+      alertaSucesso('Bloco criado com sucesso!');
     }
+    
     setModalBlocoAberto(false);
     setBlocoEmEdicao(null);
   };
 
   const handleSubmitMusica = (data: Partial<Musica>) => {
+    // Criar uma nova música
       const novaMusica: Musica = {
-        id: Math.random().toString(36).substr(2, 9),
-        nome: data.nome || '',
+      id: String(Date.now()),
+      nome: data.nome || 'Nova Música',
         artista: data.artista || '',
         tom: data.tom || '',
         bpm: data.bpm || 0,
-        observacoes: data.observacoes,
-      };
-      setMusicas([...musicas, novaMusica]);
+      observacoes: data.observacoes || ''
+    };
+    
+    // Adicionar a nova música ao array de músicas
+    const novasMusicas = [...musicas, novaMusica];
+    setMusicas(novasMusicas);
+    
+    // Fechar o modal
     setModalMusicaAberto(false);
+    
+    alertaSucesso('Música criada com sucesso!');
   };
 
-  // Filtra blocos baseado na busca e banda selecionada
-  const blocosFiltrados = blocos.filter(bloco => {
-    const matchBusca = bloco.nome.toLowerCase().includes(busca.toLowerCase());
-    const matchBanda = !bandaSelecionada || bloco.bandaId === bandaSelecionada;
-    return matchBusca && matchBanda;
-  });
-
-  // Função para lidar com o movimento de bloco no React DnD
-  const handleMoveBloco = useCallback((dragIndex: number, hoverIndex: number) => {
-    // Obtém os blocos que serão reordenados
-    const updatedBlocos = [...blocos];
+  // Função para lidar com o resultado do drag and drop
+  const handleDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
     
-    // Encontra os blocos correspondentes no array completo
-    const draggedBlocoId = blocosFiltrados[dragIndex].id;
-    const targetBlocoId = blocosFiltrados[hoverIndex].id;
-    
-    // Encontra os índices reais no array completo de blocos
-    const draggedBlocoIndex = updatedBlocos.findIndex(b => b.id === draggedBlocoId);
-    const targetBlocoIndex = updatedBlocos.findIndex(b => b.id === targetBlocoId);
-    
-    if (draggedBlocoIndex !== -1 && targetBlocoIndex !== -1) {
-      // Remove o bloco arrastado
-      const [draggedBloco] = updatedBlocos.splice(draggedBlocoIndex, 1);
-      
-      // Insere o bloco na nova posição
-      updatedBlocos.splice(targetBlocoIndex, 0, draggedBloco);
-      
-      // Atualiza o estado
-      setBlocos(updatedBlocos);
-      
-      // Salva a nova ordem no backend
-      updateBlocosOrder(updatedBlocos).catch(error => {
-        console.error("Erro ao salvar a ordem dos blocos:", error);
-      });
+    // Se não há destino (arrastou para fora de uma área válida), não faz nada
+    if (!destination) {
+      return;
     }
-  }, [blocosFiltrados, blocos, setBlocos]);
+    
+    // Se o item foi largado na mesma posição, não faz nada
+    if (source.index === destination.index) {
+      return;
+    }
 
-  // Função para reordenar blocos via drag and drop
+    // Reordenar os blocos
+    const novosBlocos = Array.from(blocos);
+    const [removido] = novosBlocos.splice(source.index, 1);
+    novosBlocos.splice(destination.index, 0, removido);
+    
+    // Atualizar o estado
+    setBlocos(novosBlocos);
+    
+    // Chamar a função de atualização da ordem (opcional, caso precise persistir no banco)
+    updateBlocosOrder(novosBlocos)
+      .then(() => console.log('Ordem dos blocos atualizada com sucesso!'))
+      .catch(error => console.error('Erro ao atualizar a ordem dos blocos:', error));
+  };
+
+  // Função para reordenar blocos (usada pelo componente de arrastar)
   const handleReordenarBlocos = (novosBlocos: Bloco[]) => {
     setBlocos(novosBlocos);
   };
 
-  // Função para lidar com o fim do drag and drop
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    // Cria uma cópia local de todos os blocos
-    const allBlocos = [...blocos];
-    
-    // Encontra os índices reais (não filtrados) dos blocos sendo reordenados
-    const sourceId = blocosFiltrados[result.source.index].id;
-    const sourceIndex = allBlocos.findIndex(b => b.id === sourceId);
-    
-    let destinationIndex;
-    if (result.destination.index >= blocosFiltrados.length) {
-      // Se o destino estiver além do final, colocamos no final
-      const lastFilteredId = blocosFiltrados[blocosFiltrados.length - 1].id;
-      destinationIndex = allBlocos.findIndex(b => b.id === lastFilteredId) + 1;
-    } else {
-      const destinationId = blocosFiltrados[result.destination.index].id;
-      destinationIndex = allBlocos.findIndex(b => b.id === destinationId);
-    }
-    
-    // Remove o bloco da posição original e insere na nova posição
-    const [movedBloco] = allBlocos.splice(sourceIndex, 1);
-    allBlocos.splice(destinationIndex, 0, movedBloco);
+  // Função para mover um bloco de um índice para outro
+  const handleMoveBloco = useCallback((dragIndex: number, hoverIndex: number) => {
+    // Atualiza o estado local imediatamente para melhor UX
+    const updatedBlocos = [...blocos];
+    const [movedBloco] = updatedBlocos.splice(dragIndex, 1);
+    updatedBlocos.splice(hoverIndex, 0, movedBloco);
     
     // Atualiza o estado com a nova ordem
-    setBlocos(allBlocos);
+    setBlocos(updatedBlocos);
     
     // Salva a nova ordem no backend
-    updateBlocosOrder(allBlocos).catch(error => {
+    updateBlocosOrder(updatedBlocos).catch(error => {
       console.error("Erro ao salvar a ordem dos blocos:", error);
     });
-  };
+  }, [blocos, setBlocos]);
 
   // Função para reordenar músicas dentro de um bloco
   const handleReordenarMusicas = (blocoId: string, novasMusicas: Musica[]) => {
-    setBlocos(
-      blocos.map(bloco => 
-        bloco.id === blocoId 
-          ? { ...bloco, musicas: novasMusicas.map(m => m.id) } 
-          : bloco
-      )
+    // Extrair apenas os IDs das músicas
+    const musicasIds = novasMusicas.map(m => m.id);
+    
+    // Atualizar o bloco com os novos IDs de músicas
+    const novosBlocos = blocos.map(b => 
+      b.id === blocoId ? { ...b, musicas: musicasIds } : b
     );
+    
+    setBlocos(novosBlocos);
   };
 
-  // Função para adicionar música a um bloco
+  // Função para adicionar músicas a um bloco
   const handleAdicionarMusicaAoBloco = (blocoId: string) => {
-    // Armazenar o ID do bloco para adicionar a música após a criação
-    setBlocoEmEdicao(blocos.find(b => b.id === blocoId) || null);
     setModalMusicaAberto(true);
   };
 
-  // Função para lidar com o fim do drag and drop de músicas
+  // Função para lidar com o resultado do drag and drop de músicas
   const handleMusicasDragEnd = (result: DropResult, blocoId: string) => {
-    if (!result.destination) return;
-
+    const { source, destination } = result;
+    
+    // Se não há destino, não faz nada
+    if (!destination) {
+      return;
+    }
+    
+    // Se o item foi largado na mesma posição, não faz nada
+    if (source.index === destination.index) {
+      return;
+    }
+    
+    // Encontrar o bloco e suas músicas
     const bloco = blocos.find(b => b.id === blocoId);
-    if (!bloco || !bloco.musicas) return;
+    if (!bloco || !Array.isArray(bloco.musicas)) return;
+    
+    // Extrair os objetos de música com base nos IDs
+    const blocosMusicas = Array.isArray(bloco.musicas) 
+      ? bloco.musicas.map(id => musicas.find(m => m.id === id)).filter(Boolean) as Musica[]
+      : [];
+    
+    // Reordenar as músicas
+    const novasMusicas = Array.from(blocosMusicas);
+    const [removida] = novasMusicas.splice(source.index, 1);
+    novasMusicas.splice(destination.index, 0, removida);
+    
+    // Atualizar o bloco
+    handleReordenarMusicas(blocoId, novasMusicas);
+  };
 
-    const items = Array.from(bloco.musicas);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+  // Calcular estatísticas
+  const totalBlocos = Array.isArray(blocos) ? blocos.length : 0;
+  const blocosComMusicas = Array.isArray(blocos) 
+    ? blocos.filter(b => Array.isArray(b.musicas) && b.musicas.length > 0).length 
+    : 0;
+  const musicasTotais = Array.isArray(blocos) 
+    ? blocos.reduce((acc, bloco) => acc + (Array.isArray(bloco.musicas) ? bloco.musicas.length : 0), 0) 
+    : 0;
 
-    // Atualiza a ordem das músicas no bloco
-    setBlocos(
-      blocos.map(b => 
-        b.id === blocoId 
-          ? { ...b, musicas: items } 
-          : b
-      )
-    );
+  // Adicionar uma função de adaptação entre os dois sistemas de drag and drop
+  const handleHelloDragEnd = (result: HelloDropResult) => {
+    // Adaptar o resultado do @hello-pangea/dnd para o formato esperado pelo nosso sistema
+    if (!result.destination) {
+      return;
+    }
+    
+    const adaptedResult: DropResult = {
+      source: result.source,
+      destination: result.destination,
+      draggableId: result.draggableId,
+      type: result.type,
+      mode: 'FLUID',
+      combine: null,
+      reason: 'DROP'
+    };
+    
+    handleDragEnd(adaptedResult);
   };
 
   return (
-    <DndProvider backend={HTML5Backend}>
-    <div className="min-h-screen relative">
-      {/* Background específico para blocos */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M30 20h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM6 20h4v4H6v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Conteúdo da página */}
-      <div className="relative z-10 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <MusicalNoteIcon className="h-8 w-8 mr-2" />
-                Blocos Musicais
-              </h1>
+    <DragDropContext onDragEnd={handleHelloDragEnd}>
+      <DndProvider backend={HTML5Backend}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">Blocos Musicais</h1>
+              <p className="text-gray-400">Organize suas músicas em blocos para shows e ensaios</p>
             </div>
+          </div>
 
-            <div className="px-4 py-6 sm:px-0">
-              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <MusicalNoteIcon className="h-5 w-5 mr-1.5 text-indigo-400" />
-                    <span className="text-lg font-semibold text-gray-100">Meus Blocos</span>
+          {/* Cards de estatísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <BlocoStatCard 
+              title="Total de Blocos" 
+              value={totalBlocos} 
+              icon={<Music size={20} />}
+            />
+            <BlocoStatCard 
+              title="Blocos com Músicas" 
+              value={blocosComMusicas} 
+              icon={<Tag size={20} />}
+            />
+            <BlocoStatCard 
+              title="Músicas em Blocos" 
+              value={musicasTotais} 
+              icon={<Music size={20} />}
+            />
+          </div>
+                    
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+            </div>
+          ) : (
+            <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+              {/* Filtros e Busca */}
+              <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
+                <div className="relative flex-1 min-w-[250px]">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search size={18} className="text-gray-400" />
                   </div>
-                  
-                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                    {/* Campo de busca */}
-                    <div className="relative">
-                      <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        type="text"
-                        value={busca}
-                        onChange={(e) => setBusca(e.target.value)}
-                        placeholder="Buscar blocos..."
-                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-7 pr-2 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                    </div>
+                  <input
+                    type="text"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Buscar blocos..."
+                    className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
 
-                    {/* Filtro de bandas */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <Filter size={18} className="text-gray-400" />
                     <select
                       value={bandaSelecionada || ''}
-                      onChange={(e) => setBandaSelecionada(e.target.value || null)}
-                      className="bg-gray-700/50 border border-gray-600 text-white rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      onChange={(e) => handleSelecionarBanda(e.target.value)}
+                      className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                       <option value="">Todas as bandas</option>
                       {Array.isArray(bandas) && bandas.map((banda) => (
@@ -342,178 +406,164 @@ export default function BlocosPage() {
                         </option>
                       ))}
                     </select>
-                    
-                    {/* Botões de visualização */}
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => setModoVisualizacao('lista')}
-                        className={`p-1.5 rounded-l-md ${
-                          modoVisualizacao === 'lista'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em lista"
-                      >
-                        <TableCellsIcon className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setModoVisualizacao('cartoes')}
-                        className={`p-1.5 rounded-r-md ${
-                          modoVisualizacao === 'cartoes'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em cartões"
-                      >
-                        <ViewColumnsIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                    
+                  </div>
+                      
+                  {/* Botões de visualização - Lista primeiro, depois cartões */}
+                  <div className="flex items-center space-x-1 ml-auto">
                     <button
-                      onClick={handleAdicionarBloco}
-                      className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm"
+                      type="button"
+                      className={`p-2 rounded-l ${
+                        modoVisualizacao === 'lista'
+                          ? 'bg-gray-700 text-gray-100'
+                          : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                      }`}
+                      onClick={() => setModoVisualizacao('lista')}
+                      title="Visualização em Lista"
                     >
-                      <PlusIcon className="h-4 w-4 mr-1" />
-                      Novo Bloco
+                      <List size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      className={`p-2 rounded-r ${
+                        modoVisualizacao === 'cartoes'
+                          ? 'bg-gray-700 text-gray-100'
+                          : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+                      }`}
+                      onClick={() => setModoVisualizacao('cartoes')}
+                      title="Visualização em Cartões"
+                    >
+                      <Grid size={18} />
                     </button>
                   </div>
+                      
+                  <button
+                    onClick={handleAdicionarBloco}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center space-x-1"
+                  >
+                    <Plus size={16} />
+                    <span>Novo Bloco</span>
+                  </button>
                 </div>
+              </div>
 
-                {/* Lista de blocos com drag and drop */}
-                {blocosFiltrados.length > 0 ? (
-                  bandaSelecionada && Array.isArray(bandas) ? (
-                    <div className="bg-white rounded-lg shadow overflow-hidden">
-                      <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                        <div>
-                          <h3 className="text-lg font-medium leading-6 text-gray-900">
-                            Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-500">
-                            {blocosFiltrados.length} {blocosFiltrados.length === 1 ? 'bloco' : 'blocos'} cadastrados
-                          </p>
-                        </div>
-                        <button
-                          onClick={handleAdicionarBloco}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-                        >
-                          <PlusIcon className="h-5 w-5 mr-2" />
-                          Novo Bloco
-                        </button>
-                      </div>
-                      <div className="border-t border-gray-200">
-                        {blocosFiltrados.length > 0 ? (
-                            <div className="space-y-4">
-                                  {blocosFiltrados.map((bloco, index) => (
-                                <DraggableBlocoItem
-                                  key={bloco.id}
-                                                              index={index}
-                                  bloco={bloco}
-                                  bandas={bandas}
-                                  musicas={musicas}
-                                  modoVisualizacao="lista"
-                                  onMoveBloco={handleMoveBloco}
-                                  onEditarBloco={handleEditarBloco}
-                                  onExcluirBloco={handleExcluirBloco}
-                                  onAdicionarMusica={handleAdicionarMusicaAoBloco}
-                                />
-                              ))}
-                                              </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <p className="text-sm text-gray-500">
-                              Esta banda ainda não possui blocos cadastrados.
-                            </p>
-                          </div>
-                        )}
-                      </div>
+              {/* Lista de blocos com drag and drop */}
+              {blocosFiltrados.length > 0 ? (
+                bandaSelecionada && Array.isArray(bandas) ? (
+                  // Se tiver uma banda selecionada, mostra os blocos da banda
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-white">
+                        Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
+                      </h3>
+                      <span className="text-sm text-gray-400">
+                        {blocosFiltrados.length} {blocosFiltrados.length === 1 ? 'bloco' : 'blocos'} encontrados
+                      </span>
                     </div>
-                  ) : modoVisualizacao === 'lista' ? (
-                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
-                        <div className="space-y-4">
-                        {blocosFiltrados.map((bloco, index) => (
-                            <DraggableBlocoItem
-                              key={bloco.id}
-                              index={index}
-                              bloco={bloco}
-                              bandas={bandas}
-                              musicas={musicas}
-                              modoVisualizacao="lista"
-                              onMoveBloco={handleMoveBloco}
-                              onEditarBloco={handleEditarBloco}
-                              onExcluirBloco={handleExcluirBloco}
-                              onAdicionarMusica={handleAdicionarMusicaAoBloco}
-                            />
-                          ))}
-                        </div>
+                    
+                    <div className="space-y-4">
+                      {blocosFiltrados.map((bloco, index) => (
+                        <DraggableBlocoItem
+                          key={bloco.id}
+                          index={index}
+                          bloco={bloco}
+                          bandas={bandas}
+                          musicas={musicas}
+                          modoVisualizacao={modoVisualizacao}
+                          onMoveBloco={handleMoveBloco}
+                          onEditarBloco={handleEditarBloco}
+                          onExcluirBloco={handleExcluirBloco}
+                          onAdicionarMusica={handleAdicionarMusicaAoBloco}
+                        />
+                      ))}
                     </div>
-                    ) : (
-                      <BlocosGrid 
-                        blocos={blocosFiltrados}
+                  </div>
+                ) : modoVisualizacao === 'lista' ? (
+                  // Modo de visualização em lista para todos os blocos
+                  <div className="p-6 space-y-4">
+                    {blocosFiltrados.map((bloco, index) => (
+                      <DraggableBlocoItem
+                        key={bloco.id}
+                        index={index}
+                        bloco={bloco}
                         bandas={bandas}
                         musicas={musicas}
-                        onDragEnd={handleDragEnd}
+                        modoVisualizacao="lista"
+                        onMoveBloco={handleMoveBloco}
                         onEditarBloco={handleEditarBloco}
                         onExcluirBloco={handleExcluirBloco}
                         onAdicionarMusica={handleAdicionarMusicaAoBloco}
                       />
-                  )
-                ) : (
-                  <div className="text-center py-12 bg-gray-800 rounded-lg border border-gray-700">
-                    <MusicalNoteIcon className="mx-auto h-12 w-12 text-gray-500" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
-                    <p className="mt-1 text-sm text-gray-400">
-                      {busca || bandaSelecionada
-                        ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
-                        : 'Comece adicionando seu primeiro bloco musical.'}
-                    </p>
-                    <div className="mt-6">
-                      <button
-                        onClick={handleAdicionarBloco}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                      >
-                        <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                        Novo Bloco
-                      </button>
-                    </div>
+                    ))}
                   </div>
-                )}
+                ) : (
+                  // Modo de visualização em cartões para todos os blocos
+                  <div className="p-6 bg-gray-900/30 rounded-lg">
+                    <BlocosGrid 
+                      blocos={blocosFiltrados}
+                      bandas={bandas}
+                      musicas={musicas}
+                      onDragEnd={handleDragEnd}
+                      onEditarBloco={handleEditarBloco}
+                      onExcluirBloco={handleExcluirBloco}
+                      onAdicionarMusica={handleAdicionarMusicaAoBloco}
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="text-center py-12">
+                  <Music className="mx-auto h-12 w-12 text-gray-500" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
+                  <p className="mt-1 text-sm text-gray-400">
+                    {busca || bandaSelecionada
+                      ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
+                      : 'Comece adicionando seu primeiro bloco musical.'}
+                  </p>
+                  <div className="mt-6">
+                    <button
+                      onClick={handleAdicionarBloco}
+                      className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
+                      Novo Bloco
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        </div>
+          )}
 
-        <Modal
-          title={blocoEmEdicao ? 'Editar Bloco' : 'Novo Bloco'}
-          isOpen={modalBlocoAberto}
-          onClose={() => {
-            setModalBlocoAberto(false);
-            setBlocoEmEdicao(null);
-          }}
-        >
-          <FormBloco
-            bloco={blocoEmEdicao || undefined}
-            bandas={bandas}
-            bandaSelecionada={bandaSelecionada || undefined}
-            onSubmit={handleSubmitBloco}
-            onCancel={() => {
+          <Modal
+            title={blocoEmEdicao ? 'Editar Bloco' : 'Novo Bloco'}
+            isOpen={modalBlocoAberto}
+            onClose={() => {
               setModalBlocoAberto(false);
               setBlocoEmEdicao(null);
             }}
-          />
-        </Modal>
+          >
+            <FormBloco
+              bloco={blocoEmEdicao || undefined}
+              bandas={bandas}
+              bandaSelecionada={bandaSelecionada || undefined}
+              onSubmit={handleSubmitBloco}
+              onCancel={() => {
+                setModalBlocoAberto(false);
+                setBlocoEmEdicao(null);
+              }}
+            />
+          </Modal>
 
-        <Modal
-          title="Nova Música"
-          isOpen={modalMusicaAberto}
-          onClose={() => setModalMusicaAberto(false)}
-        >
-          <MusicaForm
-            onSubmit={handleSubmitMusica}
-            onCancel={() => setModalMusicaAberto(false)}
-          />
-        </Modal>
-      </div>
-    </DndProvider>
+          <Modal
+            title="Nova Música"
+            isOpen={modalMusicaAberto}
+            onClose={() => setModalMusicaAberto(false)}
+          >
+            <MusicaForm
+              onSubmit={handleSubmitMusica}
+              onCancel={() => setModalMusicaAberto(false)}
+            />
+          </Modal>
+        </div>
+      </DndProvider>
+    </DragDropContext>
   );
 } 

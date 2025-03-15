@@ -777,7 +777,7 @@ export function EventoForm({
                      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                      transition-all duration-200 ease-in-out px-3 py-2 h-9"
           />
-        </div>
+      </div>
 
         <div className="md:col-span-4 space-y-2">
           <label htmlFor="bandaId" className="block text-sm font-medium text-white mb-2">
@@ -825,22 +825,22 @@ export function EventoForm({
             Endereço
           </label>
           <div className="flex space-x-2">
-            <input
-              type="text"
-              id="endereco"
-              value={endereco}
-              onChange={(e) => setEndereco(e.target.value)}
+          <input
+            type="text"
+            id="endereco"
+            value={endereco}
+            onChange={(e) => setEndereco(e.target.value)}
               className="flex-1 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                      transition-all duration-200 ease-in-out px-3 py-2 h-9"
-              placeholder="Endereço completo"
-            />
+            placeholder="Endereço completo"
+          />
             <button
               type="button"
               onClick={() => setMostrarModalRotas(!mostrarModalRotas)}
               disabled={!endereco && !local}
               className="inline-flex items-center justify-center px-4 py-2 border border-indigo-500 text-xs font-medium rounded-xl
-                     text-indigo-200 hover:bg-indigo-600/40 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                       text-indigo-200 hover:bg-indigo-600/40 focus:outline-none focus:ring-2 focus:ring-indigo-500
                      shadow-sm transition-all duration-200 ease-in-out h-9 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -850,163 +850,163 @@ export function EventoForm({
             </button>
           </div>
         </div>
-      </div>
+          </div>
 
-      {/* Seção expandida de Rotas */}
-      {mostrarModalRotas && (
+          {/* Seção expandida de Rotas */}
+          {mostrarModalRotas && (
         <div className="mt-2 bg-gray-800/50 rounded-xl border border-white/10 p-4 animate-fadeIn">
-          <h3 className="text-sm font-semibold text-white mb-4">Criar Rota</h3>
-          
+              <h3 className="text-sm font-semibold text-white mb-4">Criar Rota</h3>
+              
           <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-6">
-              <label className="block text-xs font-medium text-white mb-1">
-                Sua localização
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={origemRota}
-                  onChange={(e) => setOrigemRota(e.target.value)}
-                  placeholder="Digite seu endereço atual"
-                  className="flex-1 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                          transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (navigator.geolocation) {
-                      navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                          setOrigemRota(`${position.coords.latitude},${position.coords.longitude}`);
-                          // Calcular tempo e distância estimados
-                          calcularTempoEDistancia(position.coords.latitude, position.coords.longitude);
-                        },
-                        (error) => {
-                          console.error("Erro ao obter localização:", error);
-                          alert("Não foi possível obter sua localização atual. Por favor, digite manualmente.");
+                  <label className="block text-xs font-medium text-white mb-1">
+                    Sua localização
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={origemRota}
+                      onChange={(e) => setOrigemRota(e.target.value)}
+                      placeholder="Digite seu endereço atual"
+                      className="flex-1 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                              focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                              transition-all duration-200 ease-in-out px-3 py-2 h-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.geolocation) {
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              setOrigemRota(`${position.coords.latitude},${position.coords.longitude}`);
+                              // Calcular tempo e distância estimados
+                              calcularTempoEDistancia(position.coords.latitude, position.coords.longitude);
+                            },
+                            (error) => {
+                              console.error("Erro ao obter localização:", error);
+                              alert("Não foi possível obter sua localização atual. Por favor, digite manualmente.");
+                            }
+                          );
+                        } else {
+                          alert("Geolocalização não é suportada pelo seu navegador. Por favor, digite manualmente.");
                         }
-                      );
-                    } else {
-                      alert("Geolocalização não é suportada pelo seu navegador. Por favor, digite manualmente.");
-                    }
-                  }}
-                  className="px-3 py-2 h-9 text-xs text-indigo-300 hover:text-indigo-200 bg-gray-800/70 rounded-xl border border-white/10 hover:bg-gray-700/70"
-                >
-                  Localização Atual
-                </button>
-              </div>
+                      }}
+                      className="px-3 py-2 h-9 text-xs text-indigo-300 hover:text-indigo-200 bg-gray-800/70 rounded-xl border border-white/10 hover:bg-gray-700/70"
+                    >
+                      Localização Atual
+                    </button>
+                  </div>
             </div>
             
             <div className="md:col-span-6 flex items-end space-x-2">
-              {origemRota && !tempoEstimado && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (origemRota) {
-                      // Usar o endereço digitado para calcular a rota
-                      calcularTempoEDistancia(0, 0); // Os parâmetros lat/lng são ignorados quando origemRota está preenchido
-                    } else {
-                      alert("Por favor, informe sua localização de origem.");
-                    }
-                  }}
-                  className="px-3 py-2 h-8 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors"
-                >
-                  Confirmar
-                </button>
-              )}
+                  {origemRota && !tempoEstimado && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (origemRota) {
+                            // Usar o endereço digitado para calcular a rota
+                            calcularTempoEDistancia(0, 0); // Os parâmetros lat/lng são ignorados quando origemRota está preenchido
+                          } else {
+                            alert("Por favor, informe sua localização de origem.");
+                          }
+                        }}
+                        className="px-3 py-2 h-8 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors"
+                      >
+                        Confirmar
+                      </button>
+                  )}
             </div>
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-white mb-1">
-              Destino
-            </label>
-            <input
-              type="text"
-              value={endereco || local}
-              disabled
-              className="w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                      focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                      transition-all duration-200 ease-in-out px-3 py-2 h-9 opacity-70"
-            />
-          </div>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-white mb-1">
+                    Destino
+                  </label>
+                  <input
+                    type="text"
+                    value={endereco || local}
+                    disabled
+                    className="w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                            transition-all duration-200 ease-in-out px-3 py-2 h-9 opacity-70"
+                  />
+                </div>
 
-          {(tempoEstimado || distanciaEstimada) && (
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              <div className="bg-gray-800/70 rounded-xl border border-white/10 p-3 flex flex-col items-center">
-                <span className="text-xs text-gray-400 mb-1">Tempo estimado</span>
-                <span className="text-sm text-white font-medium">{tempoEstimado}</span>
-              </div>
-              <div className="bg-gray-800/70 rounded-xl border border-white/10 p-3 flex flex-col items-center">
-                <span className="text-xs text-gray-400 mb-1">Distância</span>
-                <span className="text-sm text-white font-medium">{distanciaEstimada}</span>
+                {(tempoEstimado || distanciaEstimada) && (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="bg-gray-800/70 rounded-xl border border-white/10 p-3 flex flex-col items-center">
+                      <span className="text-xs text-gray-400 mb-1">Tempo estimado</span>
+                      <span className="text-sm text-white font-medium">{tempoEstimado}</span>
+                    </div>
+                    <div className="bg-gray-800/70 rounded-xl border border-white/10 p-3 flex flex-col items-center">
+                      <span className="text-xs text-gray-400 mb-1">Distância</span>
+                      <span className="text-sm text-white font-medium">{distanciaEstimada}</span>
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <p className="text-xs text-white mb-2">Mostrar rota em:</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (origemRota) {
+                          const destino = encodeURIComponent(endereco || local);
+                          const origem = encodeURIComponent(origemRota);
+                          window.open(`https://www.google.com/maps/dir/${origem}/${destino}`, '_blank');
+                        } else {
+                          alert("Por favor, informe sua localização de origem.");
+                        }
+                      }}
+                      className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#4285F4">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                      </svg>
+                      <span className="text-xs text-white">Google Maps</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (origemRota) {
+                          const destino = encodeURIComponent(endereco || local);
+                          window.open(`https://waze.com/ul?navigate=yes&q=${destino}`, '_blank');
+                        } else {
+                          alert("Por favor, informe sua localização de origem.");
+                        }
+                      }}
+                      className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#33CCFF">
+                        <path d="M12 1.5C6.2 1.5 1.5 6.2 1.5 12S6.2 22.5 12 22.5 22.5 17.8 22.5 12 17.8 1.5 12 1.5zM12 4c1.5 0 2.7 1.2 2.7 2.7 0 1.5-1.2 2.7-2.7 2.7-1.5 0-2.7-1.2-2.7-2.7C9.3 5.2 10.5 4 12 4zM6 15c0-2 4-3.1 6-3.1s6 1.1 6 3.1c0 1.2-2.7 2.7-6 2.7S6 16.2 6 15z"/>
+                      </svg>
+                      <span className="text-xs text-white">Waze</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (origemRota) {
+                          const destino = encodeURIComponent(endereco || local);
+                          const origem = encodeURIComponent(origemRota);
+                          window.open(`https://maps.apple.com/?saddr=${origem}&daddr=${destino}`, '_blank');
+                        } else {
+                          alert("Por favor, informe sua localização de origem.");
+                        }
+                      }}
+                      className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#5FC9F8">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                      </svg>
+                      <span className="text-xs text-white">Apple Maps</span>
+                    </button>
+                </div>
               </div>
             </div>
           )}
-          
-          <div>
-            <p className="text-xs text-white mb-2">Mostrar rota em:</p>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (origemRota) {
-                    const destino = encodeURIComponent(endereco || local);
-                    const origem = encodeURIComponent(origemRota);
-                    window.open(`https://www.google.com/maps/dir/${origem}/${destino}`, '_blank');
-                  } else {
-                    alert("Por favor, informe sua localização de origem.");
-                  }
-                }}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#4285F4">
-                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                </svg>
-                <span className="text-xs text-white">Google Maps</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  if (origemRota) {
-                    const destino = encodeURIComponent(endereco || local);
-                    window.open(`https://waze.com/ul?navigate=yes&q=${destino}`, '_blank');
-                  } else {
-                    alert("Por favor, informe sua localização de origem.");
-                  }
-                }}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#33CCFF">
-                  <path d="M12 1.5C6.2 1.5 1.5 6.2 1.5 12S6.2 22.5 12 22.5 22.5 17.8 22.5 12 17.8 1.5 12 1.5zM12 4c1.5 0 2.7 1.2 2.7 2.7 0 1.5-1.2 2.7-2.7 2.7-1.5 0-2.7-1.2-2.7-2.7C9.3 5.2 10.5 4 12 4zM6 15c0-2 4-3.1 6-3.1s6 1.1 6 3.1c0 1.2-2.7 2.7-6 2.7S6 16.2 6 15z"/>
-                </svg>
-                <span className="text-xs text-white">Waze</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  if (origemRota) {
-                    const destino = encodeURIComponent(endereco || local);
-                    const origem = encodeURIComponent(origemRota);
-                    window.open(`https://maps.apple.com/?saddr=${origem}&daddr=${destino}`, '_blank');
-                  } else {
-                    alert("Por favor, informe sua localização de origem.");
-                  }
-                }}
-                className="flex flex-col items-center justify-center p-2 rounded-xl bg-gray-800/70 border border-white/10 hover:bg-gray-700/70 transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1" viewBox="0 0 24 24" fill="#5FC9F8">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                </svg>
-                <span className="text-xs text-white">Apple Maps</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Seção de Banda e Integrantes */}
       <div className="bg-gray-800/40 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-lg">
@@ -1040,26 +1040,26 @@ export function EventoForm({
             </label>
             <div className="mt-1 max-h-48 overflow-y-auto rounded-xl bg-gray-800/50 border border-white/20 p-3">
               <div className="grid grid-cols-2 gap-2">
-                {integrantes.map((integrante) => (
-                  <div key={integrante.id} className="flex items-center space-x-3 py-2">
-                    <input
-                      type="checkbox"
-                      id={`integrante-${integrante.id}`}
-                      checked={integrantesIds.includes(integrante.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setIntegrantesIds([...integrantesIds, integrante.id]);
-                        } else {
-                          setIntegrantesIds(integrantesIds.filter(id => id !== integrante.id));
-                        }
-                      }}
-                      className="h-4 w-4 text-indigo-500 focus:ring-indigo-500 border-white rounded"
-                    />
-                    <label htmlFor={`integrante-${integrante.id}`} className="text-white">
-                      {integrante.nome}
-                    </label>
-                  </div>
-                ))}
+              {integrantes.map((integrante) => (
+                <div key={integrante.id} className="flex items-center space-x-3 py-2">
+                  <input
+                    type="checkbox"
+                    id={`integrante-${integrante.id}`}
+                    checked={integrantesIds.includes(integrante.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setIntegrantesIds([...integrantesIds, integrante.id]);
+                      } else {
+                        setIntegrantesIds(integrantesIds.filter(id => id !== integrante.id));
+                      }
+                    }}
+                    className="h-4 w-4 text-indigo-500 focus:ring-indigo-500 border-white rounded"
+                  />
+                  <label htmlFor={`integrante-${integrante.id}`} className="text-white">
+                    {integrante.nome}
+                  </label>
+                </div>
+              ))}
               </div>
             </div>
           </div>
@@ -1364,7 +1364,7 @@ export function EventoForm({
                                transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       placeholder="(00) 0000-0000"
                     />
-                  </div>
+                </div>
 
                   <div>
                     <label htmlFor="contatoTecnico" className="block text-sm font-medium text-white">
@@ -1721,54 +1721,54 @@ export function EventoForm({
                     <div>
                       <h6 className="text-sm font-semibold text-indigo-400 mb-3">Check-in</h6>
                       <div className="space-y-4">
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Data</label>
-                          <input
-                            type="date"
-                            value={hospedagem.dataCheckIn}
-                            onChange={(e) => setHospedagem({ ...hospedagem, dataCheckIn: e.target.value })}
-                            className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                          />
-                        </div>
-                        <div className="space-y-2">
+                      <input
+                        type="date"
+                        value={hospedagem.dataCheckIn}
+                        onChange={(e) => setHospedagem({ ...hospedagem, dataCheckIn: e.target.value })}
+                        className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                                 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                                 transition-all duration-200 ease-in-out px-3 py-2 h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Hora</label>
-                          <input
+                      <input
                             type="time"
                             value={hospedagem.horaCheckIn}
                             onChange={(e) => setHospedagem({ ...hospedagem, horaCheckIn: e.target.value })}
-                            className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                          />
-                        </div>
-                      </div>
+                        className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                                 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                                 transition-all duration-200 ease-in-out px-3 py-2 h-9"
+                      />
+                    </div>
+                  </div>
                     </div>
                     <div>
                       <h6 className="text-sm font-semibold text-indigo-400 mb-3">Check-out</h6>
                       <div className="space-y-4">
-                        <div className="space-y-2">
+                    <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Data</label>
-                          <input
+                      <input
                             type="date"
                             value={hospedagem.dataCheckOut}
                             onChange={(e) => setHospedagem({ ...hospedagem, dataCheckOut: e.target.value })}
-                            className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                          />
-                        </div>
-                        <div className="space-y-2">
+                        className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                                 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                                 transition-all duration-200 ease-in-out px-3 py-2 h-9"
+                      />
+                    </div>
+                    <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Hora</label>
-                          <input
-                            type="time"
-                            value={hospedagem.horaCheckOut}
-                            onChange={(e) => setHospedagem({ ...hospedagem, horaCheckOut: e.target.value })}
-                            className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
-                                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
-                                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                          />
+                      <input
+                        type="time"
+                        value={hospedagem.horaCheckOut}
+                        onChange={(e) => setHospedagem({ ...hospedagem, horaCheckOut: e.target.value })}
+                        className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                                 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                                 transition-all duration-200 ease-in-out px-3 py-2 h-9"
+                      />
                         </div>
                       </div>
                     </div>
@@ -1800,40 +1800,40 @@ export function EventoForm({
                         </div>
                         
                         {/* Conteúdo condicional - só aparece quando selecionado */}
-                        {hospedagem.incluiCafe && (
+                  {hospedagem.incluiCafe && (
                           <div className="mt-3">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <h6 className="text-xs font-semibold text-blue-400 mb-2">Início</h6>
-                                <div className="space-y-2">
-                                  <input
-                                    type="time"
+                      <div className="space-y-2">
+                        <input
+                          type="time"
                                     id="horarioCafeInicio"
                                     value={hospedagem.horarioCafeInicio || ''}
-                                    onChange={(e) => setHospedagem({ ...hospedagem, horarioCafeInicio: e.target.value })}
+                          onChange={(e) => setHospedagem({ ...hospedagem, horarioCafeInicio: e.target.value })}
                                     className="block w-full rounded-lg bg-gray-800/70 border border-blue-500/40 text-sm text-white
                                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm
                                             px-2.5 py-1.5 text-sm"
-                                  />
-                                </div>
+                        />
+                      </div>
                               </div>
                               <div>
                                 <h6 className="text-xs font-semibold text-blue-400 mb-2">Término</h6>
-                                <div className="space-y-2">
-                                  <input
-                                    type="time"
+                      <div className="space-y-2">
+                        <input
+                          type="time"
                                     id="horarioCafeFim"
                                     value={hospedagem.horarioCafeFim || ''}
-                                    onChange={(e) => setHospedagem({ ...hospedagem, horarioCafeFim: e.target.value })}
+                          onChange={(e) => setHospedagem({ ...hospedagem, horarioCafeFim: e.target.value })}
                                     className="block w-full rounded-lg bg-gray-800/70 border border-blue-500/40 text-sm text-white
                                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm
                                             px-2.5 py-1.5 text-sm"
                                   />
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        )}
+                      </div>
+                    </div>
+                  )}
                       </div>
 
                       {/* Card de Almoço */}
@@ -2042,7 +2042,7 @@ export function EventoForm({
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       />
-                    </div>
+                  </div>
 
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-white">Contato do Hotel</label>

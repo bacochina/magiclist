@@ -1,195 +1,229 @@
 "use client";
 
-import Swal, { 
-  alertaSucesso, 
-  alertaErro, 
-  alertaInfo, 
-  alertaAviso, 
-  confirmar, 
-  alerta, 
-  alertaHTML, 
-  inputTexto, 
-  alertaComTempo
-} from '@/lib/sweetalert';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { 
+  BarChart2, 
+  Calendar, 
+  Music2, 
+  Users, 
+  TrendingUp, 
+  Clock, 
+  ListMusic 
+} from 'lucide-react';
 
-export default function Home() {
+// Componente de cartão de estatística
+const StatCard = ({ title, value, icon, change, changeType = "up", subtitle }: { 
+  title: string; 
+  value: string; 
+  icon: React.ReactNode;
+  change?: string;
+  changeType?: "up" | "down";
+  subtitle?: string;
+}) => (
+  <div className="stat-card relative overflow-hidden">
+    <div className="flex justify-between items-start mb-3">
+      <div>
+        <h3 className="text-gray-400 text-sm font-medium mb-1">{title}</h3>
+        <div className="text-2xl font-bold text-white">{value}</div>
+        {subtitle && <div className="text-sm text-gray-400 mt-1">{subtitle}</div>}
+      </div>
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+    </div>
+    {change && (
+      <div className={`text-sm ${changeType === "up" ? "text-green-500" : "text-red-500"} flex items-center`}>
+        {changeType === "up" ? (
+          <TrendingUp size={14} className="mr-1" />
+        ) : (
+          <TrendingUp size={14} className="mr-1 transform rotate-180" />
+        )}
+        {change} {changeType === "up" ? "aumento" : "redução"}
+      </div>
+    )}
+  </div>
+);
+
+// Componente de cartão de gráfico (simulado)
+const ChartCard = ({ title, subtitle }: { title: string; subtitle?: string }) => {
   return (
-    <main className="min-h-screen relative">
-      {/* Background com gradiente e efeito de partículas */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-blue-900 via-purple-900 to-gray-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Conteúdo */}
-      <div className="relative z-10">
-        {/* Hero Section */}
-        <div className="min-h-screen flex items-center justify-center px-4">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="mb-8 transform hover:scale-105 transition-transform duration-500">
-              <h1 className="text-6xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 mb-4">
-                MagicList
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-300 font-light tracking-wide">
-                Bandas • Músicas • Blocos • Repertórios
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
-              {/* Card Eventos */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 transform hover:scale-105 transition-all duration-300 border border-white/20 group">
-                <div className="text-blue-400 mb-4">
-                  <svg className="h-8 w-8 mx-auto group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Eventos</h3>
-                <p className="text-gray-300 text-sm">Gerencie shows, ensaios e compromissos</p>
-              </div>
-
-              {/* Card Bandas */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 transform hover:scale-105 transition-all duration-300 border border-white/20 group">
-                <div className="text-purple-400 mb-4">
-                  <svg className="h-8 w-8 mx-auto group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Bandas</h3>
-                <p className="text-gray-300 text-sm">Organize seus projetos musicais</p>
-              </div>
-
-              {/* Card Músicas */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 transform hover:scale-105 transition-all duration-300 border border-white/20 group">
-                <div className="text-pink-400 mb-4">
-                  <svg className="h-8 w-8 mx-auto group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Músicas</h3>
-                <p className="text-gray-300 text-sm">Gerencie seu repertório musical</p>
-              </div>
-
-              {/* Card Estudos */}
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 transform hover:scale-105 transition-all duration-300 border border-white/20 group">
-                <div className="text-indigo-400 mb-4">
-                  <svg className="h-8 w-8 mx-auto group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Estudos</h3>
-                <p className="text-gray-300 text-sm">Organize seu desenvolvimento musical</p>
-              </div>
-            </div>
-
-            {/* Botão de Começar */}
-            <div className="mt-16">
-              <a
-                href="/help"
-                className="inline-flex items-center px-8 py-3 text-lg font-medium text-white bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
-                Começar Agora
-                <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Seção de demonstração do SweetAlert2 */}
-        <div className="mt-8 p-6 bg-gray-800 rounded-lg">
-          <h2 className="text-xl font-semibold text-white mb-4">Demonstração do SweetAlert2</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <button
-              onClick={() => alertaSucesso('Operação realizada com sucesso!')}
-              className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta de Sucesso
-            </button>
-            <button
-              onClick={() => alertaErro('Ocorreu um erro na operação!')}
-              className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta de Erro
-            </button>
-            <button
-              onClick={() => alertaInfo('Esta é uma informação importante.')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta de Informação
-            </button>
-            <button
-              onClick={() => alertaAviso('Atenção! Esta ação requer cuidado.')}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta de Aviso
-            </button>
-            <button
-              onClick={async () => {
-                const confirmado = await confirmar(
-                  'Confirmação',
-                  'Tem certeza que deseja realizar esta ação?',
-                  'question'
-                );
-                if (confirmado) {
-                  alertaSucesso('Ação confirmada!');
-                } else {
-                  alertaInfo('Ação cancelada!');
-                }
-              }}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Confirmação
-            </button>
-            <button
-              onClick={() => alerta('Título', 'Esta é uma mensagem de alerta padrão.', 'info')}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta Padrão
-            </button>
-            <button
-              onClick={() => alertaHTML(
-                'Alerta com HTML', 
-                '<b>HTML</b> formatado com <i>estilos</i> e <u>elementos</u>', 
-                'info'
-              )}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta com HTML
-            </button>
-            <button
-              onClick={async () => {
-                const texto = await inputTexto(
-                  'Digite um valor',
-                  'Insira seu texto abaixo:',
-                  'Digite aqui...'
-                );
-                if (texto) {
-                  alertaSucesso(`Você digitou: "${texto}"`);
-                } else {
-                  alertaInfo('Entrada cancelada');
-                }
-              }}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Input de Texto
-            </button>
-            <button
-              onClick={() => alertaComTempo(
-                'Alerta Temporizado',
-                'Este alerta fechará automaticamente em 3 segundos',
-                'info',
-                3000
-              )}
-              className="bg-pink-600 hover:bg-pink-700 text-white font-medium py-2 px-4 rounded"
-            >
-              Alerta Temporizado
-            </button>
-          </div>
+    <div className="chart-container">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-gray-200 font-medium">{title}</h3>
+          {subtitle && <div className="text-sm text-gray-400">{subtitle}</div>}
         </div>
       </div>
-    </main>
+      <div className="h-56 bg-gray-800 rounded-md flex items-center justify-center">
+        <div className="w-full h-full px-4 py-2 flex items-end">
+          {/* Simulação de gráficos com barras */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            // Determinar qual cor usar baseado no índice
+            const colorIndex = (i % 4) + 1; // Alterna entre 1, 2, 3, 4
+            
+            return (
+              <div 
+                key={i}
+                className="w-full mx-1"
+                style={{ height: `${Math.random() * 70 + 20}%` }}
+              >
+                <div 
+                  className="w-full h-full rounded-t-md"
+                  data-chart-color={colorIndex}
+                  style={{ opacity: 0.7 + Math.random() * 0.3 }}
+                ></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente para lista de itens recentes
+const RecentItemsList = ({ title, items }: { title: string; items: any[] }) => (
+  <div className="dashboard-card">
+    <h3 className="text-gray-200 font-medium mb-3">{title}</h3>
+    <div className="divide-y divide-gray-700">
+      {items.map((item, index) => (
+        <div key={index} className="py-3 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="p-2 rounded-md bg-gray-700 text-purple-400 mr-3">
+              {item.icon}
+            </div>
+            <div>
+              <div className="text-white font-medium">{item.title}</div>
+              <div className="text-gray-400 text-sm">{item.subtitle}</div>
+            </div>
+          </div>
+          <div className="text-sm text-gray-400">{item.date}</div>
+        </div>
+      ))}
+    </div>
+    <div className="mt-4">
+      <Link 
+        href={"/eventos"} 
+        className="text-purple-400 text-sm font-medium hover:text-purple-300 flex items-center"
+      >
+        Ver todos
+        <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
+    </div>
+  </div>
+);
+
+export default function Home() {
+  const [recentEvents, setRecentEvents] = useState([
+    { 
+      title: 'Aniversário de João', 
+      subtitle: 'Banda: Rock Stars', 
+      date: 'Hoje', 
+      icon: <Calendar size={18} /> 
+    },
+    { 
+      title: 'Festa de Formatura', 
+      subtitle: 'Banda: Electric Sound', 
+      date: 'Amanhã', 
+      icon: <Calendar size={18} /> 
+    },
+    { 
+      title: 'Casamento Silva', 
+      subtitle: 'Banda: Acoustic Trio', 
+      date: '25/03', 
+      icon: <Calendar size={18} /> 
+    },
+  ]);
+
+  const [recentSongs, setRecentSongs] = useState([
+    { 
+      title: 'Bohemian Rhapsody', 
+      subtitle: 'Queen', 
+      date: 'Há 2 dias', 
+      icon: <Music2 size={18} /> 
+    },
+    { 
+      title: 'Sweet Child O\' Mine', 
+      subtitle: 'Guns N\' Roses', 
+      date: 'Há 3 dias', 
+      icon: <Music2 size={18} /> 
+    },
+    { 
+      title: 'Nothing Else Matters', 
+      subtitle: 'Metallica', 
+      date: 'Há 5 dias', 
+      icon: <Music2 size={18} /> 
+    },
+  ]);
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-1">Dashboard</h1>
+        <p className="text-gray-400">Bem-vindo ao MagicList, gerencie seus eventos musicais.</p>
+      </div>
+
+      {/* Grid de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard 
+          title="Eventos Totais" 
+          value="48" 
+          icon={<Calendar size={20} />} 
+          change="12%" 
+          changeType="up"
+          subtitle="Último mês"
+        />
+        <StatCard 
+          title="Músicas Cadastradas" 
+          value="1,234" 
+          icon={<Music2 size={20} />} 
+          change="5%" 
+          changeType="up"
+        />
+        <StatCard 
+          title="Integrantes" 
+          value="22" 
+          icon={<Users size={20} />} 
+          change="2" 
+          changeType="up"
+          subtitle="Novos integrantes"
+        />
+        <StatCard 
+          title="Tempo Médio de Evento" 
+          value="3.5h" 
+          icon={<Clock size={20} />} 
+          change="30min" 
+          changeType="down"
+        />
+      </div>
+
+      {/* Gráficos e listas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2">
+          <ChartCard 
+            title="Eventos Mensais" 
+            subtitle="Últimos 12 meses"
+          />
+        </div>
+        <div>
+          <RecentItemsList title="Próximos Eventos" items={recentEvents} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div>
+          <RecentItemsList title="Músicas Recentes" items={recentSongs} />
+        </div>
+        <div className="lg:col-span-2">
+          <ChartCard 
+            title="Blocos por Gênero" 
+            subtitle="Distribuição de repertório"
+          />
+        </div>
+      </div>
+    </div>
   );
 } 

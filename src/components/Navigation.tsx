@@ -3,24 +3,40 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 const Navigation = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [eventosExpanded, setEventosExpanded] = useState(false);
 
   // Fechar o menu mobile quando o caminho mudar
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  // Expandir o menu Eventos se estiver em alguma rota de eventos
+  useEffect(() => {
+    if (pathname.includes('/eventos')) {
+      setEventosExpanded(true);
+    }
+  }, [pathname]);
+
   const isActive = (path: string) => pathname === path;
+  const isEventoActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
   const menuItems = [
     { 
       href: '/eventos', 
       label: 'Eventos', 
       icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
-      color: 'from-blue-400 to-indigo-400'
+      color: 'from-blue-400 to-indigo-400',
+      hasSubmenu: true,
+      submenu: [
+        { href: '/eventos/shows', label: 'Shows' },
+        { href: '/eventos/ensaios', label: 'Ensaios' },
+        { href: '/eventos/reunioes', label: 'Reuniões' }
+      ]
     },
     { 
       href: '/bandas', 
@@ -83,34 +99,92 @@ const Navigation = () => {
           <div className="hidden lg:block">
             <div className="flex items-center space-x-1">
               {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 group
-                    ${isActive(item.href)
-                      ? 'bg-white/10 text-white shadow-lg shadow-white/5'
-                      : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                    }`}
-                >
-                  <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
-                    ${isActive(item.href) 
-                      ? 'opacity-100 shadow-lg' 
-                      : 'opacity-70 group-hover:opacity-100'} 
-                    transition-all duration-300`}
-                  >
-                    <svg
-                      className="h-4 w-4 text-white transition-transform duration-300 group-hover:scale-110"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                <div key={item.href} className="relative">
+                  {item.hasSubmenu ? (
+                    <div className="flex flex-col">
+                      <button
+                        onClick={() => setEventosExpanded(!eventosExpanded)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 group
+                          ${isEventoActive(item.href)
+                            ? 'bg-white/10 text-white shadow-lg shadow-white/5'
+                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                          }`}
+                      >
+                        <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
+                          ${isEventoActive(item.href) 
+                            ? 'opacity-100 shadow-lg' 
+                            : 'opacity-70 group-hover:opacity-100'} 
+                          transition-all duration-300`}
+                        >
+                          <svg
+                            className="h-4 w-4 text-white transition-transform duration-300 group-hover:scale-110"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                          </svg>
+                        </div>
+                        <span className="transition-all duration-300 group-hover:translate-x-0.5">
+                          {item.label}
+                        </span>
+                        {eventosExpanded ? 
+                          <ChevronUp className="h-4 w-4 ml-1" /> : 
+                          <ChevronDown className="h-4 w-4 ml-1" />
+                        }
+                      </button>
+                      
+                      {/* Submenu */}
+                      <div className={`absolute top-full left-0 mt-1 rounded-lg bg-gray-800 shadow-lg overflow-hidden transition-all duration-300 z-10
+                        ${eventosExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+                      >
+                        <div className="py-1 w-40">
+                          {item.submenu?.map(subItem => (
+                            <Link
+                              key={subItem.href}
+                              href={subItem.href}
+                              className={`block px-4 py-2 text-sm transition-colors duration-200
+                                ${isActive(subItem.href)
+                                  ? 'bg-gray-700 text-white'
+                                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                                }`}
+                            >
+                              {subItem.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 group
+                        ${isActive(item.href)
+                          ? 'bg-white/10 text-white shadow-lg shadow-white/5'
+                          : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                        }`}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                    </svg>
-                  </div>
-                  <span className="transition-all duration-300 group-hover:translate-x-0.5">
-                    {item.label}
-                  </span>
-                </Link>
+                      <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
+                        ${isActive(item.href) 
+                          ? 'opacity-100 shadow-lg' 
+                          : 'opacity-70 group-hover:opacity-100'} 
+                        transition-all duration-300`}
+                      >
+                        <svg
+                          className="h-4 w-4 text-white transition-transform duration-300 group-hover:scale-110"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                        </svg>
+                      </div>
+                      <span className="transition-all duration-300 group-hover:translate-x-0.5">
+                        {item.label}
+                      </span>
+                    </Link>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -170,31 +244,83 @@ const Navigation = () => {
       >
         <div className="px-2 pt-2 pb-3 space-y-1">
           {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-base font-medium transition-all duration-300
-                ${isActive(item.href)
-                  ? 'bg-white/10 text-white'
-                  : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                }`}
-            >
-              <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
-                ${isActive(item.href) ? 'opacity-100' : 'opacity-70'} 
-                transition-all duration-300`}
-              >
-                <svg
-                  className="h-5 w-5 text-white transition-transform duration-300 hover:scale-110"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+            <div key={item.href}>
+              {item.hasSubmenu ? (
+                <div>
+                  <button
+                    onClick={() => setEventosExpanded(!eventosExpanded)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-base font-medium transition-all duration-300
+                      ${isEventoActive(item.href)
+                        ? 'bg-white/10 text-white'
+                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
+                        ${isEventoActive(item.href) ? 'opacity-100' : 'opacity-70'} 
+                        transition-all duration-300`}
+                      >
+                        <svg
+                          className="h-5 w-5 text-white transition-transform duration-300 hover:scale-110"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                        </svg>
+                      </div>
+                      <span className="transition-all duration-300 hover:translate-x-0.5">{item.label}</span>
+                    </div>
+                    {eventosExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                  
+                  {/* Mobile Submenu */}
+                  <div className={`transition-all duration-300 overflow-hidden pl-10 
+                    ${eventosExpanded ? 'max-h-40 opacity-100 pt-1' : 'max-h-0 opacity-0'}`}
+                  >
+                    {item.submenu?.map(subItem => (
+                      <Link
+                        key={subItem.href}
+                        href={subItem.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`block px-3 py-2 text-sm rounded-lg transition-colors duration-200 mb-1
+                          ${isActive(subItem.href)
+                            ? 'bg-gray-700 text-white'
+                            : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          }`}
+                      >
+                        {subItem.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-base font-medium transition-all duration-300
+                    ${isActive(item.href)
+                      ? 'bg-white/10 text-white'
+                      : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                    }`}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                </svg>
-              </div>
-              <span className="transition-all duration-300 hover:translate-x-0.5">{item.label}</span>
-            </Link>
+                  <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
+                    ${isActive(item.href) ? 'opacity-100' : 'opacity-70'} 
+                    transition-all duration-300`}
+                  >
+                    <svg
+                      className="h-5 w-5 text-white transition-transform duration-300 hover:scale-110"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                    </svg>
+                  </div>
+                  <span className="transition-all duration-300 hover:translate-x-0.5">{item.label}</span>
+                </Link>
+              )}
+            </div>
           ))}
         </div>
       </div>

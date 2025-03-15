@@ -34,7 +34,7 @@ ChartJS.register(
 );
 
 // Tipos de gráficos disponíveis
-type TipoGrafico = 'barra' | 'linha' | 'pizza';
+type TipoGrafico = 'barra' | 'linha' | 'pizza' | 'barraLinha';
 
 // Tipos de períodos para filtrar
 type PeriodoGrafico = 'ultimos6meses' | 'ultimos12meses' | 'anoAtual' | 'todos';
@@ -424,6 +424,38 @@ export function EventosGraficos({ eventos }: EventosGraficosProps) {
             </div>
           </div>
         );
+      case 'barraLinha':
+        return (
+          <div className="w-full h-full flex items-center justify-center">
+            <Bar 
+              data={{
+                ...dadosGrafico,
+                datasets: dadosGrafico.datasets.map((dataset, index) => ({
+                  ...dataset,
+                  // O primeiro dataset é barra, os outros são linha
+                  type: index === 0 ? 'bar' : 'line',
+                  // Ajustando as propriedades específicas para o tipo de linha
+                  ...(index !== 0 && {
+                    pointBackgroundColor: dataset.borderColor,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 1,
+                    tension: 0.4,
+                    // Suavizar borda para linhas
+                    borderWidth: 2
+                  })
+                }))
+              }}
+              options={{
+                ...opcoesGrafico,
+                // Permitindo múltiplos tipos de gráficos
+                scales: {
+                  ...opcoesGrafico.scales
+                }
+              }}
+              className="max-h-full"
+            />
+          </div>
+        );
       default:
         return (
           <div className="w-full h-full flex items-center justify-center">
@@ -447,10 +479,10 @@ export function EventosGraficos({ eventos }: EventosGraficosProps) {
           <label className="block text-sm font-medium text-white mb-2">
             Tipo de Gráfico
           </label>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setTipoGrafico('barra')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center flex-1
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center 
                 ${tipoGrafico === 'barra'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                   : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -460,7 +492,7 @@ export function EventosGraficos({ eventos }: EventosGraficosProps) {
             </button>
             <button
               onClick={() => setTipoGrafico('linha')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center flex-1
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center 
                 ${tipoGrafico === 'linha'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                   : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -470,13 +502,23 @@ export function EventosGraficos({ eventos }: EventosGraficosProps) {
             </button>
             <button
               onClick={() => setTipoGrafico('pizza')}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center flex-1
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center 
                 ${tipoGrafico === 'pizza'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
                   : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
                 }`}
             >
               Pizza
+            </button>
+            <button
+              onClick={() => setTipoGrafico('barraLinha')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center 
+                ${tipoGrafico === 'barraLinha'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                  : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                }`}
+            >
+              Barra+Linha
             </button>
           </div>
         </div>

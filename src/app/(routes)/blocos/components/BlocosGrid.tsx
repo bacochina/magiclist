@@ -44,7 +44,7 @@ export default function BlocosGrid({
     const result = {
       source: { index: dragIndex, droppableId: 'blocos-grid' },
       destination: { index: hoverIndex, droppableId: 'blocos-grid' },
-      draggableId: blocos[dragIndex].id,
+      draggableId: blocos[dragIndex]?.id || '',
       type: 'DEFAULT',
       mode: 'FLUID',
       combine: null,
@@ -65,7 +65,7 @@ export default function BlocosGrid({
   }, [blocos, onDragEnd]);
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {localBlocos.map((bloco, index) => (
         <DraggableBlocoItem
           key={bloco.id}

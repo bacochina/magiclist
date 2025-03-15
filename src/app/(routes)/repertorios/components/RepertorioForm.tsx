@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Banda, Repertorio, Bloco } from '@/lib/types';
 import { Modal } from '@/components/ui/Modal';
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Plus, X } from 'lucide-react';
 
 const repertorioSchema = z.object({
   nome: z.string().min(1, 'O nome é obrigatório'),
@@ -100,14 +100,14 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       <div>
-        <label htmlFor="nome" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="nome" className="block text-sm font-medium text-gray-900">
           Nome do Repertório
         </label>
         <input
           type="text"
           id="nome"
           {...register('nome')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
         />
         {errors.nome && (
           <p className="mt-1 text-sm text-red-600">{errors.nome.message}</p>
@@ -115,25 +115,25 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
       </div>
 
       <div>
-        <label htmlFor="descricao" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="descricao" className="block text-sm font-medium text-gray-900">
           Descrição
         </label>
         <textarea
           id="descricao"
           rows={3}
           {...register('descricao')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
         />
       </div>
 
       <div>
-        <label htmlFor="bandaId" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="bandaId" className="block text-sm font-medium text-gray-900">
           Banda
         </label>
         <select
           id="bandaId"
           {...register('bandaId')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
         >
           <option value="">Selecione uma banda</option>
           {Array.isArray(bandas) ? bandas.map((banda) => (
@@ -152,9 +152,9 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
             type="button"
             onClick={() => setModalBlocosAberto(true)}
             disabled={!bandaIdSelecionada}
-            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-indigo-100 hover:bg-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <PlusIcon className="h-5 w-5 mr-1" />
+            <Plus className="h-4 w-4 mr-1" />
             Adicionar Bloco
           </button>
         </div>
@@ -173,7 +173,7 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
                       onClick={() => handleRemoverBloco(blocoId)}
                       className="text-red-500 hover:text-red-700"
                     >
-                      <XMarkIcon className="h-5 w-5" />
+                      <X className="h-5 w-5" />
                     </button>
                   </li>
                 );
@@ -194,7 +194,7 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
           <button
             type="button"
             onClick={onCancel}
-            className="py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
           >
             Cancelar
           </button>
@@ -202,7 +202,7 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
         >
           {isSubmitting ? 'Salvando...' : repertorio ? 'Atualizar' : 'Criar'}
         </button>
@@ -217,7 +217,7 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
         <div className="space-y-4">
           {carregandoBlocos ? (
             <div className="flex justify-center items-center p-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
             </div>
           ) : erroBlocos ? (
             <div className="text-center p-4">
@@ -232,9 +232,9 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
                     <button
                       type="button"
                       onClick={() => handleAdicionarBloco(bloco.id)}
-                      className="text-indigo-600 hover:text-indigo-800"
+                      className="text-purple-600 hover:text-purple-800"
                     >
-                      <PlusIcon className="h-5 w-5" />
+                      <Plus className="h-5 w-5" />
                     </button>
                   </li>
                 ))}
@@ -250,7 +250,7 @@ export function RepertorioForm({ repertorio, bandas, onSubmit, onCancel }: Reper
             <button
               type="button"
               onClick={() => setModalBlocosAberto(false)}
-              className="py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
             >
               Fechar
             </button>

@@ -3,11 +3,12 @@ import { useDrag, useDrop } from 'react-dnd';
 import { Bloco, Banda, Musica } from '@/lib/types';
 import { updateBlocosOrder } from '@/lib/actions';
 import { 
-  PencilIcon, 
-  TrashIcon, 
-  MusicalNoteIcon,
-  Bars3Icon
-} from '@heroicons/react/24/outline';
+  Music, 
+  Edit, 
+  Trash2, 
+  GripVertical,
+  Plus
+} from 'lucide-react';
 
 interface DraggableBlocoItemProps {
   bloco: Bloco;
@@ -43,20 +44,6 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    end: (item, monitor) => {
-      // Quando o arrasto termina, aplica a mudança final
-      const didDrop = monitor.didDrop();
-      if (!didDrop) {
-        // Se o item não foi solto em um destino válido, não fazemos nada
-        return;
-      }
-      
-      // Verifica se o item foi realmente movido
-      const dropResult = monitor.getDropResult() as { id: string } | null;
-      if (dropResult && dropResult.id !== bloco.id) {
-        console.log(`Item ${item.id} foi movido para ${dropResult.id}`);
-      }
-    }
   });
   
   const [{ isOver, canDrop }, drop] = useDrop({
@@ -77,8 +64,16 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
       // Determine o retângulo na tela
       const hoverBoundingRect = ref.current.getBoundingClientRect();
       
-      // Obtenha o meio vertical
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      // Cálculo do centro da área do item dependendo do modo de visualização
+      let hoverMiddleY, hoverMiddleX;
+      if (modoVisualizacao === 'lista') {
+        // Para lista, apenas consideramos movimento vertical
+        hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+      } else {
+        // Para cartões, consideramos também movimento horizontal em grid
+        hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+        hoverMiddleX = (hoverBoundingRect.right - hoverBoundingRect.left) / 2;
+      }
       
       // Determine a posição do mouse
       const clientOffset = monitor.getClientOffset();
@@ -86,17 +81,28 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
         return;
       }
       
-      // Obtenha pixels até o topo
+      // Obtenha pixels até o topo/esquerda
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+      const hoverClientX = clientOffset.x - hoverBoundingRect.left;
       
-      // Arrastando para baixo
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-      
-      // Arrastando para cima
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
+      // Lógica de movimento adaptada para o modo de visualização
+      if (modoVisualizacao === 'lista') {
+        // Lógica para lista (vertical)
+        // Arrastando para baixo
+        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
+          return;
+        }
+        
+        // Arrastando para cima
+        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
+          return;
+        }
+      } else {
+        // Lógica para cartões (grid)
+        // Simplificamos a lógica para funcionar melhor em grade
+        
+        // Como estamos em um grid, a lógica de mudança precisa ser mais direta
+        // Permitimos qualquer movimento entre itens adjacentes
       }
       
       // Hora de executar a ação
@@ -106,16 +112,6 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
       item.index = hoverIndex;
     },
     drop: (item: { id: string, index: number }) => {
-      // Confirma a operação ao soltar
-      // Não precisamos fazer mais nada aqui porque a atualização
-      // já aconteceu durante o hover, mas este evento é importante
-      // para finalizar o processo de drag and drop
-      
-      // Chama a função onDrop do componente pai, se fornecida
-      if (item.index !== index) {
-        console.log(`Item ${item.id} foi movido do índice ${item.index} para ${index}`);
-      }
-      
       return { id: bloco.id };
     },
     collect: (monitor) => ({
@@ -135,96 +131,111 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
     return (
       <div 
         ref={ref}
-        className={`bg-gray-800 border border-gray-700 rounded-lg shadow-md overflow-hidden mb-4
+        className={`bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50
           ${isDragging ? 'opacity-50 ring-2 ring-indigo-500 shadow-xl z-50' : 'opacity-100'}
           ${dropTargetClass}`}
       >
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
-          <div className="flex items-center gap-3">
-            {/* Ícone de numeração */}
-            <div className="flex items-center justify-center w-6 h-6 bg-indigo-900 rounded-full border border-indigo-700 flex-shrink-0">
+        {/* Cabeçalho do cartão */}
+        <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
+          <div className="flex items-center w-full">
+            <div className="flex items-center justify-center w-6 h-6 bg-indigo-900/60 rounded-full border border-indigo-700 flex-shrink-0 mr-2">
               <span className="text-sm font-semibold text-indigo-200">{index + 1}</span>
             </div>
-            
-            <h3 className="text-lg font-medium text-gray-100 truncate">{bloco.nome}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 
+                className="text-base font-medium text-white leading-tight line-clamp-1 text-center"
+                title={bloco.nome || ''}
+              >
+                {bloco.nome}
+              </h3>
+            </div>
+            <div
+              className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-100 p-1 rounded hover:bg-indigo-700/50 ml-2"
+              title="Arraste para reordenar"
+            >
+              <GripVertical className="h-5 w-5" />
+            </div>
           </div>
           
-          <div
-            className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300 p-1.5 rounded hover:bg-gray-800"
-            title="Arraste para reordenar"
-          >
-            <Bars3Icon className="h-5 w-5" />
-          </div>
+          {/* Badge da banda */}
+          {bloco.bandaId && (
+            <div className="mt-1 flex items-center justify-center w-full">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
+                {Array.isArray(bandas) ? bandas.find(b => b.id === bloco.bandaId)?.nome || 'Banda' : 'Banda'}
+              </span>
+            </div>
+          )}
         </div>
         
-        <div className="p-4 space-y-4">
+        {/* Corpo do cartão */}
+        <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
+          {/* Descrição (se houver) */}
           {bloco.descricao && (
-            <p className="text-sm text-gray-400">
-              {bloco.descricao}
-            </p>
-          )}
-          
-          {/* Banda do bloco */}
-          {bloco.bandaId && (
-            <div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                Banda: {Array.isArray(bandas) ? bandas.find(b => b.id === bloco.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
-              </span>
+            <div className="mb-3">
+              <p className="text-xs text-gray-400 font-medium mb-0.5">Descrição</p>
+              <p className="text-gray-300 text-sm line-clamp-2">{bloco.descricao}</p>
             </div>
           )}
           
           {/* Músicas do bloco */}
-          <div>
-            <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center">
-              <MusicalNoteIcon className="h-4 w-4 mr-1 text-indigo-400" />
-              Músicas:
-            </h4>
-            {Array.isArray(bloco.musicas) && bloco.musicas.length > 0 ? (
-              <ul className="ml-2 space-y-1 border-l-2 border-gray-700 pl-3">
-                {bloco.musicas.slice(0, 3).map((musicaId) => {
-                  const musica = Array.isArray(musicas) ? musicas.find(m => m.id === musicaId) : null;
-                  return musica ? (
-                    <li key={musicaId} className="text-sm text-gray-400 flex items-center">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></span>
-                      <span className="truncate">{musica.nome}</span>
-                    </li>
-                  ) : null;
-                })}
-                {bloco.musicas.length > 3 && (
-                  <li className="text-xs text-gray-500 pl-3">
-                    +{bloco.musicas.length - 3} mais músicas
-                  </li>
-                )}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-500 pl-2 italic">
-                Nenhuma música adicionada
-              </p>
-            )}
+          <div className="flex items-start">
+            <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+              <Music size={16} className="text-indigo-300" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 font-medium mb-0.5">Músicas</p>
+              {Array.isArray(bloco.musicas) && bloco.musicas.length > 0 ? (
+                <div>
+                  <ul className="space-y-1">
+                    {bloco.musicas.slice(0, 3).map((musicaId) => {
+                      const musica = Array.isArray(musicas) ? musicas.find(m => m.id === musicaId) : null;
+                      return musica ? (
+                        <li key={musicaId} className="text-sm text-gray-300 flex items-center">
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 mr-2"></span>
+                          <span className="truncate">{musica.nome}</span>
+                        </li>
+                      ) : null;
+                    })}
+                    {bloco.musicas.length > 3 && (
+                      <li className="text-xs text-gray-500 mt-1">
+                        +{bloco.musicas.length - 3} mais músicas
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm">
+                  Nenhuma música adicionada
+                </p>
+              )}
+            </div>
           </div>
-          
-          {/* Botões de ação */}
-          <div className="flex justify-end space-x-2 pt-2">
-            <button
-              onClick={() => onAdicionarMusica(bloco.id)}
-              className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-              title="Adicionar música"
-            >
-              <MusicalNoteIcon className="h-4 w-4" />
-            </button>
+        </div>
+        
+        {/* Rodapé com ações */}
+        <div className="px-4 py-3 bg-gray-850 border-t border-gray-700 flex justify-between">
+          <button
+            onClick={() => onAdicionarMusica(bloco.id)}
+            className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-indigo-600 hover:bg-indigo-700 text-white"
+            title="Adicionar música"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Música
+          </button>
+          <div className="flex space-x-1">
             <button
               onClick={() => onEditarBloco(bloco)}
-              className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+              className="p-1.5 rounded-md bg-gray-700 hover:bg-gray-600 text-gray-300"
               title="Editar bloco"
             >
-              <PencilIcon className="h-4 w-4" />
+              <Edit className="h-4 w-4" />
             </button>
             <button
               onClick={() => onExcluirBloco(bloco.id)}
-              className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+              className="p-1.5 rounded-md bg-gray-700 hover:bg-red-600 text-gray-300 hover:text-white"
               title="Excluir bloco"
             >
-              <TrashIcon className="h-4 w-4" />
+              <Trash2 className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -235,7 +246,7 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
     return (
       <div 
         ref={ref}
-        className={`px-6 py-4 bg-gray-800 hover:bg-gray-700 transition-colors duration-150 border-b border-gray-700
+        className={`px-6 py-4 bg-gray-800 hover:bg-gray-750 transition-colors duration-150 border-b border-gray-700
           ${isDragging ? 'opacity-50 ring-2 ring-indigo-500 shadow-xl z-50' : 'opacity-100'}
           ${dropTargetClass}`}
       >
@@ -246,7 +257,7 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
                 className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-300"
                 title="Arraste para reordenar"
               >
-                <Bars3Icon className="h-5 w-5" />
+                <GripVertical className="h-5 w-5" />
               </div>
               <div className="flex items-center">
                 <div className="flex items-center justify-center w-6 h-6 mr-2 bg-indigo-900 rounded-full border border-indigo-700 flex-shrink-0">
@@ -266,21 +277,21 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
                 className="p-2 text-indigo-400 hover:text-indigo-300 rounded-full hover:bg-indigo-900/50"
                 title="Editar bloco"
               >
-                <PencilIcon className="h-5 w-5" />
+                <Edit className="h-5 w-5" />
               </button>
               <button
                 onClick={() => onAdicionarMusica(bloco.id)}
                 className="p-2 text-indigo-400 hover:text-indigo-300 rounded-full hover:bg-indigo-900/50"
                 title="Adicionar música"
               >
-                <MusicalNoteIcon className="h-5 w-5" />
+                <Music className="h-5 w-5" />
               </button>
               <button
                 onClick={() => onExcluirBloco(bloco.id)}
                 className="p-2 text-red-400 hover:text-red-300 rounded-full hover:bg-red-900/50"
                 title="Excluir bloco"
               >
-                <TrashIcon className="h-5 w-5" />
+                <Trash2 className="h-5 w-5" />
               </button>
             </div>
           </div>
@@ -294,7 +305,7 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
                   const musica = Array.isArray(musicas) ? musicas.find((m) => m.id === musicaId) : null;
                   return musica ? (
                     <li key={musicaId} className="text-sm text-gray-400 flex items-center">
-                      <MusicalNoteIcon className="h-4 w-4 mr-1 text-indigo-400 flex-shrink-0" />
+                      <Music className="h-4 w-4 mr-1 text-indigo-400 flex-shrink-0" />
                       <span>{musica.nome} - {musica.artista || ''} {musica.tom ? `(${musica.tom})` : ''}</span>
                     </li>
                   ) : null;
@@ -302,14 +313,18 @@ const DraggableBlocoItem: React.FC<DraggableBlocoItemProps> = ({
               </ul>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 mt-2">Nenhuma música adicionada a este bloco</p>
+            <div className="mt-2 flex items-center text-sm text-gray-500">
+              <Music className="h-4 w-4 mr-1 text-gray-500" />
+              <span>Nenhuma música adicionada</span>
+            </div>
           )}
-          
-          {/* Banda do bloco */}
+
+          {/* Badge da banda (se houver) */}
           {bloco.bandaId && (
-            <div className="mt-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                Banda: {Array.isArray(bandas) ? bandas.find(b => b.id === bloco.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
+            <div className="flex items-center mt-2">
+              <span className="text-xs text-gray-400 mr-2">Banda:</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-900/60 text-indigo-300">
+                {Array.isArray(bandas) ? bandas.find(b => b.id === bloco.bandaId)?.nome || 'Desconhecida' : 'Desconhecida'}
               </span>
             </div>
           )}

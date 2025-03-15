@@ -1,80 +1,446 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Modal } from '@/components/ui/Modal';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Users, 
+  User, 
+  FileEdit, 
+  Trash2, 
+  Eye,
+  List,
+  Grid,
+  Phone,
+  Mail
+} from 'lucide-react';
 import { Integrante, Banda } from '@/lib/types';
 import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
-import { ClientOnly } from '../blocos/components/ClientOnly';
-import { 
-  PencilIcon, 
-  TrashIcon, 
-  PlusIcon, 
-  MagnifyingGlassIcon,
-  UserGroupIcon,
-  UserIcon,
-  ViewColumnsIcon,
-  TableCellsIcon,
-  EnvelopeIcon,
-  PhoneIcon
-} from '@heroicons/react/24/outline';
-import { IntegranteForm } from './components/IntegranteForm';
 import { bandasSeed } from '@/lib/seeds/bandas';
 import { integrantesSeed } from '@/lib/seeds/integrantes';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
+import { useRouter } from 'next/navigation';
+
+// Card de estatísticas para a página de integrantes
+const IntegranteStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+  <div className="stat-card p-5">
+    <div className="flex items-center space-x-3 mb-2">
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    </div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+  </div>
+);
+
+// Componente de tabela de integrantes
+const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: { 
+  integrantes: Integrante[]; 
+  bandas: Banda[];
+  onDelete: (id: string) => void;
+  onView: (id: string) => void;
+  onEdit: (id: string) => void;
+}) => {
+  const [sortColumn, setSortColumn] = useState<string>('nome');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [integrantesFiltrados, setIntegrantesFiltrados] = useState<Integrante[]>(integrantes);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroFuncao, setFiltroFuncao] = useState<string>('todas');
+  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
+
+  // Função para obter os nomes das bandas a partir dos IDs
+  const getNomesBandas = (bandasIds: string[]) => {
+    if (!Array.isArray(bandas)) return '';
+    return bandasIds
+      .map(id => bandas.find(banda => banda.id === id)?.nome)
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  useEffect(() => {
+    // Filtrar por busca e função
+    let filtered = integrantes;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(integrante => 
+        (integrante.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (integrante.funcao || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (integrante.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (integrante.telefone || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (filtroFuncao !== 'todas') {
+      filtered = filtered.filter(integrante => 
+        integrante.funcao === filtroFuncao
+      );
+    }
+    
+    // Ordenar
+    filtered = [...filtered].sort((a, b) => {
+      if (sortColumn === 'nome') {
+        const nomeA = (a.nome || '');
+        const nomeB = (b.nome || '');
+        return sortDirection === 'asc' 
+          ? nomeA.localeCompare(nomeB) 
+          : nomeB.localeCompare(nomeA);
+      }
+      if (sortColumn === 'funcao') {
+        const funcaoA = a.funcao || '';
+        const funcaoB = b.funcao || '';
+        return sortDirection === 'asc' 
+          ? funcaoA.localeCompare(funcaoB) 
+          : funcaoB.localeCompare(funcaoA);
+      }
+      return 0;
+    });
+    
+    setIntegrantesFiltrados(filtered);
+  }, [integrantes, sortColumn, sortDirection, searchTerm, filtroFuncao, bandas]);
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Extrair lista única de funções para o filtro
+  const funcoes = ['todas', ...new Set(integrantes.map(e => e.funcao).filter(Boolean) as string[])];
+
+  return (
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+      {/* Filtros e Busca */}
+      <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative flex-1 min-w-[250px]">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar integrantes..." 
+            className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
+            <Filter size={18} className="text-gray-400" />
+            <select
+              className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              value={filtroFuncao}
+              onChange={(e) => setFiltroFuncao(e.target.value)}
+            >
+              {funcoes.map(funcao => (
+                <option key={funcao} value={funcao}>
+                  {funcao === 'todas' ? 'Todas as funções' : funcao}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Botões de visualização - Lista primeiro, depois cartões */}
+          <div className="flex items-center space-x-1 ml-auto">
+            <button
+              type="button"
+              className={`p-2 rounded-l ${
+                modoVisualizacao === 'lista'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              }`}
+              onClick={() => setModoVisualizacao('lista')}
+              title="Visualização em Lista"
+            >
+              <List size={18} />
+            </button>
+            <button
+              type="button"
+              className={`p-2 rounded-r ${
+                modoVisualizacao === 'cartoes'
+                  ? 'bg-gray-700 text-gray-100'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
+              }`}
+              onClick={() => setModoVisualizacao('cartoes')}
+              title="Visualização em Cartões"
+            >
+              <Grid size={18} />
+            </button>
+          </div>
+
+          <Link href="/integrantes/novo" className="btn-primary">
+            <Plus size={18} className="mr-1" />
+            Novo Integrante
+          </Link>
+        </div>
+      </div>
+      
+      {integrantesFiltrados.length > 0 ? (
+        modoVisualizacao === 'lista' ? (
+          /* Tabela */
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-700">
+              <thead>
+                <tr>
+                  <th 
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'nome' ? 'text-white' : ''}`}
+                    onClick={() => handleSort('nome')}
+                  >
+                    <div className="flex items-center">
+                      <span>Nome</span>
+                      {sortColumn === 'nome' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'funcao' ? 'text-white' : ''}`}
+                    onClick={() => handleSort('funcao')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <User size={14} />
+                      <span>Função</span>
+                      {sortColumn === 'funcao' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Contato
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Bandas
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700">
+                {integrantesFiltrados.map((integrante) => (
+                  <tr key={integrante.id} className="hover:bg-gray-750">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                      {integrante.nome}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <span className="px-2 py-1 bg-purple-900 bg-opacity-40 text-purple-300 rounded-full text-xs">
+                        {integrante.funcao}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-300">
+                      {integrante.telefone && (
+                        <div className="flex items-center">
+                          <Phone size={14} className="mr-1 text-gray-400" />
+                          <span>{integrante.telefone}</span>
+                        </div>
+                      )}
+                      {integrante.email && (
+                        <div className="flex items-center mt-1">
+                          <Mail size={14} className="mr-1 text-gray-400" />
+                          <span>{integrante.email}</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-300">
+                      {integrante.bandasIds && integrante.bandasIds.length > 0 ? (
+                        getNomesBandas(integrante.bandasIds)
+                      ) : (
+                        <span className="text-gray-500">Nenhuma banda</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button
+                          onClick={() => onView(integrante.id)}
+                          className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Visualizar"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button
+                          onClick={() => onEdit(integrante.id)}
+                          className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                          title="Editar"
+                        >
+                          <FileEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => onDelete(integrante.id)}
+                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          /* Visualização em Cartões */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
+            {integrantesFiltrados.map((integrante) => (
+              <div 
+                key={integrante.id} 
+                className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
+              >
+                {/* Cabeçalho do cartão */}
+                <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
+                  <div className="flex items-center w-full">
+                    <div className="flex-1 min-w-0">
+                      <h3 
+                        className="text-base font-medium text-white leading-tight line-clamp-2 text-center"
+                        title={integrante.nome || ''}
+                      >
+                        {integrante.nome}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="mt-1 flex items-center justify-center w-full">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
+                      {integrante.funcao}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Corpo do cartão */}
+                <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
+                  <div className="space-y-3">
+                    {/* Telefone */}
+                    {integrante.telefone && (
+                      <div className="flex items-start">
+                        <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+                          <Phone size={16} className="text-indigo-300" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium mb-0.5">Telefone</p>
+                          <p className="text-gray-200 text-sm">
+                            {integrante.telefone}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Email */}
+                    {integrante.email && (
+                      <div className="flex items-start">
+                        <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+                          <Mail size={16} className="text-indigo-300" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400 font-medium mb-0.5">Email</p>
+                          <p className="text-gray-200 text-sm break-all">
+                            {integrante.email}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Bandas */}
+                    <div className="flex items-start">
+                      <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
+                        <Users size={16} className="text-indigo-300" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 font-medium mb-0.5">Bandas</p>
+                        {integrante.bandasIds && integrante.bandasIds.length > 0 ? (
+                          <p className="text-gray-200 text-sm break-words">
+                            {getNomesBandas(integrante.bandasIds)}
+                          </p>
+                        ) : (
+                          <p className="text-gray-500 text-sm">
+                            Não participa de nenhuma banda
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Observações (se houver) */}
+                    {integrante.observacoes && (
+                      <div className="mt-2.5 pt-2.5 border-t border-gray-700/50">
+                        <p className="text-xs text-gray-400 font-medium mb-0.5">Observações</p>
+                        <p className="text-gray-300 text-sm line-clamp-2">{integrante.observacoes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Rodapé com ações */}
+                <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => onView(integrante.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
+                      title="Visualizar integrante"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onEdit(integrante.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
+                      title="Editar integrante"
+                    >
+                      <FileEdit className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(integrante.id)}
+                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
+                      title="Excluir integrante"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
+        <div className="p-8 text-center">
+          <div className="text-gray-400">Nenhum integrante encontrado</div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function IntegrantesPage() {
   const [integrantes, setIntegrantes] = useHydratedLocalStorage<Integrante[]>('integrantes', []);
-  const [bandas] = useState<Banda[]>(bandasSeed);
-  const [modalAberto, setModalAberto] = useState(false);
-  const [integranteEmEdicao, setIntegranteEmEdicao] = useState<Integrante | undefined>();
-  const [busca, setBusca] = useState('');
-  // Modo de visualização
-  const [modoVisualizacao, setModoVisualizacao] = useState<'cartoes' | 'lista'>('lista');
+  const [bandas, setBandas] = useState<Banda[]>(bandasSeed);
+  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Efeito para verificar se há integrantes e popular com dados de exemplo se necessário
   useEffect(() => {
     if (integrantes.length === 0) {
-      popularIntegrantesExemplo();
+      // Verificar se já existem integrantes no localStorage
+      const integrantesExistentes = localStorage.getItem('integrantes');
+      if (!integrantesExistentes || JSON.parse(integrantesExistentes).length === 0) {
+        // Salvar os integrantes de exemplo no localStorage
+        localStorage.setItem('integrantes', JSON.stringify(integrantesSeed));
+        // Atualizar o estado
+        setIntegrantes(integrantesSeed);
+        console.log('Integrantes de exemplo populados com sucesso!');
+      }
     }
-  }, [integrantes.length]);
+    setLoading(false);
+  }, [integrantes.length, setIntegrantes]);
 
-  // Função para popular com integrantes de exemplo
-  const popularIntegrantesExemplo = () => {
-    // Verificar se já existem integrantes no localStorage
-    const integrantesExistentes = localStorage.getItem('integrantes');
-    if (!integrantesExistentes || JSON.parse(integrantesExistentes).length === 0) {
-      // Salvar os integrantes de exemplo no localStorage
-      localStorage.setItem('integrantes', JSON.stringify(integrantesSeed));
-      // Atualizar o estado
-      setIntegrantes(integrantesSeed);
-      console.log('Integrantes de exemplo populados com sucesso!');
-    }
-  };
-
-  // Filtra integrantes baseado na busca
-  const integrantesFiltrados = useMemo(() => {
-    return integrantes.filter(
-      (integrante) =>
-        integrante.nome.toLowerCase().includes(busca.toLowerCase()) ||
-        integrante.funcao.toLowerCase().includes(busca.toLowerCase()) ||
-        (integrante.email && integrante.email.toLowerCase().includes(busca.toLowerCase())) ||
-        (integrante.telefone && integrante.telefone.toLowerCase().includes(busca.toLowerCase())) ||
-        (integrante.observacoes && integrante.observacoes.toLowerCase().includes(busca.toLowerCase()))
-    );
-  }, [integrantes, busca]);
-
-  const handleAdicionarIntegrante = () => {
-    setIntegranteEmEdicao(undefined);
-    setModalAberto(true);
-  };
-
-  const handleEditarIntegrante = (integrante: Integrante) => {
-    setIntegranteEmEdicao(integrante);
-    setModalAberto(true);
-  };
-
-  const handleExcluirIntegrante = async (integranteId: string) => {
-    const integrante = integrantes.find(i => i.id === integranteId);
+  const handleDelete = async (id: string) => {
+    const integrante = integrantes.find(i => i.id === id);
     
     if (!integrante) return;
     
@@ -86,7 +452,7 @@ export default function IntegrantesPage() {
     
     if (confirmado) {
       try {
-        setIntegrantes(integrantes.filter((i) => i.id !== integranteId));
+        setIntegrantes(integrantes.filter((i) => i.id !== id));
         alertaSucesso('Integrante excluído com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir integrante:', error);
@@ -95,287 +461,64 @@ export default function IntegrantesPage() {
     }
   };
 
-  const handleSubmit = (data: Partial<Integrante>) => {
-    if (integranteEmEdicao) {
-      setIntegrantes(
-        integrantes.map((i) =>
-          i.id === integranteEmEdicao.id
-            ? { ...i, ...data }
-            : i
-        )
-      );
-    } else {
-      const novoIntegrante: Integrante = {
-        id: Math.random().toString(36).substr(2, 9),
-        nome: data.nome || '',
-        funcao: data.funcao || '',
-        telefone: data.telefone,
-        email: data.email,
-        observacoes: data.observacoes,
-        bandasIds: data.bandasIds || [],
-      };
-      setIntegrantes([...integrantes, novoIntegrante]);
-    }
-    setModalAberto(false);
-    setIntegranteEmEdicao(undefined);
+  const handleView = (id: string) => {
+    // Na implementação real, redireciona para a página de visualização
+    console.log('Visualizar integrante:', id);
   };
 
-  // Função para obter os nomes das bandas a partir dos IDs
-  const getNomesBandas = (bandasIds: string[]) => {
-    if (!Array.isArray(bandas)) return '';
-    return bandasIds
-      .map(id => bandas.find(banda => banda.id === id)?.nome)
-      .filter(Boolean)
-      .join(', ');
+  const handleEdit = (id: string) => {
+    // Usar o router do Next.js em vez de window.location
+    router.push(`/integrantes/editar/${id}`);
   };
+
+  // Calcula estatísticas
+  const totalIntegrantes = integrantes.length;
+  const funcoesUnicas = new Set(integrantes.map(i => i.funcao).filter(Boolean)).size;
+  
+  // Calcular quantos integrantes participam de bandas
+  const integrantesEmBandas = integrantes.filter(i => i.bandasIds && i.bandasIds.length > 0).length;
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background específico para integrantes */}
-      <div 
-        className="absolute inset-0 bg-gradient-to-br from-purple-900 via-pink-900 to-red-900"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Conteúdo da página */}
-      <div className="relative z-10 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <UserIcon className="h-8 w-8 mr-2" />
-                Integrantes
-              </h1>
-            </div>
-
-            <div className="px-4 py-6 sm:px-0">
-              <div className="bg-gray-800/90 backdrop-blur-lg rounded-lg p-6 shadow-md">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <UserGroupIcon className="h-6 w-6 mr-2 text-purple-400" />
-                    <span className="text-xl font-semibold text-gray-100">Meus Integrantes</span>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    {/* Campo de busca */}
-                    <div className="relative">
-                      <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-                        placeholder="Buscar integrantes..."
-                        className="bg-gray-700/50 border border-gray-600 text-white rounded-md pl-10 pr-4 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    
-                    {/* Botões de visualização */}
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => setModoVisualizacao('lista')}
-                        className={`p-2 rounded-l-md ${
-                          modoVisualizacao === 'lista'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em lista"
-                      >
-                        <TableCellsIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => setModoVisualizacao('cartoes')}
-                        className={`p-2 rounded-r-md ${
-                          modoVisualizacao === 'cartoes'
-                            ? 'bg-purple-600 text-white'
-                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                        }`}
-                        title="Visualização em cartões"
-                      >
-                        <ViewColumnsIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                    
-                    <button
-                      onClick={handleAdicionarIntegrante}
-                      className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm"
-                    >
-                      <PlusIcon className="h-5 w-5 mr-1" />
-                      Novo Integrante
-                    </button>
-          </div>
-        </div>
-
-        {integrantesFiltrados.length > 0 ? (
-                  modoVisualizacao === 'lista' ? (
-                    <div className="bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
-                      <ul className="divide-y divide-gray-700">
-              {integrantesFiltrados.map((integrante) => (
-                          <li key={integrante.id} className="hover:bg-gray-700">
-                  <div className="px-4 py-4 flex items-center sm:px-6">
-                    <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
-                      <div>
-                        <div className="flex text-sm">
-                                    <p className="font-medium text-purple-400 truncate">{integrante.nome}</p>
-                                    <p className="ml-1 flex-shrink-0 font-normal text-gray-400">
-                            - {integrante.funcao}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex">
-                          {integrante.bandasIds && integrante.bandasIds.length > 0 ? (
-                                      <div className="flex items-center text-sm text-gray-300">
-                              <UserGroupIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <p>Bandas: {getNomesBandas(integrante.bandasIds)}</p>
-                            </div>
-                          ) : (
-                                      <div className="flex items-center text-sm text-gray-300">
-                              <UserGroupIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                              <p>Não participa de nenhuma banda</p>
-                            </div>
-                          )}
-                        </div>
-                        {integrante.telefone && (
-                                    <div className="mt-2 flex items-center text-sm text-gray-300">
-                            <p>Telefone: {integrante.telefone}</p>
-                          </div>
-                        )}
-                        {integrante.email && (
-                                    <div className="mt-2 flex items-center text-sm text-gray-300">
-                            <p>Email: {integrante.email}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="ml-5 flex-shrink-0 flex space-x-2">
-                      <button
-                        onClick={() => handleEditarIntegrante(integrante)}
-                                  className="inline-flex items-center text-purple-400 hover:text-purple-300 bg-purple-900/50 hover:bg-purple-800/50 rounded-full p-2 transition-colors duration-200"
-                        title="Editar integrante"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleExcluirIntegrante(integrante.id)}
-                                  className="inline-flex items-center text-red-400 hover:text-red-300 bg-red-900/50 hover:bg-red-800/50 rounded-full p-2 transition-colors duration-200"
-                        title="Excluir integrante"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {integrantesFiltrados.map((integrante) => (
-                        <div 
-                          key={integrante.id} 
-                          className="bg-gray-800 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden rounded-lg border border-gray-700"
-                        >
-                          <div className="px-4 py-3 sm:px-6 flex justify-between items-start bg-purple-900">
-                            <div className="flex items-center">
-                              <UserIcon className="h-5 w-5 text-purple-300" />
-                              <h3 className="ml-2 text-lg leading-6 font-medium text-white truncate max-w-[200px]">{integrante.nome}</h3>
-                            </div>
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-800 text-purple-200">
-                              {integrante.funcao}
-                            </span>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-5 sm:p-6">
-                            <div className="space-y-3">
-                              <div className="flex items-center text-sm">
-                                <UserGroupIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                <p className="text-gray-200">
-                                  {integrante.bandasIds && integrante.bandasIds.length > 0 
-                                    ? `Bandas: ${getNomesBandas(integrante.bandasIds)}`
-                                    : 'Não participa de nenhuma banda'
-                                  }
-                                </p>
-                              </div>
-                              
-                              {integrante.telefone && (
-                                <div className="flex items-center text-sm">
-                                  <PhoneIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                  <p className="text-gray-200">{integrante.telefone}</p>
-                                </div>
-                              )}
-                              
-                              {integrante.email && (
-                                <div className="flex items-center text-sm">
-                                  <EnvelopeIcon className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                                  <p className="text-gray-200 truncate max-w-[250px]">{integrante.email}</p>
-                                </div>
-                              )}
-                              
-                              {integrante.observacoes && (
-                                <div className="mt-2 text-sm text-gray-300 border-t border-gray-700 pt-2">
-                                  <p className="font-medium mb-1">Observações:</p>
-                                  <p>{integrante.observacoes}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="border-t border-gray-700 px-4 py-4 sm:px-6 flex justify-end items-center bg-gray-900">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => handleEditarIntegrante(integrante)}
-                                className="inline-flex items-center px-2 py-1 border border-gray-700 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
-                                title="Editar integrante"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => handleExcluirIntegrante(integrante.id)}
-                                className="inline-flex items-center px-2 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-red-200 bg-red-900 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
-                                title="Excluir integrante"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
-                  <div className="text-center py-12 bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-700">
-                    <UserIcon className="mx-auto h-12 w-12 text-gray-500" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum integrante encontrado</h3>
-                    <p className="mt-1 text-sm text-gray-400">
-              {busca ? 'Tente uma busca diferente ou ' : 'Comece a '}
-              adicionar integrantes à sua equipe.
-            </p>
-            <div className="mt-6">
-              <button
-                onClick={handleAdicionarIntegrante}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              >
-                <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                Novo Integrante
-              </button>
-            </div>
-          </div>
-        )}
-              </div>
-            </div>
-
-        <Modal
-          title={integranteEmEdicao ? 'Editar Integrante' : 'Novo Integrante'}
-          isOpen={modalAberto}
-          onClose={() => setModalAberto(false)}
-        >
-          <IntegranteForm
-            integrante={integranteEmEdicao}
-            bandas={bandas}
-            onSubmit={handleSubmit}
-          />
-        </Modal>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Integrantes</h1>
+          <p className="text-gray-400">Gerencie os músicos e membros da sua equipe</p>
         </div>
       </div>
+      
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <IntegranteStatCard 
+          title="Total de Integrantes" 
+          value={totalIntegrantes} 
+          icon={<User size={20} />}
+        />
+        <IntegranteStatCard 
+          title="Funções diferentes" 
+          value={funcoesUnicas} 
+          icon={<User size={20} />}
+        />
+        <IntegranteStatCard 
+          title="Em bandas" 
+          value={integrantesEmBandas} 
+          icon={<Users size={20} />}
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        </div>
+      ) : (
+        <IntegrantesTable 
+          integrantes={integrantes} 
+          bandas={bandas}
+          onDelete={handleDelete}
+          onView={handleView}
+          onEdit={handleEdit}
+        />
+      )}
     </div>
   );
 } 

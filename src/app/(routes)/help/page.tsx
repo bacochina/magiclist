@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ChevronDown, HelpCircle, Book, Music, Users, Calendar } from 'lucide-react';
 
 type MenuItem = {
   id: string;
@@ -16,6 +17,19 @@ type MenuGroup = {
 type SectionContent = {
   [key: string]: JSX.Element;
 };
+
+// Card de estatísticas para a página de ajuda
+const HelpStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
+  <div className="stat-card p-5">
+    <div className="flex items-center space-x-3 mb-2">
+      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        {icon}
+      </div>
+      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+    </div>
+    <div className="text-2xl font-bold text-white">{value}</div>
+  </div>
+);
 
 export default function HelpPage() {
   const [activeSection, setActiveSection] = useState('intro');
@@ -69,14 +83,14 @@ export default function HelpPage() {
   const sectionContent: SectionContent = {
     'intro': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Bem-vindo ao MagicList!</h2>
-        <p className="text-gray-600">
+        <h2 className="text-2xl font-bold mb-4 text-white">Bem-vindo ao MagicList!</h2>
+        <p className="text-gray-300">
           O MagicList é uma plataforma completa para gerenciamento de sua carreira musical. 
           Este guia irá ajudá-lo a entender todas as funcionalidades disponíveis no sistema.
         </p>
-        <div className="bg-blue-50 p-4 rounded-lg">
-          <h3 className="font-medium text-blue-800 mb-2">Principais Recursos:</h3>
-          <ul className="list-disc pl-5 space-y-2 text-blue-700">
+        <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+          <h3 className="font-medium text-purple-400 mb-2">Principais Recursos:</h3>
+          <ul className="list-disc pl-5 space-y-2 text-gray-300">
             <li>Gerenciamento de eventos e shows</li>
             <li>Organização de bandas e integrantes</li>
             <li>Cadastro de músicas e repertórios</li>
@@ -88,23 +102,23 @@ export default function HelpPage() {
     ),
     'eventos': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Gerenciamento de Eventos</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Gerenciamento de Eventos</h2>
+        <p className="text-gray-300 mb-4">
           O módulo de eventos permite organizar todos os seus compromissos musicais de forma eficiente.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Tipos de Eventos</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Tipos de Eventos</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Shows e apresentações</li>
               <li>Ensaios e passagens de som</li>
               <li>Reuniões com a banda</li>
               <li>Gravações em estúdio</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Informações do Evento</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Informações do Evento</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Data e horário</li>
               <li>Local e endereço</li>
               <li>Tipo do evento</li>
@@ -119,14 +133,14 @@ export default function HelpPage() {
     ),
     'bands': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Gerenciamento de Bandas</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Gerenciamento de Bandas</h2>
+        <p className="text-gray-300 mb-4">
           Organize todos os seus projetos musicais em um só lugar.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Informações da Banda</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Informações da Banda</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Nome e logotipo</li>
               <li>Gênero musical</li>
               <li>Data de formação</li>
@@ -134,9 +148,9 @@ export default function HelpPage() {
               <li>Contatos principais</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Recursos</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Recursos</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Lista de integrantes</li>
               <li>Repertórios da banda</li>
               <li>Agenda de eventos</li>
@@ -149,14 +163,14 @@ export default function HelpPage() {
     ),
     'integrantes': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Gestão de Integrantes</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Gestão de Integrantes</h2>
+        <p className="text-gray-300 mb-4">
           Mantenha um cadastro completo de todos os músicos e profissionais.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Dados Pessoais</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Dados Pessoais</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Nome completo</li>
               <li>Nome artístico</li>
               <li>Contatos</li>
@@ -164,9 +178,9 @@ export default function HelpPage() {
               <li>Documentos</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Informações Profissionais</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Informações Profissionais</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Instrumentos</li>
               <li>Experiência</li>
               <li>Equipamentos</li>
@@ -179,14 +193,14 @@ export default function HelpPage() {
     ),
     'songs': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Gerenciamento de Músicas</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Gerenciamento de Músicas</h2>
+        <p className="text-gray-300 mb-4">
           Cadastre e organize seu repertório musical com todos os detalhes necessários.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Informações da Música</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Informações da Música</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Título</li>
               <li>Artista original</li>
               <li>Tom e BPM</li>
@@ -194,9 +208,9 @@ export default function HelpPage() {
               <li>Gênero</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Recursos Adicionais</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Recursos Adicionais</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Cifra/Partitura</li>
               <li>Letra</li>
               <li>Áudios de referência</li>
@@ -209,14 +223,14 @@ export default function HelpPage() {
     ),
     'blocks': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Organização em Blocos</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Organização em Blocos</h2>
+        <p className="text-gray-300 mb-4">
           Agrupe suas músicas em blocos temáticos para facilitar a montagem de repertórios.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Tipos de Blocos</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Tipos de Blocos</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Por gênero musical</li>
               <li>Por momento do show</li>
               <li>Por energia/intensidade</li>
@@ -224,9 +238,9 @@ export default function HelpPage() {
               <li>Por artista/banda</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Configurações</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Configurações</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Nome do bloco</li>
               <li>Descrição</li>
               <li>Ordem das músicas</li>
@@ -239,14 +253,14 @@ export default function HelpPage() {
     ),
     'repertoires': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Montagem de Repertórios</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Montagem de Repertórios</h2>
+        <p className="text-gray-300 mb-4">
           Monte repertórios completos combinando blocos e músicas individuais.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Estrutura</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Estrutura</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Blocos musicais</li>
               <li>Músicas avulsas</li>
               <li>Intervalos</li>
@@ -254,9 +268,9 @@ export default function HelpPage() {
               <li>Duração total</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Recursos</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Recursos</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Exportação em PDF</li>
               <li>Compartilhamento</li>
               <li>Histórico de uso</li>
@@ -269,14 +283,14 @@ export default function HelpPage() {
     ),
     'layouts': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Personalização de Layouts</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Personalização de Layouts</h2>
+        <p className="text-gray-300 mb-4">
           Crie layouts personalizados para seus repertórios e setlists.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Elementos Disponíveis</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Elementos Disponíveis</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Cabeçalho personalizado</li>
               <li>Informações da banda</li>
               <li>Blocos de músicas</li>
@@ -284,9 +298,9 @@ export default function HelpPage() {
               <li>Numeração de páginas</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Opções de Formatação</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Opções de Formatação</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Tamanho do papel</li>
               <li>Orientação da página</li>
               <li>Fontes e cores</li>
@@ -299,14 +313,14 @@ export default function HelpPage() {
     ),
     'estudos': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Sistema Kanban de Estudos</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Sistema Kanban de Estudos</h2>
+        <p className="text-gray-300 mb-4">
           Organize seus estudos musicais usando um sistema Kanban visual e eficiente.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Estrutura do Kanban</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Estrutura do Kanban</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Coluna "Estudar"</li>
               <li>Coluna "Em Andamento"</li>
               <li>Coluna "Concluído"</li>
@@ -314,9 +328,9 @@ export default function HelpPage() {
               <li>Contadores por coluna</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Cartões de Estudo</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Cartões de Estudo</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Título e descrição</li>
               <li>Data limite</li>
               <li>Prioridade</li>
@@ -329,14 +343,14 @@ export default function HelpPage() {
     ),
     'pedalboards': (
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold mb-4">Configurações de Pedaleiras</h2>
-        <p className="text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold mb-4 text-white">Configurações de Pedaleiras</h2>
+        <p className="text-gray-300 mb-4">
           Gerencie as configurações de suas pedaleiras para cada música.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Cadastro de Equipamentos</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Cadastro de Equipamentos</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Marca e modelo</li>
               <li>Número de série</li>
               <li>Firmware</li>
@@ -344,9 +358,9 @@ export default function HelpPage() {
               <li>Conexões MIDI</li>
             </ul>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-medium mb-3">Presets</h3>
-            <ul className="list-disc pl-5 space-y-2">
+          <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+            <h3 className="font-medium text-purple-400 mb-3">Presets</h3>
+            <ul className="list-disc pl-5 space-y-2 text-gray-300">
               <li>Nome do preset</li>
               <li>Música associada</li>
               <li>Cadeia de efeitos</li>
@@ -368,71 +382,90 @@ export default function HelpPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="grid grid-cols-12 divide-x divide-gray-200">
-            {/* Menu */}
-            <div className="col-span-3 p-6">
-              <h2 className="text-lg font-semibold mb-4">Menu</h2>
-              <nav className="space-y-2">
-                {menuGroups.map(group => (
-                  <div key={group.id} className="mb-2">
-                    <button
-                      onClick={() => toggleGroup(group.id)}
-                      className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
-                        expandedGroups.includes(group.id)
-                          ? 'bg-gray-100'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <span>{group.title}</span>
-                      {group.items.length > 1 && (
-                        <svg
-                          className={`w-5 h-5 transform transition-transform ${
-                            expandedGroups.includes(group.id) ? 'rotate-180' : ''
-                          }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                    {expandedGroups.includes(group.id) && (
-                      <div className="mt-1 pl-4 space-y-1 border-l-2 border-gray-100">
-                        {group.items.map(item => (
-                          <button
-                            key={item.id}
-                            onClick={() => setActiveSection(item.id)}
-                            className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${
-                              activeSection === item.id
-                                ? 'bg-indigo-50 text-indigo-700 font-medium'
-                                : 'hover:bg-gray-50 text-gray-600'
-                            }`}
-                          >
-                            {item.title}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </nav>
-            </div>
+  // Estatísticas para cards
+  const totalTopicos = Object.keys(sectionContent).length;
+  const totalCategorias = menuGroups.length;
+  const topicosPopulares = 5;
 
-            {/* Conteúdo */}
-            <div className="col-span-9 p-6">
-              <div className="prose max-w-none">
-                {sectionContent[activeSection]}
-              </div>
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Ajuda</h1>
+          <p className="text-gray-400">Guia completo de utilização do MagicList</p>
+        </div>
+      </div>
+
+      {/* Cards de estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <HelpStatCard 
+          title="Total de Tópicos" 
+          value={totalTopicos} 
+          icon={<Book size={20} />}
+        />
+        <HelpStatCard 
+          title="Categorias" 
+          value={totalCategorias} 
+          icon={<HelpCircle size={20} />}
+        />
+        <HelpStatCard 
+          title="Tópicos Populares" 
+          value={topicosPopulares} 
+          icon={<Users size={20} />}
+        />
+      </div>
+
+      <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
+        <div className="grid grid-cols-12 divide-x divide-gray-700">
+          {/* Menu */}
+          <div className="col-span-12 md:col-span-3 p-6 border-r border-gray-700">
+            <h2 className="text-lg font-semibold mb-4 text-white">Menu</h2>
+            <nav className="space-y-2">
+              {menuGroups.map(group => (
+                <div key={group.id} className="mb-2">
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={`w-full flex items-center justify-between px-4 py-2 text-left text-sm font-medium rounded-lg transition-colors ${
+                      expandedGroups.includes(group.id)
+                        ? 'bg-gray-700/70 text-white'
+                        : 'hover:bg-gray-700/50 text-gray-300'
+                    }`}
+                  >
+                    <span>{group.title}</span>
+                    {group.items.length > 1 && (
+                      <ChevronDown
+                        className={`w-5 h-5 transform transition-transform ${
+                          expandedGroups.includes(group.id) ? 'rotate-180' : ''
+                        }`}
+                      />
+                    )}
+                  </button>
+                  {expandedGroups.includes(group.id) && (
+                    <div className="mt-1 pl-4 space-y-1 border-l-2 border-gray-700">
+                      {group.items.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveSection(item.id)}
+                          className={`w-full text-left px-4 py-2 text-sm rounded-lg transition-colors ${
+                            activeSection === item.id
+                              ? 'bg-purple-900/50 text-purple-300 font-medium'
+                              : 'hover:bg-gray-700/30 text-gray-400'
+                          }`}
+                        >
+                          {item.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="col-span-12 md:col-span-9 p-6">
+            <div className="prose prose-invert max-w-none">
+              {sectionContent[activeSection]}
             </div>
           </div>
         </div>

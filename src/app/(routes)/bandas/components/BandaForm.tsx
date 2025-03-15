@@ -24,71 +24,81 @@ export function BandaForm({ banda, onSubmit, onCancel }: BandaFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-white rounded-lg p-4">
-        <div className="mb-5">
-          <label htmlFor="nome" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-            <UserGroupIcon className="h-5 w-5 mr-2 text-purple-600" />
-            Nome
+    <form onSubmit={handleSubmit} className="space-y-6 text-white max-w-[120%] mx-auto p-6 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-6 space-y-2">
+          <label htmlFor="nome" className="block text-sm font-medium text-white flex items-center">
+            <UserGroupIcon className="h-5 w-5 mr-2 text-purple-400" />
+            Nome *
           </label>
           <input
             type="text"
             id="nome"
             value={formData.nome}
             onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm py-2 px-3 border"
+            className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
             placeholder="Nome da banda"
             required
           />
         </div>
 
-        <div className="mb-5">
-          <label htmlFor="genero" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-            <MusicalNoteIcon className="h-5 w-5 mr-2 text-purple-600" />
-            Gênero
+        <div className="md:col-span-6 space-y-2">
+          <label htmlFor="genero" className="block text-sm font-medium text-white flex items-center">
+            <MusicalNoteIcon className="h-5 w-5 mr-2 text-purple-400" />
+            Gênero *
           </label>
           <input
             type="text"
             id="genero"
             value={formData.genero}
             onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm py-2 px-3 border"
+            className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                     focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                     transition-all duration-200 ease-in-out px-3 py-2 h-9"
             placeholder="Rock, Pop, Jazz, etc."
             required
           />
         </div>
-
-        <div className="mb-2">
-          <label htmlFor="descricao" className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-            <DocumentTextIcon className="h-5 w-5 mr-2 text-purple-600" />
-            Descrição
-          </label>
-          <textarea
-            id="descricao"
-            value={formData.descricao}
-            onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm py-2 px-3 border"
-            rows={4}
-            placeholder="Descreva a banda, sua história, estilo musical, etc."
-          />
-        </div>
       </div>
 
-      <div className="flex justify-end space-x-4 pt-2">
-        <Button 
-          type="button" 
-          variant="outline" 
+      <div className="space-y-2">
+        <label htmlFor="descricao" className="block text-sm font-medium text-white flex items-center">
+          <DocumentTextIcon className="h-5 w-5 mr-2 text-purple-400" />
+          Descrição
+        </label>
+        <textarea
+          id="descricao"
+          value={formData.descricao}
+          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+          className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
+                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
+                   transition-all duration-200 ease-in-out px-3 py-2"
+          rows={4}
+          placeholder="Descreva a banda, sua história, estilo musical, etc."
+        />
+      </div>
+
+      <div className="flex justify-end space-x-4 pt-6 border-t border-white/10">
+        <button
+          type="button"
           onClick={onCancel}
-          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 rounded-xl border border-white/20 text-sm text-white hover:bg-white/10
+                   focus:outline-none focus:ring-2 focus:ring-white/20 transition-all duration-200 ease-in-out
+                   font-medium flex items-center justify-center"
         >
           Cancelar
-        </Button>
-        <Button 
+        </button>
+        <button
           type="submit"
-          className="bg-purple-600 hover:bg-purple-700 text-white"
+          className="px-4 py-2 rounded-xl bg-indigo-500 text-sm text-white hover:bg-indigo-600
+                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-900
+                   transition-all duration-200 ease-in-out font-medium shadow-lg shadow-indigo-500/20
+                   flex items-center justify-center"
         >
           {banda ? 'Atualizar' : 'Criar'}
-        </Button>
+        </button>
       </div>
     </form>
   );
