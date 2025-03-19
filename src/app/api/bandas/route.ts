@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { bandasSeed } from '@/lib/seeds/bandas';
+import { supabase } from '@/lib/supabase';
 
 // Funções para gerenciar localStorage
 const getBandas = () => {
@@ -13,40 +14,103 @@ const saveBandas = (bandas: any[]) => {
   localStorage.setItem('bandas', JSON.stringify(bandas));
 };
 
+// GET - Listar todas as bandas
 export async function GET() {
   try {
-    const bandas = getBandas();
-    return NextResponse.json({ bandas });
+    // Tenta buscar bandas do Supabase
+    const { data, error } = await supabase
+      .from('bandas')
+      .select('*')
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao buscar bandas:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ bandas: data });
   } catch (error) {
-    console.error('Erro ao listar bandas:', error);
-    return NextResponse.json(
-      { error: 'Erro ao listar bandas' },
-      { status: 500 }
-    );
+    console.error('Erro na API de bandas:', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
 
+// POST - Criar nova banda
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    const bandas = getBandas();
-    const novaBanda = {
-      ...data,
-      id: String(Date.now()),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const banda = await request.json();
 
-    bandas.push(novaBanda);
-    saveBandas(bandas);
+    // Verifica se a tabela existe, senão cria
+    await criarTabelaBandasSeNaoExistir();
 
-    return NextResponse.json(novaBanda);
+    // Insere a nova banda
+    const { data, error } = await supabase
+      .from('bandas')
+      .insert([{
+        nome: banda.nome,
+        genero: banda.genero,
+        descricao: banda.descricao
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar banda:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ banda: data }, { status: 201 });
   } catch (error) {
-    console.error('Erro ao criar banda:', error);
-    return NextResponse.json(
-      { error: 'Erro ao criar banda' },
-      { status: 500 }
-    );
+    console.error('Erro na API de bandas (POST):', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
+  }
+}
+
+// Função auxiliar para criar a tabela se não existir
+async function criarTabelaBandasSeNaoExistir() {
+  try {
+    // Verificar se a tabela existe usando a API REST
+    const { error } = await supabase
+      .from('bandas')
+      .select('id')
+      .limit(1);
+
+    // Se não existir tabela, cria usando RPC (ou SQL)
+    if (error && error.code === 'PGRST116') {
+      const sql = `
+        CREATE TABLE IF NOT EXISTS bandas (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          nome TEXT NOT NULL,
+          genero TEXT NOT NULL,
+          descricao TEXT,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+        -- Desabilitar RLS para a tabela de bandas
+        ALTER TABLE bandas DISABLE ROW LEVEL SECURITY;
+      `;
+      
+      const { error: sqlError } = await supabase.rpc('exec_sql', { sql_query: sql });
+      
+      // Se não conseguir criar por RPC, retorna instruções
+      if (sqlError) {
+        console.log('Erro ao criar tabela bandas:', sqlError);
+        return { 
+          success: false, 
+          message: 'Tabela bandas não existe. Por favor, crie manualmente no Supabase.'
+        };
+      }
+      
+      console.log('Tabela bandas criada com sucesso!');
+      return { success: true };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao verificar/criar tabela:', error);
+    return { 
+      success: false, 
+      message: 'Erro ao verificar/criar tabela bandas.'
+    };
   }
 }
 

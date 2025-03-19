@@ -120,16 +120,16 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
         <div className="relative flex-1 min-w-[250px]">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar integrantes..." 
+                  </div>
+            <input
+              type="text"
+                        placeholder="Buscar integrantes..."
             className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
+                      />
+                    </div>
+                    
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             <Filter size={18} className="text-gray-400" />
@@ -148,41 +148,41 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
           
           {/* Botões de visualização - Lista primeiro, depois cartões */}
           <div className="flex items-center space-x-1 ml-auto">
-            <button
+                      <button
               type="button"
               className={`p-2 rounded-l ${
-                modoVisualizacao === 'lista'
+                          modoVisualizacao === 'lista'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
+                        }`}
               onClick={() => setModoVisualizacao('lista')}
               title="Visualização em Lista"
-            >
+                      >
               <List size={18} />
-            </button>
-            <button
+                      </button>
+                      <button
               type="button"
               className={`p-2 rounded-r ${
-                modoVisualizacao === 'cartoes'
+                          modoVisualizacao === 'cartoes'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
+                        }`}
               onClick={() => setModoVisualizacao('cartoes')}
               title="Visualização em Cartões"
-            >
+                      >
               <Grid size={18} />
-            </button>
-          </div>
-
+                      </button>
+                    </div>
+                    
           <Link href="/integrantes/novo" className="btn-primary">
             <Plus size={18} className="mr-1" />
-            Novo Integrante
+                      Novo Integrante
           </Link>
         </div>
-      </div>
-      
-      {integrantesFiltrados.length > 0 ? (
-        modoVisualizacao === 'lista' ? (
+        </div>
+
+        {integrantesFiltrados.length > 0 ? (
+                  modoVisualizacao === 'lista' ? (
           /* Tabela */
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
@@ -227,7 +227,7 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {integrantesFiltrados.map((integrante) => (
+              {integrantesFiltrados.map((integrante) => (
                   <tr key={integrante.id} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {integrante.nome}
@@ -242,14 +242,14 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                         <div className="flex items-center">
                           <Phone size={14} className="mr-1 text-gray-400" />
                           <span>{integrante.telefone}</span>
-                        </div>
-                      )}
+                            </div>
+                          )}
                       {integrante.email && (
                         <div className="flex items-center mt-1">
                           <Mail size={14} className="mr-1 text-gray-400" />
                           <span>{integrante.email}</span>
-                        </div>
-                      )}
+                          </div>
+                        )}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-300">
                       {integrante.bandasIds && integrante.bandasIds.length > 0 ? (
@@ -267,33 +267,33 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
+                      <button
                           onClick={() => onEdit(integrante.id)}
                           className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
                           <FileEdit size={18} />
-                        </button>
-                        <button
+                      </button>
+                      <button
                           onClick={() => onDelete(integrante.id)}
                           className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                           title="Excluir"
                         >
                           <Trash2 size={18} />
-                        </button>
-                      </div>
+                      </button>
+                    </div>
                     </td>
                   </tr>
-                ))}
+              ))}
               </tbody>
             </table>
           </div>
         ) : (
           /* Visualização em Cartões */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-            {integrantesFiltrados.map((integrante) => (
-              <div 
-                key={integrante.id} 
+                      {integrantesFiltrados.map((integrante) => (
+                        <div 
+                          key={integrante.id} 
                 className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
               >
                 {/* Cabeçalho do cartão */}
@@ -307,17 +307,17 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                         {integrante.nome}
                       </h3>
                     </div>
-                  </div>
+                            </div>
                   <div className="mt-1 flex items-center justify-center w-full">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
-                      {integrante.funcao}
-                    </span>
-                  </div>
+                              {integrante.funcao}
+                            </span>
+                          </div>
                 </div>
                 
                 {/* Corpo do cartão */}
                 <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
-                  <div className="space-y-3">
+                            <div className="space-y-3">
                     {/* Telefone */}
                     {integrante.telefone && (
                       <div className="flex items-start">
@@ -328,13 +328,13 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                           <p className="text-xs text-gray-400 font-medium mb-0.5">Telefone</p>
                           <p className="text-gray-200 text-sm">
                             {integrante.telefone}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    
+                                </p>
+                              </div>
+                                </div>
+                              )}
+                              
                     {/* Email */}
-                    {integrante.email && (
+                              {integrante.email && (
                       <div className="flex items-start">
                         <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
                           <Mail size={16} className="text-indigo-300" />
@@ -345,9 +345,9 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                             {integrante.email}
                           </p>
                         </div>
-                      </div>
-                    )}
-                    
+                                </div>
+                              )}
+                              
                     {/* Bandas */}
                     <div className="flex items-start">
                       <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
@@ -368,19 +368,19 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                     </div>
                     
                     {/* Observações (se houver) */}
-                    {integrante.observacoes && (
+                              {integrante.observacoes && (
                       <div className="mt-2.5 pt-2.5 border-t border-gray-700/50">
                         <p className="text-xs text-gray-400 font-medium mb-0.5">Observações</p>
                         <p className="text-gray-300 text-sm line-clamp-2">{integrante.observacoes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                 
                 {/* Rodapé com ações */}
                 <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                  <div className="flex space-x-2">
-                    <button
+                            <div className="flex space-x-2">
+                              <button
                       onClick={() => onView(integrante.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
                       title="Visualizar integrante"
@@ -390,28 +390,28 @@ const IntegrantesTable = ({ integrantes, bandas, onDelete, onView, onEdit }: {
                     <button
                       onClick={() => onEdit(integrante.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                      title="Editar integrante"
-                    >
+                                title="Editar integrante"
+                              >
                       <FileEdit className="h-4 w-4" />
-                    </button>
-                    <button
+                              </button>
+                              <button
                       onClick={() => onDelete(integrante.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                      title="Excluir integrante"
-                    >
+                                title="Excluir integrante"
+                              >
                       <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
         <div className="p-8 text-center">
           <div className="text-gray-400">Nenhum integrante encontrado</div>
-        </div>
-      )}
+          </div>
+        )}
     </div>
   );
 };
@@ -484,9 +484,9 @@ export default function IntegrantesPage() {
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Integrantes</h1>
           <p className="text-gray-400">Gerencie os músicos e membros da sua equipe</p>
-        </div>
-      </div>
-      
+              </div>
+            </div>
+
       {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <IntegranteStatCard 

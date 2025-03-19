@@ -21,7 +21,8 @@ import {
   X,
   Home,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Database
 } from 'lucide-react';
 
 type MenuItem = {
@@ -92,7 +93,16 @@ const menuGroups: MenuGroup[] = [
     title: 'Relatórios',
     icon: <BarChart2 className="w-5 h-5" />,
     items: [
-      { id: 'analytics', title: 'Analytics', href: '/analytics', icon: <BarChart2 className="w-5 h-5" /> }
+      { id: 'analytics', title: 'Analytics', href: '/analytics', icon: <BarChart2 className="w-5 h-5" /> },
+      { id: 'reports', title: 'Relatórios', href: '/reports', icon: <BarChart2 className="w-5 h-5" /> }
+    ]
+  },
+  {
+    id: 'dev',
+    title: 'Dev Tools',
+    icon: <Settings className="w-5 h-5" />,
+    items: [
+      { id: 'dbtest', title: 'Teste de DB', href: '/db-test', icon: <Database className="w-5 h-5" /> }
     ]
   },
   {
@@ -126,6 +136,18 @@ export default function Navigation() {
   };
 
   const isLinkActive = (href: string) => {
+    // Tratamento especial para submenu de Eventos
+    if (href === '/eventos' && (
+      pathname === '/eventos/shows' || 
+      pathname === '/eventos/ensaios' || 
+      pathname === '/eventos/reunioes' ||
+      pathname.startsWith('/eventos/shows/') || 
+      pathname.startsWith('/eventos/ensaios/') || 
+      pathname.startsWith('/eventos/reunioes/')
+    )) {
+      return false;
+    }
+    
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 

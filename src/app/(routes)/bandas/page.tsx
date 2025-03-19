@@ -106,18 +106,18 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
         <div className="relative flex-1 min-w-[250px]">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar bandas..." 
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Buscar bandas..."
             className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
+                      />
+                    </div>
+                    
         <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
             <Filter size={18} className="text-gray-400" />
             <select
               className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -134,22 +134,22 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
           
           {/* Botões de visualização - Lista primeiro, depois cartões */}
           <div className="flex items-center space-x-1 ml-auto">
-            <button
+                      <button
               type="button"
               className={`p-2 rounded-l ${
-                modoVisualizacao === 'lista'
+                          modoVisualizacao === 'lista'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
+                        }`}
               onClick={() => setModoVisualizacao('lista')}
               title="Visualização em Lista"
-            >
+                      >
               <List size={18} />
-            </button>
-            <button
+                      </button>
+                      <button
               type="button"
               className={`p-2 rounded-r ${
-                modoVisualizacao === 'cartoes'
+                          modoVisualizacao === 'cartoes'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
               }`}
@@ -157,18 +157,18 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
               title="Visualização em Cartões"
             >
               <Grid size={18} />
-            </button>
-          </div>
+                      </button>
+                    </div>
 
           <Link href="/bandas/nova" className="btn-primary">
             <Plus size={18} className="mr-1" />
             Nova Banda
           </Link>
-        </div>
-      </div>
-      
-      {bandasFiltradas.length > 0 ? (
-        modoVisualizacao === 'lista' ? (
+                  </div>
+                </div>
+
+                {bandasFiltradas.length > 0 ? (
+                  modoVisualizacao === 'lista' ? (
           /* Tabela */
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
@@ -210,7 +210,7 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                {bandasFiltradas.map((banda) => (
+                        {bandasFiltradas.map((banda) => (
                   <tr key={banda.id} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {banda.nome}
@@ -232,33 +232,33 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
+                                  <button
                           onClick={() => onEdit(banda.id)}
                           className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
                           <FileEdit size={18} />
-                        </button>
-                        <button
+                                  </button>
+                                  <button
                           onClick={() => onDelete(banda.id)}
                           className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                           title="Excluir"
                         >
                           <Trash2 size={18} />
-                        </button>
-                      </div>
+                                  </button>
+                                </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        ) : (
+                    </div>
+                  ) : (
           /* Visualização em Cartões */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-            {bandasFiltradas.map((banda) => (
-              <div 
-                key={banda.id} 
+                      {bandasFiltradas.map((banda) => (
+                        <div 
+                          key={banda.id} 
                 className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
               >
                 {/* Cabeçalho do cartão */}
@@ -271,15 +271,15 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                       >
                         {banda.nome}
                       </h3>
-                    </div>
-                  </div>
+                            </div>
+                          </div>
                   <div className="mt-1 flex items-center justify-center w-full">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
                       {banda.genero || 'Gênero não definido'}
                     </span>
                   </div>
-                </div>
-                
+                              </div>
+                              
                 {/* Corpo do cartão */}
                 <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
                   <div className="space-y-3">
@@ -292,15 +292,15 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                     ) : (
                       <div className="flex items-center justify-center h-16 text-center text-gray-500">
                         <p className="text-sm">Sem descrição</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                 
                 {/* Rodapé com ações */}
                 <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                  <div className="flex space-x-2">
-                    <button
+                            <div className="flex space-x-2">
+                              <button
                       onClick={() => onView(banda.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
                       title="Visualizar banda"
@@ -310,29 +310,29 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                     <button
                       onClick={() => onEdit(banda.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                      title="Editar banda"
-                    >
+                                title="Editar banda"
+                              >
                       <FileEdit className="h-4 w-4" />
-                    </button>
-                    <button
+                              </button>
+                              <button
                       onClick={() => onDelete(banda.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                      title="Excluir banda"
-                    >
+                                title="Excluir banda"
+                              >
                       <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
         <div className="p-8 text-center">
           <div className="text-gray-400">Nenhuma banda encontrada</div>
-        </div>
-      )}
-    </div>
+                  </div>
+                )}
+              </div>
   );
 };
 

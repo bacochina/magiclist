@@ -2,47 +2,65 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Music, Save, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
-import { Banda } from '@/lib/types';
+import { Music, ArrowLeft } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { alertaSucesso, alertaErro } from '@/lib/sweetalert';
+import Link from 'next/link';
 
 export default function NovaBandaPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<Omit<Banda, 'id'>>({
+  const [formData, setFormData] = useState({
     nome: '',
     genero: '',
     descricao: ''
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validação básica
+    if (!formData.nome || !formData.genero) {
+      alertaErro('Nome e gênero são obrigatórios');
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      const response = await fetch('/api/bandas', {
+      // Usar o novo endpoint simplificado
+      const response = await fetch('/api/bandas-simple', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          action: 'create',
+          data: formData
+        })
       });
       
       if (!response.ok) {
-        throw new Error('Erro ao criar banda');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar banda');
       }
       
       alertaSucesso('Banda criada com sucesso!');
       router.push('/bandas');
     } catch (error) {
-      console.error('Erro ao criar banda:', error);
-      alertaErro('Erro ao criar banda. Tente novamente.');
+      console.error('Erro ao salvar banda:', error);
+      alertaErro('Erro ao salvar a banda');
     } finally {
       setLoading(false);
     }
@@ -50,98 +68,89 @@ export default function NovaBandaPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
-            <Music className="h-8 w-8 mr-3 text-purple-400" />
-            Nova Banda
-          </h1>
-          <p className="text-gray-400">Cadastre uma nova banda ou projeto musical</p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <Link 
-            href="/bandas" 
-            className="inline-flex items-center px-4 py-2 border border-gray-700 rounded-md shadow-sm text-sm font-medium text-gray-200 bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Link>
-        </div>
+      <div className="flex items-center mb-6">
+        <Link 
+          href="/bandas" 
+          className="flex items-center text-blue-400 hover:text-blue-300 mr-4"
+        >
+          <ArrowLeft className="mr-1" size={18} />
+          <span>Voltar</span>
+        </Link>
+        <h1 className="text-2xl font-bold text-white">Nova Banda</h1>
       </div>
-
-      <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
-        <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <label htmlFor="nome" className="block text-sm font-medium text-gray-200">
-                  Nome da Banda
-                </label>
-                <input
-                  type="text"
-                  id="nome"
-                  name="nome"
-                  required
-                  value={formData.nome}
-                  onChange={handleChange}
-                  className="bg-gray-900 text-white mt-1 block w-full rounded-md border border-gray-700 shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="Nome da banda ou projeto"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label htmlFor="genero" className="block text-sm font-medium text-gray-200">
-                  Gênero Musical
-                </label>
-                <input
-                  type="text"
-                  id="genero"
-                  name="genero"
-                  required
-                  value={formData.genero}
-                  onChange={handleChange}
-                  className="bg-gray-900 text-white mt-1 block w-full rounded-md border border-gray-700 shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                  placeholder="Rock, Pop, Jazz, MPB, etc."
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label htmlFor="descricao" className="block text-sm font-medium text-gray-200">
-                Descrição
-              </label>
-              <textarea
-                id="descricao"
-                name="descricao"
-                rows={4}
-                value={formData.descricao || ''}
+      
+      <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 max-w-4xl mx-auto">
+        <div className="bg-gradient-to-r from-indigo-900/50 to-indigo-800/30 p-4 rounded-lg mb-6 flex items-center">
+          <Music className="text-indigo-400 mr-3" size={24} />
+          <h2 className="text-xl font-semibold text-white">Cadastrar Nova Banda</h2>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="nome">Nome da Banda*</Label>
+              <Input
+                id="nome"
+                name="nome"
+                placeholder="Digite o nome da banda"
+                value={formData.nome}
                 onChange={handleChange}
-                className="bg-gray-900 text-white mt-1 block w-full rounded-md border border-gray-700 shadow-sm py-2 px-3 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-                placeholder="Descreva a banda, estilo musical, história, etc."
+                className="bg-[#1a1c23] border-[#2e2f35]"
+                required
               />
             </div>
-
-            <div className="flex justify-end pt-5">
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Salvar Banda
-                  </>
-                )}
-              </button>
+            
+            <div className="space-y-2">
+              <Label htmlFor="genero">Gênero Musical*</Label>
+              <Input
+                id="genero"
+                name="genero"
+                placeholder="Ex: Rock, Pop, Jazz..."
+                value={formData.genero}
+                onChange={handleChange}
+                className="bg-[#1a1c23] border-[#2e2f35]"
+                required
+              />
             </div>
-          </form>
-        </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="descricao">Descrição</Label>
+            <Textarea
+              id="descricao"
+              name="descricao"
+              placeholder="Descreva detalhes sobre a banda"
+              value={formData.descricao}
+              onChange={handleChange}
+              className="min-h-[120px] bg-[#1a1c23] border-[#2e2f35]"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-4 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push('/bandas')}
+              className="bg-[#1a1c23] border-[#2e2f35] hover:bg-gray-800/50"
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            
+            <Button 
+              type="submit"
+              className="bg-orange-500 hover:bg-orange-600"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"></div>
+                  Salvando...
+                </>
+              ) : 'Salvar Banda'}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

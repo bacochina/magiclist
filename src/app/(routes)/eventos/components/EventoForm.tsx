@@ -190,7 +190,7 @@ export function EventoForm({
   
   // Estado para controlar a visibilidade da seção de estatísticas
   const [mostrarEstatisticas, setMostrarEstatisticas] = useState(true);
-  
+
   // Cálculos financeiros
   const totalCustos = custos.reduce((total, custo) => {
     const valor = parseFloat(custo.valor) || 0;
@@ -309,8 +309,8 @@ export function EventoForm({
 
   // Atualiza os custos quando os gastos com viagem mudam
   useEffect(() => {
-    const totalViagem = calcularTotalGastosViagem();
-    
+      const totalViagem = calcularTotalGastosViagem();
+      
     if (totalViagem > 0) {
       // Verifica se já existe um custo para viagem
       const custoViagemIndex = custos.findIndex(c => c.descricao === 'Gastos com Viagem');
@@ -485,11 +485,11 @@ export function EventoForm({
       
       if (itensViagemPreenchidos.length > 0 || hospedagem.local.trim() !== '') {
         eventoData.itensViagem = itensViagemPreenchidos.map(item => ({
-          data: item.data,
-          descricao: item.descricao,
-          valor: parseFloat(item.valor) || 0,
-          responsavelCusto: item.responsavelCusto
-        }));
+            data: item.data,
+            descricao: item.descricao,
+            valor: parseFloat(item.valor) || 0,
+            responsavelCusto: item.responsavelCusto
+          }));
 
         if (hospedagem.local.trim() !== '') {
           eventoData.hospedagem = {
@@ -691,9 +691,9 @@ export function EventoForm({
           </label>
           <div className="grid grid-cols-3 gap-3">
             {['show', 'ensaio', 'reuniao'].map((tipoEvento) => (
-              <button
+            <button
                 key={tipoEvento}
-                type="button"
+              type="button"
                 onClick={() => setTipo(tipoEvento as TipoEvento)}
                 className={`px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 ease-in-out flex items-center justify-center h-8
                           ${tipo === tipoEvento
@@ -710,9 +710,9 @@ export function EventoForm({
                           }`}
               >
                 {tipoEvento === 'show' ? 'Show' : tipoEvento === 'ensaio' ? 'Ensaio' : 'Reunião'}
-              </button>
+            </button>
             ))}
-          </div>
+              </div>
         </div>
       </div>
 
@@ -850,7 +850,7 @@ export function EventoForm({
             </button>
           </div>
         </div>
-          </div>
+      </div>
 
           {/* Seção expandida de Rotas */}
           {mostrarModalRotas && (
@@ -861,7 +861,7 @@ export function EventoForm({
             <div className="md:col-span-6">
                   <label className="block text-xs font-medium text-white mb-1">
                     Sua localização
-                  </label>
+        </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -916,9 +916,9 @@ export function EventoForm({
                       </button>
                   )}
             </div>
-                </div>
-                
-                <div>
+      </div>
+
+      <div>
                   <label className="block text-xs font-medium text-white mb-1">
                     Destino
                   </label>
@@ -1015,12 +1015,12 @@ export function EventoForm({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <label htmlFor="banda" className="block text-sm font-medium text-white">
-              Banda
-            </label>
-            <select
-              id="banda"
-              value={bandaId}
-              onChange={(e) => setBandaId(e.target.value)}
+          Banda
+        </label>
+        <select
+          id="banda"
+          value={bandaId}
+          onChange={(e) => setBandaId(e.target.value)}
               className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                        transition-all duration-200 ease-in-out px-3 py-2 h-9"
@@ -1028,24 +1028,24 @@ export function EventoForm({
               <option value="">Selecione uma banda</option>
               {Array.isArray(bandas) ? bandas.map((banda) => (
                 <option key={banda.id} value={banda.id}>
-                  {banda.nome}
-                </option>
+              {banda.nome}
+            </option>
               )) : null}
-            </select>
-          </div>
+        </select>
+      </div>
 
           <div className="md:col-span-2 space-y-2">
             <label className="block text-sm font-medium text-white">
-              Integrantes
-            </label>
+          Integrantes
+        </label>
             <div className="mt-1 max-h-48 overflow-y-auto rounded-xl bg-gray-800/50 border border-white/20 p-3">
               <div className="grid grid-cols-2 gap-2">
-              {integrantes.map((integrante) => (
+          {integrantes.map((integrante) => (
                 <div key={integrante.id} className="flex items-center space-x-3 py-2">
-                  <input
-                    type="checkbox"
-                    id={`integrante-${integrante.id}`}
-                    checked={integrantesIds.includes(integrante.id)}
+              <input
+                type="checkbox"
+                id={`integrante-${integrante.id}`}
+                checked={integrantesIds.includes(integrante.id)}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setIntegrantesIds([...integrantesIds, integrante.id]);
@@ -1057,9 +1057,9 @@ export function EventoForm({
                   />
                   <label htmlFor={`integrante-${integrante.id}`} className="text-white">
                     {integrante.nome}
-                  </label>
-                </div>
-              ))}
+              </label>
+            </div>
+          ))}
               </div>
             </div>
           </div>
@@ -1071,7 +1071,7 @@ export function EventoForm({
         <h4 className="text-base font-semibold text-white mb-4">Status e Descrição</h4>
         
         <div className="space-y-6">
-          <div>
+      <div>
             <div className="grid grid-cols-3 gap-3">
               <button
                 key="agendado"
@@ -1114,15 +1114,15 @@ export function EventoForm({
 
           <div>
             <label htmlFor="descricao" className="block text-sm font-medium text-white mb-2">
-              Descrição
-            </label>
-            <textarea
-              id="descricao"
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
+          Descrição
+        </label>
+        <textarea
+          id="descricao"
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
               className="w-full h-20 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm transition-all duration-200 ease-in-out px-3 py-2"
               placeholder="Descrição do evento"
-            />
+        />
           </div>
         </div>
       </div>
@@ -1196,21 +1196,21 @@ export function EventoForm({
               <div className="mt-8">
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-sm font-medium text-white">
-                    Custos do Show
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleAddCusto}
+                      Custos do Show
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAddCusto}
                     className="inline-flex items-center justify-center px-4 py-2 border border-indigo-500 text-xs font-medium rounded-xl
                              text-indigo-200 hover:bg-indigo-600/40 focus:outline-none focus:ring-2 focus:ring-indigo-500
                              shadow-sm transition-all duration-200 ease-in-out h-8"
-                  >
-                    + Adicionar Custo
-                  </button>
-                </div>
+                    >
+                      + Adicionar Custo
+                    </button>
+                  </div>
 
                 <div className="space-y-4">
-                  {custos.map((custo, index) => (
+                    {custos.map((custo, index) => (
                     <div key={index} className="space-y-2">
                       <div className="flex items-center gap-4">
                         <input
@@ -1262,8 +1262,8 @@ export function EventoForm({
                   <div className="mt-4 p-4 bg-gray-800/60 rounded-xl">
                     <div className="flex justify-between items-center mb-3">
                       <h5 className="text-sm font-semibold text-white">Estatísticas Financeiras</h5>
-                      <button
-                        type="button"
+                        <button
+                          type="button"
                         onClick={() => setMostrarEstatisticas(!mostrarEstatisticas)}
                         className="flex items-center justify-center h-7 w-7 text-indigo-400 hover:text-indigo-300 focus:outline-none transition-colors rounded-full hover:bg-indigo-500/10"
                       >
@@ -1274,35 +1274,35 @@ export function EventoForm({
                           fill="currentColor"
                         >
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                    
+                          </svg>
+                        </button>
+                  </div>
+
                     {mostrarEstatisticas && (
                       <>
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-semibold text-white">Total de Custos:</span>
                           <span className="text-sm font-bold text-red-400">R$ {formatarMoeda(totalCustos)}</span>
-                        </div>
+                    </div>
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-sm font-semibold text-white">Cache Líquido:</span>
                           <span className="text-sm font-bold text-indigo-400">R$ {formatarMoeda(cacheLiquido)}</span>
-                        </div>
+                    </div>
                         <div className="flex justify-between items-center mt-2">
                           <span className="text-sm font-semibold text-white">Cache por Integrante:</span>
                           <span className="text-sm font-bold text-green-400">R$ {formatarMoeda(cachePorIntegrante)}</span>
-                        </div>
+                  </div>
                       </>
                     )}
-                  </div>
+                </div>
                 )}
               </div>
             </>
           )}
-        </div>
+            </div>
       )}
 
-      {/* Seção de Contatos */}
+            {/* Seção de Contatos */}
       {tipo === 'show' && (
         <div className="bg-gray-800/40 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-lg">
           <div className="flex items-center justify-between mb-4">
@@ -1333,94 +1333,94 @@ export function EventoForm({
           {mostrarContatos && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-4">
-                  <div>
+              <div className="space-y-4">
+                <div>
                     <label htmlFor="contatoLocal" className="block text-sm font-medium text-white">
                       Contato do Local
-                    </label>
-                    <input
-                      type="text"
-                      id="contatoLocal"
-                      value={contatoLocal}
-                      onChange={(e) => setContatoLocal(e.target.value)}
+                        </label>
+                        <input
+                          type="text"
+                          id="contatoLocal"
+                          value={contatoLocal}
+                          onChange={(e) => setContatoLocal(e.target.value)}
                       className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       placeholder="Nome do contato"
-                    />
-                  </div>
+                        />
+                      </div>
 
-                  <div>
+                      <div>
                     <label htmlFor="telefoneLocal" className="block text-sm font-medium text-white">
                       Telefone do Local
-                    </label>
-                    <input
-                      type="tel"
-                      id="telefoneLocal"
-                      value={telefoneLocal}
-                      onChange={(e) => setTelefoneLocal(e.target.value)}
+                        </label>
+                        <input
+                          type="tel"
+                          id="telefoneLocal"
+                          value={telefoneLocal}
+                          onChange={(e) => setTelefoneLocal(e.target.value)}
                       className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       placeholder="(00) 0000-0000"
                     />
-                </div>
+                  </div>
 
                   <div>
                     <label htmlFor="contatoTecnico" className="block text-sm font-medium text-white">
                       Contato Técnico
-                    </label>
-                    <input
-                      type="text"
-                      id="contatoTecnico"
-                      value={contatoTecnico}
-                      onChange={(e) => setContatoTecnico(e.target.value)}
+                        </label>
+                        <input
+                          type="text"
+                          id="contatoTecnico"
+                          value={contatoTecnico}
+                          onChange={(e) => setContatoTecnico(e.target.value)}
                       className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       placeholder="Nome do técnico"
-                    />
-                  </div>
+                        />
+                      </div>
 
-                  <div>
+                      <div>
                     <label htmlFor="telefoneTecnico" className="block text-sm font-medium text-white">
                       Telefone do Técnico
-                    </label>
-                    <input
-                      type="tel"
-                      id="telefoneTecnico"
-                      value={telefoneTecnico}
-                      onChange={(e) => setTelefoneTecnico(e.target.value)}
+                        </label>
+                        <input
+                          type="tel"
+                          id="telefoneTecnico"
+                          value={telefoneTecnico}
+                          onChange={(e) => setTelefoneTecnico(e.target.value)}
                       className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                transition-all duration-200 ease-in-out px-3 py-2 h-9"
                       placeholder="(00) 0000-0000"
                     />
+                    </div>
                   </div>
                 </div>
-              </div>
 
               <div className="mt-6">
                 <label htmlFor="observacoesContato" className="block text-sm font-medium text-white">
-                  Observações de Contato
-                </label>
-                <textarea
-                  id="observacoesContato"
-                  value={observacoesContato}
-                  onChange={(e) => setObservacoesContato(e.target.value)}
-                  rows={3}
+                    Observações de Contato
+                  </label>
+                  <textarea
+                    id="observacoesContato"
+                    value={observacoesContato}
+                    onChange={(e) => setObservacoesContato(e.target.value)}
+                    rows={3}
                   className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                            transition-all duration-200 ease-in-out px-3 py-2"
                   placeholder="Observações adicionais sobre os contatos..."
-                />
-              </div>
+                  />
+                </div>
             </>
           )}
-        </div>
+              </div>
       )}
 
-      {/* Seção de Equipamentos */}
+            {/* Seção de Equipamentos */}
       {tipo === 'show' && (
         <div className="bg-gray-800/40 backdrop-blur-sm p-6 rounded-2xl border border-white/10 shadow-lg">
           <div className="flex items-center justify-between mb-4">
@@ -1450,8 +1450,8 @@ export function EventoForm({
           
           {mostrarEquipamentos && (
             <div className="space-y-8">
-              {/* Equipamentos Necessários */}
-              <div>
+                {/* Equipamentos Necessários */}
+                <div>
                 <div className="flex justify-between items-center mb-4">
                   <h5 className="text-sm font-semibold text-white">
                     Equipamentos Necessários
@@ -1471,42 +1471,42 @@ export function EventoForm({
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {equipamentosNecessarios.map((equipamento, index) => (
+                    {equipamentosNecessarios.map((equipamento, index) => (
                     <div key={index} className="flex items-center gap-4">
-                      <input
-                        type="text"
-                        value={equipamento.descricao}
-                        onChange={(e) => handleChangeEquipamentoNecessario(index, 'descricao', e.target.value)}
-                        placeholder="Descrição do equipamento"
+                        <input
+                          type="text"
+                          value={equipamento.descricao}
+                          onChange={(e) => handleChangeEquipamentoNecessario(index, 'descricao', e.target.value)}
+                          placeholder="Descrição do equipamento"
                         className="flex-1 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                      <input
-                        type="number"
-                        value={equipamento.quantidade}
-                        onChange={(e) => handleChangeEquipamentoNecessario(index, 'quantidade', parseInt(e.target.value))}
-                        placeholder="Qtd"
-                        min="1"
+                        />
+                        <input
+                          type="number"
+                          value={equipamento.quantidade}
+                          onChange={(e) => handleChangeEquipamentoNecessario(index, 'quantidade', parseInt(e.target.value))}
+                          placeholder="Qtd"
+                          min="1"
                         className="w-24 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveEquipamentoNecessario(index)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEquipamentoNecessario(index)}
                         className="p-2 text-red-400 hover:text-red-300 focus:outline-none transition-colors"
-                      >
+                        >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Equipamentos Existentes */}
+                {/* Equipamentos Existentes */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h5 className="text-sm font-semibold text-white">
@@ -1527,58 +1527,58 @@ export function EventoForm({
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {equipamentosExistentes.map((equipamento, index) => (
+                    {equipamentosExistentes.map((equipamento, index) => (
                     <div key={index} className="flex items-center gap-4">
-                      <input
-                        type="text"
-                        value={equipamento.descricao}
-                        onChange={(e) => handleChangeEquipamentoExistente(index, 'descricao', e.target.value)}
-                        placeholder="Descrição do equipamento"
+                        <input
+                          type="text"
+                          value={equipamento.descricao}
+                          onChange={(e) => handleChangeEquipamentoExistente(index, 'descricao', e.target.value)}
+                          placeholder="Descrição do equipamento"
                         className="flex-1 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                      <input
-                        type="number"
-                        value={equipamento.quantidade}
-                        onChange={(e) => handleChangeEquipamentoExistente(index, 'quantidade', parseInt(e.target.value))}
-                        placeholder="Qtd"
-                        min="1"
+                        />
+                        <input
+                          type="number"
+                          value={equipamento.quantidade}
+                          onChange={(e) => handleChangeEquipamentoExistente(index, 'quantidade', parseInt(e.target.value))}
+                          placeholder="Qtd"
+                          min="1"
                         className="w-24 rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveEquipamentoExistente(index)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveEquipamentoExistente(index)}
                         className="p-2 text-red-400 hover:text-red-300 focus:outline-none transition-colors"
-                      >
+                        >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Observações de Equipamentos */}
+                {/* Observações de Equipamentos */}
               <div className="mt-4">
                 <label htmlFor="observacoesEquipamentos" className="block text-sm font-medium text-white mb-2">
-                  Observações sobre Equipamentos
-                </label>
-                <textarea
-                  id="observacoesEquipamentos"
-                  value={observacoesEquipamentos}
-                  onChange={(e) => setObservacoesEquipamentos(e.target.value)}
-                  rows={3}
+                    Observações sobre Equipamentos
+                  </label>
+                  <textarea
+                    id="observacoesEquipamentos"
+                    value={observacoesEquipamentos}
+                    onChange={(e) => setObservacoesEquipamentos(e.target.value)}
+                    rows={3}
                   className="w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                            transition-all duration-200 ease-in-out px-3 py-2"
                   placeholder="Observações adicionais sobre equipamentos..."
-                />
+                  />
+                </div>
               </div>
-            </div>
           )}
         </div>
       )}
@@ -1627,8 +1627,8 @@ export function EventoForm({
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {itensViagem.map((item, index) => (
+            <div className="space-y-4">
+              {itensViagem.map((item, index) => (
                     <div key={index} className="space-y-3">
                       <div className="flex items-center gap-2 mb-2">
                         <input
@@ -1672,8 +1672,8 @@ export function EventoForm({
                                    transition-all duration-200 ease-in-out px-3 py-2 h-9"
                         />
                       </div>
-                    </div>
-                  ))}
+                </div>
+              ))}
                 </div>
               </div>
 
@@ -1718,57 +1718,57 @@ export function EventoForm({
 
                   {/* Check-in e Check-out */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-800/40 rounded-xl">
-                    <div>
+                        <div>
                       <h6 className="text-sm font-semibold text-indigo-400 mb-3">Check-in</h6>
                       <div className="space-y-4">
                     <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Data</label>
-                      <input
-                        type="date"
-                        value={hospedagem.dataCheckIn}
-                        onChange={(e) => setHospedagem({ ...hospedagem, dataCheckIn: e.target.value })}
+                          <input
+                            type="date"
+                            value={hospedagem.dataCheckIn}
+                            onChange={(e) => setHospedagem({ ...hospedagem, dataCheckIn: e.target.value })}
                         className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                    </div>
+                          />
+                        </div>
                     <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Hora</label>
-                      <input
+                          <input
                             type="time"
                             value={hospedagem.horaCheckIn}
                             onChange={(e) => setHospedagem({ ...hospedagem, horaCheckIn: e.target.value })}
                         className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                    </div>
-                    <div>
+                        <div>
                       <h6 className="text-sm font-semibold text-indigo-400 mb-3">Check-out</h6>
                       <div className="space-y-4">
                     <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Data</label>
-                      <input
+                          <input
                             type="date"
                             value={hospedagem.dataCheckOut}
                             onChange={(e) => setHospedagem({ ...hospedagem, dataCheckOut: e.target.value })}
                         className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
-                    </div>
+                          />
+                        </div>
                     <div className="space-y-2">
                           <label className="block text-sm font-medium text-white">Hora</label>
-                      <input
-                        type="time"
-                        value={hospedagem.horaCheckOut}
-                        onChange={(e) => setHospedagem({ ...hospedagem, horaCheckOut: e.target.value })}
+                          <input
+                            type="time"
+                            value={hospedagem.horaCheckOut}
+                            onChange={(e) => setHospedagem({ ...hospedagem, horaCheckOut: e.target.value })}
                         className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                  transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                      />
+                          />
                         </div>
                       </div>
                     </div>
@@ -2108,7 +2108,7 @@ export function EventoForm({
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
+                  <div className="space-y-2">
                             <label className="block text-sm font-medium text-white">Número do Quarto</label>
                             <input
                               type="text"
@@ -2122,8 +2122,8 @@ export function EventoForm({
                               className="block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                                        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                        transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                            />
-                          </div>
+                    />
+                  </div>
                           <div className="space-y-2">
                             <label className="block text-sm font-medium text-white">Andar</label>
                             <input
@@ -2139,8 +2139,8 @@ export function EventoForm({
                                        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                                        transition-all duration-200 ease-in-out px-3 py-2 h-9"
                             />
-                          </div>
-                        </div>
+                </div>
+              </div>
 
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
@@ -2161,7 +2161,7 @@ export function EventoForm({
                             >
                               + Ocupante
                             </button>
-                          </div>
+            </div>
 
                           {quarto.ocupantes.map((ocupante, ocupanteIndex) => (
                             <div key={ocupanteIndex} className="flex items-center gap-2">
@@ -2216,37 +2216,37 @@ export function EventoForm({
           <h4 className="text-base font-semibold text-white mb-4">Informações do Ensaio</h4>
           
           <div className="space-y-6">
-            <div>
-              <label htmlFor="pautaEnsaio" className="block text-sm font-medium text-white">
-                Pauta do Ensaio
-              </label>
-              <textarea
-                id="pautaEnsaio"
-                value={pautaEnsaio}
-                onChange={(e) => setPautaEnsaio(e.target.value)}
-                rows={3}
+          <div>
+            <label htmlFor="pautaEnsaio" className="block text-sm font-medium text-white">
+              Pauta do Ensaio
+            </label>
+            <textarea
+              id="pautaEnsaio"
+              value={pautaEnsaio}
+              onChange={(e) => setPautaEnsaio(e.target.value)}
+              rows={3}
                 className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                          transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                placeholder="Tópicos a serem abordados no ensaio"
-              />
-            </div>
+              placeholder="Tópicos a serem abordados no ensaio"
+            />
+          </div>
 
             <div>
-              <label htmlFor="objetivosEnsaio" className="block text-sm font-medium text-white">
-                Objetivos do Ensaio
-              </label>
-              <textarea
-                id="objetivosEnsaio"
-                value={objetivosEnsaio}
-                onChange={(e) => setObjetivosEnsaio(e.target.value)}
-                rows={2}
+            <label htmlFor="objetivosEnsaio" className="block text-sm font-medium text-white">
+              Objetivos do Ensaio
+            </label>
+            <textarea
+              id="objetivosEnsaio"
+              value={objetivosEnsaio}
+              onChange={(e) => setObjetivosEnsaio(e.target.value)}
+              rows={2}
                 className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                          transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                placeholder="O que se espera alcançar neste ensaio"
-              />
-            </div>
+              placeholder="O que se espera alcançar neste ensaio"
+            />
+          </div>
           </div>
         </div>
       )}
@@ -2257,37 +2257,37 @@ export function EventoForm({
           <h4 className="text-base font-semibold text-white mb-4">Informações da Reunião</h4>
           
           <div className="space-y-6">
-            <div>
-              <label htmlFor="pautaReuniao" className="block text-sm font-medium text-white">
-                Pauta da Reunião
-              </label>
-              <textarea
-                id="pautaReuniao"
-                value={pautaReuniao}
-                onChange={(e) => setPautaReuniao(e.target.value)}
-                rows={3}
+          <div>
+            <label htmlFor="pautaReuniao" className="block text-sm font-medium text-white">
+              Pauta da Reunião
+            </label>
+            <textarea
+              id="pautaReuniao"
+              value={pautaReuniao}
+              onChange={(e) => setPautaReuniao(e.target.value)}
+              rows={3}
                 className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                          transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                placeholder="Tópicos a serem discutidos na reunião"
-              />
-            </div>
+              placeholder="Tópicos a serem discutidos na reunião"
+            />
+          </div>
 
             <div>
-              <label htmlFor="ataReuniao" className="block text-sm font-medium text-white">
-                Ata da Reunião
-              </label>
-              <textarea
-                id="ataReuniao"
-                value={ataReuniao}
-                onChange={(e) => setAtaReuniao(e.target.value)}
-                rows={4}
+            <label htmlFor="ataReuniao" className="block text-sm font-medium text-white">
+              Ata da Reunião
+            </label>
+            <textarea
+              id="ataReuniao"
+              value={ataReuniao}
+              onChange={(e) => setAtaReuniao(e.target.value)}
+              rows={4}
                 className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                          focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                          transition-all duration-200 ease-in-out px-3 py-2 h-9"
-                placeholder="Registro dos assuntos discutidos (preencher após a reunião)"
-              />
-            </div>
+              placeholder="Registro dos assuntos discutidos (preencher após a reunião)"
+            />
+          </div>
           </div>
         </div>
       )}

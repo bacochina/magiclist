@@ -135,16 +135,16 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
         <div className="relative flex-1 min-w-[250px]">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar músicas..." 
+                </div>
+                <input
+                  type="text"
+                        placeholder="Buscar músicas..."
             className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
+                      />
+                    </div>
+                    
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             <Filter size={18} className="text-gray-400" />
@@ -175,7 +175,7 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
             >
               <List size={18} />
             </button>
-            <button
+                    <button
               type="button"
               className={`p-2 rounded-r ${
                 modoVisualizacao === 'cartoes'
@@ -186,16 +186,16 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
               title="Visualização em Cartões"
             >
               <Grid size={18} />
-            </button>
-          </div>
+                  </button>
+                </div>
 
           <Link href="/musicas/nova" className="btn-primary">
             <Plus size={18} className="mr-1" />
             Nova Música
           </Link>
-        </div>
-      </div>
-      
+              </div>
+            </div>
+
       {musicasFiltradas.length > 0 ? (
         modoVisualizacao === 'lista' ? (
           /* Tabela */
@@ -286,13 +286,13 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
+                      <button
                           onClick={() => onEdit(musica.id)}
                           className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
                           <FileEdit size={18} />
-                        </button>
+                      </button>
                         <button
                           onClick={() => onDelete(musica.id)}
                           className="p-1 text-gray-400 hover:text-red-400 transition-colors"
@@ -331,9 +331,9 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
                       {musica.artista}
                     </span>
+                    </div>
                   </div>
-                </div>
-                
+
                 {/* Corpo do cartão */}
                 <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
                   <div className="space-y-3">
@@ -349,26 +349,26 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* BPM */}
                     <div className="flex items-start">
                       <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
                         <Clock size={16} className="text-indigo-300" />
-                      </div>
-                      <div>
+                  </div>
+                                <div>
                         <p className="text-xs text-gray-400 font-medium mb-0.5">BPM</p>
                         <p className="text-gray-200 text-sm">
                           {musica.bpm || 'Não definido'}
                         </p>
-                      </div>
-                    </div>
-                    
+                </div>
+              </div>
+                              
                     {/* Bandas */}
                     <div className="flex items-start">
                       <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
                         <Music size={16} className="text-indigo-300" />
-                      </div>
-                      <div>
+                              </div>
+              <div>
                         <p className="text-xs text-gray-400 font-medium mb-0.5">Bandas</p>
                         {musica.bandasIds && musica.bandasIds.length > 0 ? (
                           <p className="text-gray-200 text-sm break-words">
@@ -377,57 +377,57 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
                         ) : (
                           <p className="text-gray-500 text-sm">
                             Não incluída em nenhuma banda
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                              
                     {/* Observações (se houver) */}
-                    {musica.observacoes && (
+                              {musica.observacoes && (
                       <div className="mt-2.5 pt-2.5 border-t border-gray-700/50">
                         <p className="text-xs text-gray-400 font-medium mb-0.5">Observações</p>
                         <p className="text-gray-300 text-sm line-clamp-2">{musica.observacoes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                 
                 {/* Rodapé com ações */}
                 <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                  <div className="flex space-x-2">
-                    <button
+                            <div className="flex space-x-2">
+                              <button
                       onClick={() => onView(musica.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
                       title="Visualizar música"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    <button
+                          <button
                       onClick={() => onEdit(musica.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                      title="Editar música"
-                    >
+                            title="Editar música"
+                          >
                       <FileEdit className="h-4 w-4" />
-                    </button>
-                    <button
+                          </button>
+                          <button
                       onClick={() => onDelete(musica.id)}
                       className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                      title="Excluir música"
-                    >
+                            title="Excluir música"
+                          >
                       <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
+                          </button>
+                        </div>
+                      </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
         <div className="p-8 text-center">
           <div className="text-gray-400">Nenhuma música encontrada</div>
-        </div>
-      )}
-    </div>
+                </div>
+              )}
+            </div>
   );
 };
 

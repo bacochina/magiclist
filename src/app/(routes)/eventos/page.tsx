@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -9,36 +9,34 @@ import {
   BarChart2, 
   PieChart, 
   TrendingUp, 
-  Users, 
   Clock, 
-  MapPin, 
-  Music, 
-  FileText,
-  CheckCircle,
-  AlertCircle,
-  Clock3,
-  ArrowRight,
+  MapPin,
   LineChart,
-  Layers
+  Layers,
+  Users,
+  CheckCircle,
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 import { Evento, Banda, TipoEvento } from '@/lib/types';
-import { useRouter } from 'next/navigation';
-import { Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  BarElement, 
+import { Button } from "@/components/ui/button";
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
   ArcElement,
-  Title, 
-  Tooltip, 
+  Title,
+  Tooltip,
   Legend,
-  Filler 
+  Filler
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useRouter } from 'next/navigation';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,14 +44,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Registrando os componentes necessários do Chart.js
 ChartJS.register(
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  BarElement, 
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
   ArcElement,
-  Title, 
-  Tooltip, 
+  Title,
+  Tooltip,
   Legend,
   Filler
 );
@@ -108,8 +106,8 @@ const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEv
   const getEventIcon = () => {
     switch (eventType) {
       case 'show': return <Calendar className="text-blue-400" />;
-      case 'ensaio': return <Music className="text-purple-400" />;
-      case 'reuniao': return <FileText className="text-green-400" />;
+      case 'ensaio': return <Calendar className="text-purple-400" />;
+      case 'reuniao': return <Calendar className="text-green-400" />;
       default: return <Calendar className="text-blue-400" />;
     }
   };
@@ -179,7 +177,8 @@ const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEv
 
 // Componente principal do Dashboard
 export default function EventosDashboard() {
-  const [eventos, setEventos] = useState<any[]>([]);
+  const [eventos, setEventos] = useState<Evento[]>([]);
+  const [bandas, setBandas] = useState<Banda[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEventos: 0,
@@ -196,6 +195,9 @@ export default function EventosDashboard() {
   const [proximoShow, setProximoShow] = useState<any>(null);
   const [proximoEnsaio, setProximoEnsaio] = useState<any>(null);
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
+
+  const [chartType1, setChartType1] = useState<'bar' | 'line'>('bar');
+  const [chartType2, setChartType2] = useState<'pie' | 'doughnut'>('pie');
 
   useEffect(() => {
     async function fetchData() {
@@ -401,18 +403,69 @@ export default function EventosDashboard() {
     { name: 'Reuniões', value: eventos.filter(e => e.tipo === 'reuniao').length }
   ];
 
+  // Configurações comuns para os gráficos
+  const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top' as const,
+        labels: {
+          color: 'rgba(255, 255, 255, 0.7)',
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: 'rgba(255, 255, 255, 0.9)',
+        bodyColor: 'rgba(255, 255, 255, 0.9)',
+        padding: 12,
+        displayColors: true
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+          drawBorder: false
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.7)',
+          padding: 8,
+          callback: function(value: any) {
+            return value + ' eventos';
+          }
+        }
+      },
+      x: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+          drawBorder: false
+        },
+        ticks: {
+          color: 'rgba(255, 255, 255, 0.7)',
+          padding: 8
+        }
+      }
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Cabeçalho */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white">Dashboard de Eventos</h1>
         <p className="text-gray-400 mt-2">Visão geral de shows, ensaios e reuniões</p>
-      </div>
+          </div>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        </div>
+            </div>
       ) : (
         <>
           {/* Cards de Estatísticas */}
@@ -427,7 +480,7 @@ export default function EventosDashboard() {
             <StatCard
               title="Eventos Próximos"
               value={stats.eventosProximos}
-              icon={<Clock3 className="h-6 w-6 text-blue-400" />}
+              icon={<Clock className="h-6 w-6 text-blue-400" />}
               trend={null}
               color="border-blue-900/40"
             />
@@ -444,9 +497,9 @@ export default function EventosDashboard() {
               icon={<CheckCircle className="h-6 w-6 text-green-400" />}
               trend={null}
               color="border-green-900/40"
-            />
-          </div>
-          
+                    />
+                  </div>
+                  
           {/* Detalhes por Tipo de Evento */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gray-800/60 rounded-xl border border-blue-900/40 p-6 shadow-lg">
@@ -457,52 +510,52 @@ export default function EventosDashboard() {
                 <Link href="/eventos/shows" className="text-blue-400 hover:text-blue-300 flex items-center text-sm">
                   Ver todos <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-              </div>
+                        </div>
               <div className="flex flex-col space-y-4">
                 <div className="bg-gray-750 p-4 rounded-lg">
                   <div className="text-3xl font-bold text-white mb-1">{stats.showsProximos}</div>
                   <div className="text-sm text-gray-400">Shows agendados</div>
-                </div>
+                  </div>
                 {proximoShow ? (
                   <div className="mt-4">
                     <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Show</h3>
                     <UpcomingEventCard event={proximoShow} eventType="show" />
-                  </div>
+                </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     Nenhum show agendado
-                  </div>
+                      </div>
                 )}
-              </div>
-            </div>
-            
+                      </div>
+                    </div>
+                    
             <div className="bg-gray-800/60 rounded-xl border border-purple-900/40 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white flex items-center">
-                  <Music className="mr-2 text-purple-400" /> Ensaios
+                  <Calendar className="mr-2 text-purple-400" /> Ensaios
                 </h2>
                 <Link href="/eventos/ensaios" className="text-purple-400 hover:text-purple-300 flex items-center text-sm">
                   Ver todos <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-              </div>
+                    </div>
               <div className="flex flex-col space-y-4">
                 <div className="bg-gray-750 p-4 rounded-lg">
                   <div className="text-3xl font-bold text-white mb-1">{stats.ensaiosProximos}</div>
                   <div className="text-sm text-gray-400">Ensaios agendados</div>
-                </div>
+                      </div>
                 {proximoEnsaio ? (
                   <div className="mt-4">
                     <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Ensaio</h3>
                     <UpcomingEventCard event={proximoEnsaio} eventType="ensaio" />
-                  </div>
+                    </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     Nenhum ensaio agendado
                   </div>
                 )}
               </div>
-            </div>
-            
+                </div>
+                    
             <div className="bg-gray-800/60 rounded-xl border border-green-900/40 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white flex items-center">
@@ -511,7 +564,7 @@ export default function EventosDashboard() {
                 <Link href="/eventos/reunioes" className="text-green-400 hover:text-green-300 flex items-center text-sm">
                   Ver todos <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-              </div>
+                          </div>
               <div className="flex flex-col space-y-4">
                 <div className="bg-gray-750 p-4 rounded-lg">
                   <div className="text-3xl font-bold text-white mb-1">{stats.reunioesProximas}</div>
@@ -521,16 +574,16 @@ export default function EventosDashboard() {
                   <div className="mt-4">
                     <h3 className="text-sm font-medium text-gray-400 mb-2">Próxima Reunião</h3>
                     <UpcomingEventCard event={proximaReuniao} eventType="reuniao" />
-                  </div>
+                </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     Nenhuma reunião agendada
-                  </div>
-                )}
+                      </div>
+                    )}
+                </div>
               </div>
             </div>
-          </div>
-          
+
           {/* Distribuição de Eventos */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg col-span-1 lg:col-span-3">
@@ -550,251 +603,241 @@ export default function EventosDashboard() {
                         }`}
                         style={{ width: `${eventos.length > 0 ? (item.value / eventos.length) * 100 : 0}%` }}
                       ></div>
+                      </div>
                     </div>
-                  </div>
                 ))}
-              </div>
-            </div>
-          </div>
+                        </div>
+                        </div>
+                        </div>
           
           {/* Seção de Gráficos */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6">Análise Gráfica de Eventos</h2>
-            
-            {/* Gráficos - primeira linha */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Gráfico de Barras - Eventos por Mês */}
-              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gráfico 1: Eventos por Mês */}
+            <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center">
                   <BarChart2 className="mr-2 text-blue-400" /> Eventos por Mês
                 </h3>
-                <div className="h-64">
-                  <Bar 
+                <div className="flex gap-2">
+                  <Button
+                    variant={chartType1 === 'bar' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className={`
+                      ${chartType1 === 'bar' 
+                        ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                      }
+                      border border-gray-600
+                    `}
+                    onClick={() => setChartType1('bar')}
+                  >
+                    <BarChart2 className="w-4 h-4 mr-1" />
+                    Barras
+                  </Button>
+                  <Button
+                    variant={chartType1 === 'line' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className={`
+                      ${chartType1 === 'line' 
+                        ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                      }
+                      border border-gray-600
+                    `}
+                    onClick={() => setChartType1('line')}
+                  >
+                    <LineChart className="w-4 h-4 mr-1" />
+                    Linha
+                  </Button>
+                      </div>
+                    </div>
+              <div className="h-80">
+                {chartType1 === 'bar' ? (
+                  <Bar
                     data={{
                       labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
                       datasets: [
                         {
                           label: 'Shows',
-                          data: Array(12).fill(0).map((_, i) => {
-                            return eventos.filter(e => 
-                              e.tipo === 'show' && 
-                              new Date(e.data).getMonth() === i
-                            ).length;
-                          }),
-                          backgroundColor: 'rgba(96, 165, 250, 0.7)',
-                          borderColor: 'rgb(59, 130, 246)',
+                          data: eventos.filter(e => e.tipo === 'show').map(e => new Date(e.data).getMonth()),
+                          backgroundColor: 'rgba(99, 102, 241, 0.5)',
+                          borderColor: 'rgb(99, 102, 241)',
                           borderWidth: 1
                         },
                         {
                           label: 'Ensaios',
-                          data: Array(12).fill(0).map((_, i) => {
-                            return eventos.filter(e => 
-                              e.tipo === 'ensaio' && 
-                              new Date(e.data).getMonth() === i
-                            ).length;
-                          }),
-                          backgroundColor: 'rgba(167, 139, 250, 0.7)',
-                          borderColor: 'rgb(139, 92, 246)',
+                          data: eventos.filter(e => e.tipo === 'ensaio').map(e => new Date(e.data).getMonth()),
+                          backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                          borderColor: 'rgb(59, 130, 246)',
                           borderWidth: 1
                         },
                         {
                           label: 'Reuniões',
-                          data: Array(12).fill(0).map((_, i) => {
-                            return eventos.filter(e => 
-                              e.tipo === 'reuniao' && 
-                              new Date(e.data).getMonth() === i
-                            ).length;
-                          }),
-                          backgroundColor: 'rgba(110, 231, 183, 0.7)',
-                          borderColor: 'rgb(52, 211, 153)',
+                          data: eventos.filter(e => e.tipo === 'reuniao').map(e => new Date(e.data).getMonth()),
+                          backgroundColor: 'rgba(147, 51, 234, 0.5)',
+                          borderColor: 'rgb(147, 51, 234)',
                           borderWidth: 1
                         }
                       ]
                     }}
                     options={{
-                      maintainAspectRatio: false,
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                      },
+                      ...commonOptions,
                       plugins: {
-                        legend: {
-                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        ...commonOptions.plugins,
+                        title: {
+                          display: true,
+                          text: 'Distribuição de Eventos por Mês',
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          font: {
+                            size: 16
+                          }
                         }
                       }
                     }}
                   />
-                </div>
-              </div>
-              
-              {/* Gráfico de Pizza - Distribuição por Tipo */}
-              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                  <PieChart className="mr-2 text-purple-400" /> Distribuição por Tipo
-                </h3>
-                <div className="h-64 flex justify-center">
-                  <Pie 
-                    data={{
-                      labels: ['Shows', 'Ensaios', 'Reuniões'],
-                      datasets: [
-                        {
-                          data: [
-                            eventos.filter(e => e.tipo === 'show').length,
-                            eventos.filter(e => e.tipo === 'ensaio').length,
-                            eventos.filter(e => e.tipo === 'reuniao').length
-                          ],
-                          backgroundColor: [
-                            'rgba(59, 130, 246, 0.7)',
-                            'rgba(139, 92, 246, 0.7)',
-                            'rgba(52, 211, 153, 0.7)'
-                          ],
-                          borderColor: [
-                            'rgb(59, 130, 246)',
-                            'rgb(139, 92, 246)',
-                            'rgb(52, 211, 153)'
-                          ],
-                          borderWidth: 1
-                        }
-                      ]
-                    }}
-                    options={{
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'right',
-                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Gráficos - segunda linha */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Gráfico de Linha - Tendência de Eventos */}
-              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                  <LineChart className="mr-2 text-yellow-400" /> Tendência de Eventos
-                </h3>
-                <div className="h-64">
-                  <Line 
+                ) : (
+                  <Line
                     data={{
                       labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
                       datasets: [
                         {
-                          label: 'Total de Eventos',
-                          data: Array(12).fill(0).map((_, i) => {
-                            return eventos.filter(e => 
-                              new Date(e.data).getMonth() === i
-                            ).length;
-                          }),
-                          borderColor: 'rgb(234, 179, 8)',
-                          backgroundColor: 'rgba(234, 179, 8, 0.2)',
-                          tension: 0.3,
+                          label: 'Shows',
+                          data: eventos.filter(e => e.tipo === 'show').map(e => new Date(e.data).getMonth()),
+                          borderColor: 'rgb(99, 102, 241)',
+                          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                          tension: 0.4,
+                          fill: true
+                        },
+                        {
+                          label: 'Ensaios',
+                          data: eventos.filter(e => e.tipo === 'ensaio').map(e => new Date(e.data).getMonth()),
+                          borderColor: 'rgb(59, 130, 246)',
+                          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                          tension: 0.4,
+                          fill: true
+                        },
+                        {
+                          label: 'Reuniões',
+                          data: eventos.filter(e => e.tipo === 'reuniao').map(e => new Date(e.data).getMonth()),
+                          borderColor: 'rgb(147, 51, 234)',
+                          backgroundColor: 'rgba(147, 51, 234, 0.1)',
+                          tension: 0.4,
                           fill: true
                         }
                       ]
                     }}
                     options={{
-                      maintainAspectRatio: false,
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                      },
+                      ...commonOptions,
                       plugins: {
-                        legend: {
-                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                        ...commonOptions.plugins,
+                        title: {
+                          display: true,
+                          text: 'Tendência de Eventos por Mês',
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          font: {
+                            size: 16
+                          }
                         }
                       }
                     }}
                   />
-                </div>
-              </div>
-              
-              {/* Gráfico Combinado (Barras e Linhas) - Status dos Eventos */}
-              <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                  <Layers className="mr-2 text-pink-400" /> Status dos Eventos
+                )}
+                    </div>
+                        </div>
+
+            {/* Gráfico 2: Distribuição por Tipo */}
+            <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white flex items-center">
+                  <PieChart className="mr-2 text-purple-400" /> Distribuição por Tipo
                 </h3>
-                <div className="h-64">
-                  <Bar 
-                    data={{
-                      labels: ['Agendados', 'Confirmados', 'Concluídos', 'Cancelados'],
-                      datasets: [
-                        {
-                          label: 'Quantidade',
-                          data: [
-                            eventos.filter(e => e.status === 'agendado').length,
-                            eventos.filter(e => e.status === 'confirmado').length,
-                            eventos.filter(e => e.status === 'concluido').length,
-                            eventos.filter(e => e.status === 'cancelado').length
-                          ],
-                          backgroundColor: [
-                            'rgba(251, 191, 36, 0.7)',
-                            'rgba(52, 211, 153, 0.7)',
-                            'rgba(59, 130, 246, 0.7)',
-                            'rgba(244, 63, 94, 0.7)'
-                          ],
-                          borderColor: [
-                            'rgb(251, 191, 36)',
-                            'rgb(52, 211, 153)',
-                            'rgb(59, 130, 246)',
-                            'rgb(244, 63, 94)'
-                          ],
-                          borderWidth: 1
-                        }
-                      ]
-                    }}
-                    options={{
-                      maintainAspectRatio: false,
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                          ticks: { color: 'rgba(255, 255, 255, 0.7)' },
-                          grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
-                      },
-                      plugins: {
-                        legend: {
-                          labels: { color: 'rgba(255, 255, 255, 0.7)' }
+                <div className="flex gap-2">
+                  <Button
+                    variant={chartType2 === 'pie' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className={`
+                      ${chartType2 === 'pie' 
+                        ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                      }
+                      border border-gray-600
+                    `}
+                    onClick={() => setChartType2('pie')}
+                  >
+                    <PieChart className="w-4 h-4 mr-1" />
+                    Pizza
+                  </Button>
+                  <Button
+                    variant={chartType2 === 'doughnut' ? 'primary' : 'secondary'}
+                    size="sm"
+                    className={`
+                      ${chartType2 === 'doughnut' 
+                        ? 'bg-purple-500 hover:bg-purple-600 text-white' 
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                      }
+                      border border-gray-600
+                    `}
+                    onClick={() => setChartType2('doughnut')}
+                  >
+                    <Layers className="w-4 h-4 mr-1" />
+                    Rosca
+                  </Button>
+                  </div>
+                </div>
+              <div className="h-80">
+                <Pie
+                  data={{
+                    labels: ['Shows', 'Ensaios', 'Reuniões'],
+                    datasets: [
+                      {
+                        data: [
+                          eventos.filter(e => e.tipo === 'show').length,
+                          eventos.filter(e => e.tipo === 'ensaio').length,
+                          eventos.filter(e => e.tipo === 'reuniao').length
+                        ],
+                        backgroundColor: [
+                          'rgba(99, 102, 241, 0.8)',
+                          'rgba(59, 130, 246, 0.8)',
+                          'rgba(147, 51, 234, 0.8)'
+                        ],
+                        borderColor: [
+                          'rgb(99, 102, 241)',
+                          'rgb(59, 130, 246)',
+                          'rgb(147, 51, 234)'
+                        ],
+                        borderWidth: 1
+                      }
+                    ]
+                  }}
+                  options={{
+                    ...commonOptions,
+                    plugins: {
+                      ...commonOptions.plugins,
+                      title: {
+                        display: true,
+                        text: 'Distribuição de Eventos por Tipo',
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        font: {
+                          size: 16
                         }
                       }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+                    },
+                    cutout: chartType2 === 'doughnut' ? '50%' : undefined
+                  }}
+                />
           </div>
-          
-          {/* Final do Dashboard */}
-          <div className="text-center text-gray-400 text-sm mb-4">
-            Última atualização: {new Date().toLocaleDateString('pt-BR', { 
-              day: '2-digit', month: '2-digit', year: 'numeric', 
-              hour: '2-digit', minute: '2-digit' 
-            })}
-          </div>
+        </div>
+      </div>
         </>
       )}
+
+      {/* Final do Dashboard */}
+      <div className="text-center text-gray-400 text-sm mb-4">
+        Última atualização: {new Date().toLocaleDateString('pt-BR', { 
+          day: '2-digit', month: '2-digit', year: 'numeric', 
+          hour: '2-digit', minute: '2-digit' 
+        })}
+      </div>
     </div>
   );
 } 

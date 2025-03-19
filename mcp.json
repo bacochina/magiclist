@@ -1,0 +1,14 @@
+{
+  "supabase": {
+    "url": "https://nlubmklrriltyjagmsig.supabase.co",
+    "key": "sua_api_key_do_supabase",
+    "db": {
+      "host": "db.nlubmklrriltyjagmsig.supabase.co",
+      "port": 5432,
+      "database": "postgres",
+      "user": "postgres",
+      "password": "sua_senha_do_banco",
+      "ssl": true
+    }
+  }
+} 

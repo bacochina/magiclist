@@ -220,7 +220,7 @@ export default function BlocosPage() {
     if (!destination) {
       return;
     }
-    
+
     // Se o item foi largado na mesma posição, não faz nada
     if (source.index === destination.index) {
       return;
@@ -382,14 +382,14 @@ export default function BlocosPage() {
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Search size={18} className="text-gray-400" />
                   </div>
-                  <input
-                    type="text"
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Buscar blocos..."
+                      <input
+                        type="text"
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        placeholder="Buscar blocos..."
                     className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
+                      />
+                    </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="flex items-center space-x-2">
@@ -407,63 +407,63 @@ export default function BlocosPage() {
                       ))}
                     </select>
                   </div>
-                      
+                    
                   {/* Botões de visualização - Lista primeiro, depois cartões */}
                   <div className="flex items-center space-x-1 ml-auto">
-                    <button
+                      <button
                       type="button"
                       className={`p-2 rounded-l ${
-                        modoVisualizacao === 'lista'
+                          modoVisualizacao === 'lista'
                           ? 'bg-gray-700 text-gray-100'
                           : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                      }`}
+                        }`}
                       onClick={() => setModoVisualizacao('lista')}
                       title="Visualização em Lista"
-                    >
+                      >
                       <List size={18} />
-                    </button>
-                    <button
+                      </button>
+                      <button
                       type="button"
                       className={`p-2 rounded-r ${
-                        modoVisualizacao === 'cartoes'
+                          modoVisualizacao === 'cartoes'
                           ? 'bg-gray-700 text-gray-100'
                           : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                      }`}
+                        }`}
                       onClick={() => setModoVisualizacao('cartoes')}
                       title="Visualização em Cartões"
-                    >
+                      >
                       <Grid size={18} />
-                    </button>
-                  </div>
-                      
-                  <button
-                    onClick={handleAdicionarBloco}
+                      </button>
+                    </div>
+                    
+                    <button
+                      onClick={handleAdicionarBloco}
                     className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center space-x-1"
-                  >
+                    >
                     <Plus size={16} />
                     <span>Novo Bloco</span>
-                  </button>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Lista de blocos com drag and drop */}
-              {blocosFiltrados.length > 0 ? (
-                bandaSelecionada && Array.isArray(bandas) ? (
+                {/* Lista de blocos com drag and drop */}
+                {blocosFiltrados.length > 0 ? (
+                  bandaSelecionada && Array.isArray(bandas) ? (
                   // Se tiver uma banda selecionada, mostra os blocos da banda
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-medium text-white">
-                        Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
-                      </h3>
+                            Blocos de {Array.isArray(bandas) ? bandas.find(b => b.id === bandaSelecionada)?.nome || 'Banda Selecionada' : 'Banda Selecionada'}
+                          </h3>
                       <span className="text-sm text-gray-400">
                         {blocosFiltrados.length} {blocosFiltrados.length === 1 ? 'bloco' : 'blocos'} encontrados
-                      </span>
-                    </div>
-                    
+                                                                  </span>
+                              </div>
+                              
                     <div className="space-y-4">
                       {blocosFiltrados.map((bloco, index) => (
                         <DraggableBlocoItem
-                          key={bloco.id}
+                          key={bloco.id} 
                           index={index}
                           bloco={bloco}
                           bandas={bandas}
@@ -512,57 +512,57 @@ export default function BlocosPage() {
               ) : (
                 <div className="text-center py-12">
                   <Music className="mx-auto h-12 w-12 text-gray-500" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
-                  <p className="mt-1 text-sm text-gray-400">
-                    {busca || bandaSelecionada
-                      ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
-                      : 'Comece adicionando seu primeiro bloco musical.'}
-                  </p>
-                  <div className="mt-6">
-                    <button
-                      onClick={handleAdicionarBloco}
+                    <h3 className="mt-2 text-sm font-medium text-gray-200">Nenhum bloco encontrado</h3>
+                    <p className="mt-1 text-sm text-gray-400">
+                      {busca || bandaSelecionada
+                        ? 'Tente ajustar os filtros ou fazer uma busca diferente.'
+                        : 'Comece adicionando seu primeiro bloco musical.'}
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={handleAdicionarBloco}
                       className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md"
-                    >
+                      >
                       <Plus className="h-5 w-5 mr-2" />
-                      Novo Bloco
-                    </button>
+                        Novo Bloco
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
           )}
 
-          <Modal
-            title={blocoEmEdicao ? 'Editar Bloco' : 'Novo Bloco'}
-            isOpen={modalBlocoAberto}
-            onClose={() => {
+        <Modal
+          title={blocoEmEdicao ? 'Editar Bloco' : 'Novo Bloco'}
+          isOpen={modalBlocoAberto}
+          onClose={() => {
+            setModalBlocoAberto(false);
+            setBlocoEmEdicao(null);
+          }}
+        >
+            <FormBloco
+            bloco={blocoEmEdicao || undefined}
+            bandas={bandas}
+            bandaSelecionada={bandaSelecionada || undefined}
+            onSubmit={handleSubmitBloco}
+            onCancel={() => {
               setModalBlocoAberto(false);
               setBlocoEmEdicao(null);
             }}
-          >
-            <FormBloco
-              bloco={blocoEmEdicao || undefined}
-              bandas={bandas}
-              bandaSelecionada={bandaSelecionada || undefined}
-              onSubmit={handleSubmitBloco}
-              onCancel={() => {
-                setModalBlocoAberto(false);
-                setBlocoEmEdicao(null);
-              }}
-            />
-          </Modal>
+          />
+        </Modal>
 
-          <Modal
-            title="Nova Música"
-            isOpen={modalMusicaAberto}
-            onClose={() => setModalMusicaAberto(false)}
-          >
-            <MusicaForm
-              onSubmit={handleSubmitMusica}
-              onCancel={() => setModalMusicaAberto(false)}
-            />
-          </Modal>
-        </div>
+        <Modal
+          title="Nova Música"
+          isOpen={modalMusicaAberto}
+          onClose={() => setModalMusicaAberto(false)}
+        >
+          <MusicaForm
+            onSubmit={handleSubmitMusica}
+            onCancel={() => setModalMusicaAberto(false)}
+          />
+        </Modal>
+      </div>
       </DndProvider>
     </DragDropContext>
   );
