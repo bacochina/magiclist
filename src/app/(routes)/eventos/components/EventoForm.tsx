@@ -92,7 +92,7 @@ export function EventoForm({
   const integrantesFiltrados = useMemo(() => {
     return integrantes.filter(integrante => 
       integrante.nome.toLowerCase().includes(pesquisaIntegrantes.toLowerCase()) ||
-      integrante.funcao.toLowerCase().includes(pesquisaIntegrantes.toLowerCase())
+      integrante.instrumento.toLowerCase().includes(pesquisaIntegrantes.toLowerCase())
     );
   }, [integrantes, pesquisaIntegrantes]);
   

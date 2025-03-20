@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { Banda } from '@/lib/types';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
-import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
 import { useRouter } from 'next/navigation';
 
 // Card de estatísticas para a página de bandas
@@ -45,7 +44,17 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
   const [bandasFiltradas, setBandasFiltradas] = useState<Banda[]>(Array.isArray(bandas) ? bandas : []);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroGenero, setFiltroGenero] = useState<string>('todos');
-  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
+  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('modoVisualizacaoBandas') || 'lista') as 'lista' | 'cartoes';
+    }
+    return 'lista';
+  });
+
+  // Salvar preferência quando mudar o modo de visualização
+  useEffect(() => {
+    localStorage.setItem('modoVisualizacaoBandas', modoVisualizacao);
+  }, [modoVisualizacao]);
 
   useEffect(() => {
     // Filtrar por busca e gênero
@@ -106,18 +115,18 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
         <div className="relative flex-1 min-w-[250px]">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search size={18} className="text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Buscar bandas..."
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar bandas..."
             className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    
+          />
+        </div>
+        
         <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <Filter size={18} className="text-gray-400" />
             <select
               className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -132,24 +141,24 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
             </select>
           </div>
           
-          {/* Botões de visualização - Lista primeiro, depois cartões */}
+          {/* Botões de visualização */}
           <div className="flex items-center space-x-1 ml-auto">
-                      <button
+            <button
               type="button"
               className={`p-2 rounded-l ${
-                          modoVisualizacao === 'lista'
+                modoVisualizacao === 'lista'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                        }`}
+              }`}
               onClick={() => setModoVisualizacao('lista')}
               title="Visualização em Lista"
-                      >
+            >
               <List size={18} />
-                      </button>
-                      <button
+            </button>
+            <button
               type="button"
               className={`p-2 rounded-r ${
-                          modoVisualizacao === 'cartoes'
+                modoVisualizacao === 'cartoes'
                   ? 'bg-gray-700 text-gray-100'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
               }`}
@@ -157,18 +166,18 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
               title="Visualização em Cartões"
             >
               <Grid size={18} />
-                      </button>
-                    </div>
+            </button>
+          </div>
 
           <Link href="/bandas/nova" className="btn-primary">
             <Plus size={18} className="mr-1" />
             Nova Banda
           </Link>
-                  </div>
-                </div>
+        </div>
+      </div>
 
-                {bandasFiltradas.length > 0 ? (
-                  modoVisualizacao === 'lista' ? (
+      {bandasFiltradas.length > 0 ? (
+        modoVisualizacao === 'lista' ? (
           /* Tabela */
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-700">
@@ -210,7 +219,7 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
-                        {bandasFiltradas.map((banda) => (
+                {bandasFiltradas.map((banda) => (
                   <tr key={banda.id} className="hover:bg-gray-750">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                       {banda.nome}
@@ -232,33 +241,33 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                         >
                           <Eye size={18} />
                         </button>
-                                  <button
+                        <button
                           onClick={() => onEdit(banda.id)}
                           className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
                           <FileEdit size={18} />
-                                  </button>
-                                  <button
+                        </button>
+                        <button
                           onClick={() => onDelete(banda.id)}
                           className="p-1 text-gray-400 hover:text-red-400 transition-colors"
                           title="Excluir"
                         >
                           <Trash2 size={18} />
-                                  </button>
-                                </div>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-                    </div>
-                  ) : (
+          </div>
+        ) : (
           /* Visualização em Cartões */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-                      {bandasFiltradas.map((banda) => (
-                        <div 
-                          key={banda.id} 
+            {bandasFiltradas.map((banda) => (
+              <div 
+                key={banda.id} 
                 className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
               >
                 {/* Cabeçalho do cartão */}
@@ -271,15 +280,15 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                       >
                         {banda.nome}
                       </h3>
-                            </div>
-                          </div>
+                    </div>
+                  </div>
                   <div className="mt-1 flex items-center justify-center w-full">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
                       {banda.genero || 'Gênero não definido'}
                     </span>
                   </div>
-                              </div>
-                              
+                </div>
+                
                 {/* Corpo do cartão */}
                 <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
                   <div className="space-y-3">
@@ -292,114 +301,85 @@ const BandasTable = ({ bandas, onDelete, onView, onEdit }: {
                     ) : (
                       <div className="flex items-center justify-center h-16 text-center text-gray-500">
                         <p className="text-sm">Sem descrição</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 
                 {/* Rodapé com ações */}
                 <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                            <div className="flex space-x-2">
-                              <button
+                  <div className="flex items-center justify-end space-x-2">
+                    <button
                       onClick={() => onView(banda.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
-                      title="Visualizar banda"
+                      className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                      title="Visualizar"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye size={18} />
                     </button>
                     <button
                       onClick={() => onEdit(banda.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                                title="Editar banda"
-                              >
-                      <FileEdit className="h-4 w-4" />
-                              </button>
-                              <button
+                      className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                      title="Editar"
+                    >
+                      <FileEdit size={18} />
+                    </button>
+                    <button
                       onClick={() => onDelete(banda.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                                title="Excluir banda"
-                              >
-                      <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
+                      className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
         <div className="p-8 text-center">
           <div className="text-gray-400">Nenhuma banda encontrada</div>
-                  </div>
-                )}
-              </div>
+        </div>
+      )}
+    </div>
   );
 };
 
 export default function BandasPage() {
-  const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', []);
+  const [bandas, setBandas] = useState<Banda[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchBandas() {
       try {
-        const response = await fetch('/api/bandas');
-        if (response.ok) {
-          const data = await response.json();
-          setBandas(data.bandas || []);
-        } else {
-          console.error('Erro ao buscar bandas');
-          // Usando dados simulados se a API falhar
-          setBandas([
-            {
-              id: '1',
-              nome: 'Rock Stars',
-              genero: 'Rock',
-              descricao: 'Banda especializada em rock clássico anos 70 e 80'
-            },
-            {
-              id: '2',
-              nome: 'Electric Sound',
-              genero: 'Pop',
-              descricao: 'Covers de músicas pop contemporâneas'
-            },
-            {
-              id: '3',
-              nome: 'Acoustic Trio',
-              genero: 'MPB/Acústico',
-              descricao: 'Formato reduzido para eventos intimistas'
-            },
-            {
-              id: '4',
-              nome: 'Jazz Quartet',
-              genero: 'Jazz',
-              descricao: 'Especializada em standards de jazz e bossa nova'
-            },
-            {
-              id: '5',
-              nome: 'Baile Total',
-              genero: 'Baile/Dançante',
-              descricao: 'Repertório variado para festas dançantes'
-            }
-          ]);
+        const response = await fetch('/api/bandas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action: 'list' }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao buscar bandas');
         }
-      } catch (error) {
-        console.error('Erro ao buscar bandas:', error);
+
+        const data = await response.json();
+        setBandas(data.bandas || []);
+      } catch (err) {
+        console.error('Erro ao buscar bandas:', err);
+        setError(err instanceof Error ? err.message : 'Erro ao buscar bandas');
       } finally {
         setLoading(false);
       }
     }
-    
+
     fetchBandas();
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (!Array.isArray(bandas)) {
-      alertaErro('Não foi possível excluir a banda');
-      return;
-    }
-    
     const banda = bandas.find(b => b.id === id);
     
     if (!banda) return;
@@ -412,7 +392,22 @@ export default function BandasPage() {
     
     if (confirmado) {
       try {
-        setBandas(bandas.filter(banda => banda.id !== id));
+        const response = await fetch('/api/bandas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'delete',
+            data: { id }
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Erro ao excluir banda');
+        }
+
+        setBandas(bandas.filter(b => b.id !== id));
         alertaSucesso('Banda excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir banda:', error);
@@ -422,20 +417,31 @@ export default function BandasPage() {
   };
 
   const handleView = (id: string) => {
-    // Na implementação real, redireciona para a página de visualização
-    console.log('Visualizar banda:', id);
+    router.push(`/bandas/${id}`);
   };
 
   const handleEdit = (id: string) => {
-    // Usar o router do Next.js para navegação
     router.push(`/bandas/editar/${id}`);
   };
 
+  if (loading) {
+    return <div className="p-4">Carregando...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <p className="text-red-500">Erro: {error}</p>
+        <button onClick={() => router.refresh()} className="mt-4">
+          Tentar novamente
+        </button>
+      </div>
+    );
+  }
+
   // Calcula estatísticas
-  const totalBandas = Array.isArray(bandas) ? bandas.length : 0;
-  const generosUnicos = new Set(Array.isArray(bandas) ? bandas.map(b => b.genero).filter(Boolean) : []).size;
-  
-  // Número estimado de músicos (assumindo uma média de 5 por banda)
+  const totalBandas = bandas.length;
+  const generosUnicos = new Set(bandas.map(b => b.genero).filter(Boolean)).size;
   const musicosEstimados = totalBandas * 5;
 
   return (
@@ -466,18 +472,12 @@ export default function BandasPage() {
         />
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        </div>
-      ) : (
-        <BandasTable 
-          bandas={bandas} 
-          onDelete={handleDelete}
-          onView={handleView}
-          onEdit={handleEdit}
-        />
-      )}
+      <BandasTable 
+        bandas={bandas} 
+        onDelete={handleDelete}
+        onView={handleView}
+        onEdit={handleEdit}
+      />
     </div>
   );
 } 

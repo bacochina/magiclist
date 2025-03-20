@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ShowEvento {
+  id            String          @id @default(uuid())
+  titulo        String
+  data          String
+  horaInicio    String
+  horaFim       String
+  local         String
+  valor         String
+  status        String
+  descricao     String?
+  observacoes   String?
+  contatos      ContatoShow[]
+  equipamentos  EquipamentoShow[]
+  hospedagem    HospedagemShow?
+  custos        CustoShow[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model ContatoShow {
+  id          String      @id @default(uuid())
+  nome        String
+  telefone    String
+  email       String?
+  funcao      String?
+  showEvento  ShowEvento  @relation(fields: [showEventoId], references: [id])
+  showEventoId String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model EquipamentoShow {
+  id          String      @id @default(uuid())
+  nome        String
+  quantidade  Int
+  observacoes String?
+  showEvento  ShowEvento  @relation(fields: [showEventoId], references: [id])
+  showEventoId String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model HospedagemShow {
+  id          String      @id @default(uuid())
+  hotel       String
+  checkIn     String
+  checkOut    String
+  quartos     Int
+  observacoes String?
+  showEvento  ShowEvento  @relation(fields: [showEventoId], references: [id])
+  showEventoId String     @unique
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model CustoShow {
+  id          String      @id @default(uuid())
+  descricao   String
+  valor       Float
+  categoria   String
+  showEvento  ShowEvento  @relation(fields: [showEventoId], references: [id])
+  showEventoId String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Integrante {
+  id          String   @id @default(uuid())
+  nome        String
+  instrumento String?
+  telefone    String?
+  email       String?
+  observacoes String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  bandas      Banda[]  @relation("IntegranteBanda")
+} 

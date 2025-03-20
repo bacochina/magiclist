@@ -19,7 +19,7 @@ export interface Banda {
 export interface Integrante {
   id: string;
   nome: string;
-  funcao: string;
+  instrumento: string;
   telefone?: string;
   email?: string;
   observacoes?: string;
@@ -184,7 +184,7 @@ export interface ShowEvento {
   integrantes?: {
     id: string;
     nome: string;
-    funcao: string;
+    instrumento: string;
     freelancer?: boolean;
   }[];
   valor?: string;

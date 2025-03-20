@@ -144,5 +144,37 @@ export const alertaComTempo = (
   });
 };
 
+interface AlertaConfirmacaoOpcoes {
+  titulo: string;
+  texto?: string;
+  icone?: 'warning' | 'error' | 'success' | 'info' | 'question';
+  confirmButtonText?: string;
+  cancelButtonText?: string;
+  showCancelButton?: boolean;
+  confirmButtonColor?: string;
+  cancelButtonColor?: string;
+}
+
+export const alertaConfirmacao = async (opcoes: AlertaConfirmacaoOpcoes) => {
+  return await Swal.fire({
+    title: opcoes.titulo,
+    text: opcoes.texto,
+    icon: opcoes.icone || 'warning',
+    showCancelButton: opcoes.showCancelButton !== false,
+    confirmButtonColor: opcoes.confirmButtonColor || '#3085d6',
+    cancelButtonColor: opcoes.cancelButtonColor || '#d33',
+    confirmButtonText: opcoes.confirmButtonText || 'Confirmar',
+    cancelButtonText: opcoes.cancelButtonText || 'Cancelar',
+    background: '#1f2937', // gray-800
+    color: '#fff',
+    showClass: {
+      popup: 'animate__animated animate__fadeIn animate__faster'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOut animate__faster'
+    }
+  });
+};
+
 // Exportando SweetAlert para casos específicos
 export default Swal; 

@@ -501,7 +501,7 @@ export default function BandasComponent() {
   const fetchBandas = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/bandas-simple', {
+      const response = await fetch('/api/bandas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -546,7 +546,7 @@ export default function BandasComponent() {
     if (confirmado) {
       try {
         // Usar o novo endpoint simplificado
-        const response = await fetch('/api/bandas-simple', {
+        const response = await fetch('/api/bandas', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -588,7 +588,7 @@ export default function BandasComponent() {
   const handleUpdateBanda = async (bandaAtualizada: Banda) => {
     try {
       // Usar o novo endpoint simplificado
-      const response = await fetch('/api/bandas-simple', {
+      const response = await fetch('/api/bandas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

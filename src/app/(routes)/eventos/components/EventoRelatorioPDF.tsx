@@ -211,7 +211,7 @@ const EventoRelatorioPDFDocument = ({ evento, banda, integrantes, musicas, reper
             integrantesDoEvento.map((integrante, index) => (
               <View key={integrante.id} style={styles.row}>
                 <Text style={styles.label}>{index + 1}. {integrante.nome}</Text>
-                <Text style={styles.value}>{integrante.funcao}</Text>
+                <Text style={styles.value}>{integrante.instrumento}</Text>
               </View>
             ))
           ) : (

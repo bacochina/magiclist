@@ -40,7 +40,7 @@ export default function NovaBandaPage() {
     
     try {
       // Usar o novo endpoint simplificado
-      const response = await fetch('/api/bandas-simple', {
+      const response = await fetch('/api/bandas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
