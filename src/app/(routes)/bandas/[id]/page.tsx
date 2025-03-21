@@ -6,14 +6,26 @@ import { ArrowLeft, Music, Users } from 'lucide-react';
 import { Banda } from '@/lib/types';
 import { alertaErro } from '@/lib/sweetalert';
 
+// Interface para os integrantes
+interface Integrante {
+  id: string;
+  nome: string;
+  instrumento: string;
+  apelido?: string;
+}
+
 export default function VisualizarBandaPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [banda, setBanda] = useState<Banda | null>(null);
+  const [integrantes, setIntegrantes] = useState<Integrante[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Buscar detalhes da banda com integrantes
   useEffect(() => {
     async function fetchBanda() {
       try {
+        console.log("Buscando detalhes da banda:", params.id);
         const response = await fetch('/api/bandas', {
           method: 'POST',
           headers: {
@@ -26,14 +38,25 @@ export default function VisualizarBandaPage({ params }: { params: { id: string }
         });
 
         if (!response.ok) {
-          throw new Error('Erro ao buscar banda');
+          throw new Error(`Erro ao buscar banda: ${response.status}`);
         }
 
         const data = await response.json();
+        console.log("Dados completos obtidos:", data);
+        
         setBanda(data.banda);
+        
+        // Usar os integrantes que agora são retornados junto com a banda
+        if (data.integrantes && Array.isArray(data.integrantes)) {
+          console.log("Integrantes encontrados:", data.integrantes.length);
+          setIntegrantes(data.integrantes);
+        } else {
+          console.log("Nenhum integrante encontrado na resposta");
+          setIntegrantes([]);
+        }
       } catch (error) {
         console.error('Erro ao buscar banda:', error);
-        alertaErro('Erro ao carregar os dados da banda');
+        setError('Erro ao carregar os dados da banda');
       } finally {
         setLoading(false);
       }
@@ -46,10 +69,10 @@ export default function VisualizarBandaPage({ params }: { params: { id: string }
     return <div className="p-8">Carregando...</div>;
   }
 
-  if (!banda) {
+  if (error || !banda) {
     return (
       <div className="p-8">
-        <div className="text-red-500">Banda não encontrada</div>
+        <div className="text-red-500">{error || 'Banda não encontrada'}</div>
         <button 
           onClick={() => router.back()}
           className="mt-4 text-gray-400 hover:text-white flex items-center"
@@ -73,6 +96,7 @@ export default function VisualizarBandaPage({ params }: { params: { id: string }
           Voltar
         </button>
         <h1 className="text-3xl font-bold text-white">{banda.nome}</h1>
+        <div className="mt-2 text-purple-400 font-bold">Hello Claude</div>
       </div>
 
       {/* Conteúdo */}
@@ -100,6 +124,38 @@ export default function VisualizarBandaPage({ params }: { params: { id: string }
                 </p>
               </div>
             </div>
+          </div>
+          
+          {/* Card de integrantes da banda */}
+          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Integrantes
+            </h2>
+            
+            {integrantes && integrantes.length > 0 ? (
+              <div className="divide-y divide-gray-700">
+                {integrantes.map((integrante) => (
+                  <div key={integrante.id} className="py-3 flex justify-between items-center">
+                    <div>
+                      <div className="font-medium text-white">
+                        {integrante.nome} 
+                        {integrante.apelido && <span className="text-gray-400 ml-2">({integrante.apelido})</span>}
+                      </div>
+                      <div className="text-sm text-gray-400">{integrante.instrumento}</div>
+                    </div>
+                    <button 
+                      onClick={() => router.push(`/integrantes/${integrante.id}`)}
+                      className="text-blue-400 hover:text-blue-300 text-sm"
+                    >
+                      Ver perfil
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400">Nenhum integrante cadastrado para esta banda.</p>
+            )}
           </div>
         </div>
 

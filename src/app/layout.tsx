@@ -22,7 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           {/* Fundo escuro com gradiente sutil */}
-          <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950">
+          <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-950 transition-opacity duration-300">
             {/* Elemento decorativo com padrão sutil */}
             <div 
               className="absolute inset-0 opacity-3 pointer-events-none"

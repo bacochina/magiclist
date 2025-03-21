@@ -5,479 +5,615 @@ import Link from 'next/link';
 import { 
   Plus, 
   Search, 
-  Filter, 
-  Music, 
-  Users, 
+  Eye, 
   FileEdit, 
   Trash2, 
-  Eye,
-  List,
-  Grid,
-  MusicIcon
+  Table as TableIcon, 
+  Grid
 } from 'lucide-react';
 import { Banda } from '@/lib/types';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
-// Card de estatísticas para a página de bandas
-const BandaStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
-  <div className="stat-card p-5">
-    <div className="flex items-center space-x-3 mb-2">
-      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
-        {icon}
-      </div>
-      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
-    </div>
-    <div className="text-2xl font-bold text-white">{value}</div>
-  </div>
-);
+// Estende a interface Banda para incluir integrantes
+interface BandaComIntegrantes extends Banda {
+  integrantes?: {
+    id: string;
+    nome: string;
+    instrumento?: string;
+    apelido?: string;
+  }[];
+}
 
 // Componente de tabela de bandas
-const BandasTable = ({ bandas, onDelete, onView, onEdit }: { 
-  bandas: Banda[]; 
+const BandasTable = ({ 
+  bandas, 
+  onDelete, 
+  onView,
+  router
+}: { 
+  bandas: BandaComIntegrantes[]; 
   onDelete: (id: string) => void;
-  onView: (id: string) => void;
-  onEdit: (id: string) => void;
+  onView: (banda: BandaComIntegrantes) => void;
+  router: any;
 }) => {
-  const [sortColumn, setSortColumn] = useState<string>('nome');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [bandasFiltradas, setBandasFiltradas] = useState<Banda[]>(Array.isArray(bandas) ? bandas : []);
+  const [bandasFiltradas, setBandasFiltradas] = useState<BandaComIntegrantes[]>(bandas);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filtroGenero, setFiltroGenero] = useState<string>('todos');
-  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('modoVisualizacaoBandas') || 'lista') as 'lista' | 'cartoes';
-    }
-    return 'lista';
-  });
+  const [filtroGenero, setFiltroGenero] = useState('todos');
 
-  // Salvar preferência quando mudar o modo de visualização
+  // Filtra as bandas quando os critérios de filtro mudam
   useEffect(() => {
-    localStorage.setItem('modoVisualizacaoBandas', modoVisualizacao);
-  }, [modoVisualizacao]);
-
-  useEffect(() => {
-    // Filtrar por busca e gênero
-    let filtered = Array.isArray(bandas) ? [...bandas] : [];
-    
-    if (searchTerm) {
-      filtered = filtered.filter(banda => 
-        (banda.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (banda.genero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (banda.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (filtroGenero !== 'todos') {
-      filtered = filtered.filter(banda => 
-        banda.genero === filtroGenero
-      );
-    }
-    
-    // Ordenar
-    filtered = [...filtered].sort((a, b) => {
-      if (sortColumn === 'nome') {
-        const nomeA = (a.nome || '');
-        const nomeB = (b.nome || '');
-        return sortDirection === 'asc' 
-          ? nomeA.localeCompare(nomeB) 
-          : nomeB.localeCompare(nomeA);
-      }
-      if (sortColumn === 'genero') {
-        const generoA = a.genero || '';
-        const generoB = b.genero || '';
-        return sortDirection === 'asc' 
-          ? generoA.localeCompare(generoB) 
-          : generoB.localeCompare(generoA);
-      }
-      return 0;
+    const filteredBandas = bandas.filter(banda => {
+      const matchesTerm = banda.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         banda.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm === '';
+      
+      const matchesGenero = filtroGenero === 'todos' || banda.genero === filtroGenero;
+      
+      return matchesTerm && matchesGenero;
     });
     
-    setBandasFiltradas(filtered);
-  }, [bandas, sortColumn, sortDirection, searchTerm, filtroGenero]);
+    setBandasFiltradas(filteredBandas);
+  }, [bandas, searchTerm, filtroGenero]);
 
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+  // Função para lidar com exclusão
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirmar('Excluir banda', 'Tem certeza que deseja excluir esta banda?', 'warning');
+    if (confirmed) {
+      onDelete(id);
     }
   };
 
-  // Extrair lista única de gêneros para o filtro
-  const generos = ['todos', ...new Set(Array.isArray(bandas) ? bandas.map(e => e.genero).filter(Boolean) : [])];
+  // Array de gêneros únicos para o filtro
+  const generos = ["todos", ...Array.from(new Set(bandas.map(banda => banda.genero || "").filter(Boolean)))];
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
-      {/* Filtros e Busca */}
-      <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[250px]">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Buscar bandas..."
-            className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
-            <Filter size={18} className="text-gray-400" />
-            <select
-              className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={filtroGenero}
-              onChange={(e) => setFiltroGenero(e.target.value)}
-            >
-              {generos.map(genero => (
-                <option key={genero} value={genero}>
-                  {genero === 'todos' ? 'Todos os gêneros' : genero}
-                </option>
-              ))}
-            </select>
+    <>
+      <div className="w-full space-y-6">
+        {/* Barra de pesquisa e filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 bg-gray-850 rounded-lg p-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Pesquisar bandas..."
+              className="pl-9 bg-gray-900 border-gray-600 text-white placeholder:text-gray-400 focus:ring-blue-600"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            />
           </div>
           
-          {/* Botões de visualização */}
-          <div className="flex items-center space-x-1 ml-auto">
-            <button
-              type="button"
-              className={`p-2 rounded-l ${
-                modoVisualizacao === 'lista'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => setModoVisualizacao('lista')}
-              title="Visualização em Lista"
-            >
-              <List size={18} />
-            </button>
-            <button
-              type="button"
-              className={`p-2 rounded-r ${
-                modoVisualizacao === 'cartoes'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => setModoVisualizacao('cartoes')}
-              title="Visualização em Cartões"
-            >
-              <Grid size={18} />
-            </button>
-          </div>
-
-          <Link href="/bandas/nova" className="btn-primary">
-            <Plus size={18} className="mr-1" />
-            Nova Banda
-          </Link>
+          <Select value={filtroGenero} onValueChange={setFiltroGenero}>
+            <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+              <SelectValue placeholder="Filtrar por gênero" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-600">
+              {generos.map((genero) => (
+                <SelectItem key={genero} value={genero} className="text-white hover:bg-gray-800">
+                  {genero === "todos" ? "Todos os gêneros" : genero}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      {bandasFiltradas.length > 0 ? (
-        modoVisualizacao === 'lista' ? (
-          /* Tabela */
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead>
-                <tr>
-                  <th 
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'nome' ? 'text-white' : ''}`}
-                    onClick={() => handleSort('nome')}
-                  >
-                    <div className="flex items-center">
-                      <span>Nome</span>
-                      {sortColumn === 'nome' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'genero' ? 'text-white' : ''}`}
-                    onClick={() => handleSort('genero')}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <Music size={14} />
-                      <span>Gênero</span>
-                      {sortColumn === 'genero' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Descrição
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {bandasFiltradas.map((banda) => (
-                  <tr key={banda.id} className="hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+        {/* Tabela */}
+        <div className="bg-gray-850 rounded-lg overflow-hidden border border-gray-800 shadow-lg">
+          <Table>
+            <TableHeader className="bg-gray-900">
+              <TableRow className="hover:bg-gray-900/90 border-b border-gray-800">
+                <TableHead className="text-left font-semibold text-white w-[250px]">NOME</TableHead>
+                <TableHead className="text-left font-semibold text-white w-[150px]">GÊNERO</TableHead>
+                <TableHead className="text-left font-semibold text-white">DESCRIÇÃO</TableHead>
+                <TableHead className="text-left font-semibold text-white">INTEGRANTES</TableHead>
+                <TableHead className="text-right w-[100px]">AÇÕES</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bandasFiltradas.length > 0 ? (
+                bandasFiltradas.map((banda) => (
+                  <TableRow key={banda.id} className="hover:bg-gray-800/80 border-b border-gray-800/50">
+                    <TableCell className="font-medium text-white">
                       {banda.nome}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      <span className="px-2 py-1 bg-purple-900 bg-opacity-40 text-purple-300 rounded-full text-xs">
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-700 text-purple-50">
                         {banda.genero || 'Não definido'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-300">
-                      {banda.descricao || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    </TableCell>
+                    <TableCell className="text-gray-300 max-w-[300px] truncate">
+                      {banda.descricao || 'Sem descrição'}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {banda.integrantes && banda.integrantes.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {banda.integrantes.slice(0, 3).map((integrante) => (
+                            <span 
+                              key={integrante.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
+                              title={integrante.instrumento || ''}
+                            >
+                              {integrante.apelido || integrante.nome}
+                            </span>
+                          ))}
+                          {banda.integrantes.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200">
+                              +{banda.integrantes.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        "Nenhum integrante"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => onView(banda.id)}
-                          className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
-                          title="Visualizar"
+                          onClick={() => onView(banda)}
+                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Ver Detalhes"
                         >
-                          <Eye size={18} />
+                          <Eye className="h-4 w-4" />
                         </button>
-                        <button
-                          onClick={() => onEdit(banda.id)}
-                          className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                        <Link
+                          href={`/bandas/editar/${banda.id}`}
+                          className="text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
-                          <FileEdit size={18} />
-                        </button>
+                          <FileEdit className="h-4 w-4" />
+                        </Link>
                         <button
-                          onClick={() => onDelete(banda.id)}
-                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                          onClick={() => handleDelete(banda.id)}
+                          className="text-gray-400 hover:text-red-400 transition-colors"
                           title="Excluir"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* Visualização em Cartões */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-            {bandasFiltradas.map((banda) => (
-              <div 
-                key={banda.id} 
-                className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
-              >
-                {/* Cabeçalho do cartão */}
-                <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
-                  <div className="flex items-center w-full">
-                    <div className="flex-1 min-w-0">
-                      <h3 
-                        className="text-base font-medium text-white leading-tight line-clamp-2 text-center"
-                        title={banda.nome || ''}
-                      >
-                        {banda.nome}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-1 flex items-center justify-center w-full">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
-                      {banda.genero || 'Gênero não definido'}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Corpo do cartão */}
-                <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
-                  <div className="space-y-3">
-                    {/* Descrição (se houver) */}
-                    {banda.descricao ? (
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Descrição</p>
-                        <p className="text-gray-300 text-sm line-clamp-3">{banda.descricao}</p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center h-16 text-center text-gray-500">
-                        <p className="text-sm">Sem descrição</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Rodapé com ações */}
-                <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                  <div className="flex items-center justify-end space-x-2">
-                    <button
-                      onClick={() => onView(banda.id)}
-                      className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
-                      title="Visualizar"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button
-                      onClick={() => onEdit(banda.id)}
-                      className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
-                      title="Editar"
-                    >
-                      <FileEdit size={18} />
-                    </button>
-                    <button
-                      onClick={() => onDelete(banda.id)}
-                      className="p-1 text-gray-400 hover:text-red-400 transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
-        <div className="p-8 text-center">
-          <div className="text-gray-400">Nenhuma banda encontrada</div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                    Nenhuma banda encontrada
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 };
 
 export default function BandasPage() {
-  const [bandas, setBandas] = useState<Banda[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [bandas, setBandas] = useState<BandaComIntegrantes[]>([]);
+  const [bandaSelecionada, setBandaSelecionada] = useState<BandaComIntegrantes | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "cards">("table");
   const router = useRouter();
+  const [totalBandas, setTotalBandas] = useState(0);
+  const [totalGeneros, setTotalGeneros] = useState(0);
+  const [totalMusicos, setTotalMusicos] = useState(0);
 
   useEffect(() => {
-    async function fetchBandas() {
-      try {
-        const response = await fetch('/api/bandas', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action: 'list' }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Erro ao buscar bandas');
-        }
-
-        const data = await response.json();
-        setBandas(data.bandas || []);
-      } catch (err) {
-        console.error('Erro ao buscar bandas:', err);
-        setError(err instanceof Error ? err.message : 'Erro ao buscar bandas');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchBandas();
+    buscarBandas();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const banda = bandas.find(b => b.id === id);
-    
-    if (!banda) return;
-    
-    const confirmado = await confirmar(
-      'Excluir banda',
-      `Tem certeza que deseja excluir a banda "${banda.nome}"?`,
-      'warning'
-    );
-    
-    if (confirmado) {
-      try {
-        const response = await fetch('/api/bandas', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'delete',
-            data: { id }
-          }),
-        });
+  async function buscarBandas() {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/bandas/', {
+        method: 'GET'
+      });
 
-        if (!response.ok) {
-          throw new Error('Erro ao excluir banda');
-        }
-
-        setBandas(bandas.filter(b => b.id !== id));
-        alertaSucesso('Banda excluída com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir banda:', error);
-        alertaErro('Erro ao excluir a banda');
+      if (!res.ok) {
+        throw new Error("Erro ao buscar as bandas");
       }
+
+      const resposta = await res.json();
+      console.log('Resposta da API:', resposta);
+      const bandasData = resposta.data || [];
+      setBandas(bandasData);
+      
+      // Calcular estatísticas
+      setTotalBandas(bandasData.length);
+      
+      // Calcular total de gêneros únicos
+      const generos = new Set(bandasData.map((banda: BandaComIntegrantes) => banda.genero).filter(Boolean));
+      setTotalGeneros(generos.size);
+      
+      // Calcular total de músicos únicos em todas as bandas
+      const musicosIds = new Set();
+      bandasData.forEach((banda: BandaComIntegrantes) => {
+        if (banda.integrantes && banda.integrantes.length > 0) {
+          banda.integrantes.forEach(integrante => {
+            if (integrante.id) {
+              musicosIds.add(integrante.id);
+            }
+          });
+        }
+      });
+      setTotalMusicos(musicosIds.size);
+    } catch (error) {
+      console.error("Erro ao buscar bandas:", error);
+      setError("Erro ao buscar as bandas");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleDeleteBanda = async (id: string) => {
+    try {
+      const res = await fetch(`/api/bandas/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao excluir a banda");
+      }
+
+      await buscarBandas();
+      alertaSucesso("Banda excluída com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alertaErro("Erro ao excluir a banda");
     }
   };
 
-  const handleView = (id: string) => {
-    router.push(`/bandas/${id}`);
+  const handleOpenModal = (banda: BandaComIntegrantes) => {
+    setBandaSelecionada(banda);
+    setIsModalOpen(true);
   };
 
-  const handleEdit = (id: string) => {
-    router.push(`/bandas/editar/${id}`);
+  const handleOpenSheet = (banda: BandaComIntegrantes) => {
+    setBandaSelecionada(banda);
+    setIsMobileSheetOpen(true);
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="p-4">Carregando...</div>;
   }
 
   if (error) {
-    return (
-      <div className="p-4">
-        <p className="text-red-500">Erro: {error}</p>
-        <button onClick={() => router.refresh()} className="mt-4">
-          Tentar novamente
-        </button>
-      </div>
-    );
+    return <div className="p-4 text-red-500">{error}</div>;
   }
 
-  // Calcula estatísticas
-  const totalBandas = bandas.length;
-  const generosUnicos = new Set(bandas.map(b => b.genero).filter(Boolean)).size;
-  const musicosEstimados = totalBandas * 5;
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Bandas</h1>
-          <p className="text-gray-400">Gerencie suas bandas e projetos musicais</p>
+    <div className="container p-4 mx-auto">
+      <div className="flex flex-col space-y-4">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white">Bandas</h1>
+          <p className="text-sm text-zinc-400">
+            Gerencie suas bandas e grupos musicais
+          </p>
         </div>
-      </div>
-      
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <BandaStatCard 
-          title="Total de Bandas" 
-          value={totalBandas} 
-          icon={<Music size={20} />}
-        />
-        <BandaStatCard 
-          title="Gêneros musicais" 
-          value={generosUnicos} 
-          icon={<Music size={20} />}
-        />
-        <BandaStatCard 
-          title="Músicos estimados" 
-          value={musicosEstimados} 
-          icon={<Users size={20} />}
-        />
+
+        <div className="flex flex-wrap gap-4 mt-8">
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-purple-900/20 hover:border-purple-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-600/20 to-purple-700/20 text-purple-400 ring-1 ring-purple-500/30 shadow-inner shadow-purple-600/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M19 9V5L12 2L5 5v4"></path>
+                  <circle cx="12" cy="11" r="2"></circle>
+                  <path d="M12 13v8"></path>
+                  <path d="M9 21h6"></path>
+                </svg>
+              </div>
+              <div className="text-xs text-gray-400">bandas</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-purple-400 transition-colors duration-300">{totalBandas}</div>
+          </div>
+
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-indigo-900/20 hover:border-indigo-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-600/20 to-indigo-700/20 text-indigo-400 ring-1 ring-indigo-500/30 shadow-inner shadow-indigo-600/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+              </div>
+              <div className="text-xs text-gray-400">gêneros</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-indigo-200 group-hover:to-indigo-400 transition-colors duration-300">{totalGeneros}</div>
+          </div>
+
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-blue-900/20 hover:border-blue-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/20 text-blue-400 ring-1 ring-blue-500/30 shadow-inner shadow-blue-600/10">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <div className="text-xs text-gray-400">músicos</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-blue-200 group-hover:to-blue-400 transition-colors duration-300">{totalMusicos}</div>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mt-8">
+          <div className="flex space-x-2">
+            <Button 
+              onClick={() => setView("table")} 
+              variant={view === "table" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em tabela"
+            >
+              <TableIcon className="h-4 w-4 mr-1" />
+              Tabela
+            </Button>
+            <Button 
+              onClick={() => setView("cards")} 
+              variant={view === "cards" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em cartões"
+            >
+              <Grid className="h-4 w-4 mr-1" />
+              Cartões
+            </Button>
+          </div>
+          <Button
+            onClick={() => router.push('/bandas/nova')}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Banda
+          </Button>
+        </div>
+
+        {view === "cards" ? (
+          <div className="w-full space-y-6">
+            {/* Barra de pesquisa e filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 bg-gray-850 rounded-lg p-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Pesquisar bandas..."
+                  className="pl-9 bg-gray-900 border-gray-600 text-white placeholder:text-gray-400 focus:ring-blue-600"
+                />
+              </div>
+              
+              <Select defaultValue="todos">
+                <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+                  <SelectValue placeholder="Filtrar por gênero" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-600">
+                  <SelectItem value="todos" className="text-white hover:bg-gray-800">
+                    Todos os gêneros
+                  </SelectItem>
+                  {Array.from(new Set(bandas.map(banda => banda.genero || "").filter(Boolean))).map((genero) => (
+                    <SelectItem key={genero} value={genero} className="text-white hover:bg-gray-800">
+                      {genero}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Exibição dos cartões */}
+            {bandas.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {bandas.map((banda) => (
+                  <div
+                    key={banda.id}
+                    className="group relative bg-gray-800 hover:bg-gray-700 rounded-lg p-4 border border-gray-700 hover:border-gray-500 transition-all duration-200 shadow-lg"
+                  >
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-1">
+                            {banda.nome}
+                          </h3>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-700 text-white">
+                            {banda.genero || 'Não definido'}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleOpenModal(banda)}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Ver Detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <Link
+                            href={`/bandas/editar/${banda.id}`}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Editar"
+                          >
+                            <FileEdit className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteBanda(banda.id)}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                        {banda.descricao || 'Sem descrição'}
+                      </p>
+
+                      <div className="mt-auto">
+                        <div className="text-sm text-gray-400 mb-2">Integrantes:</div>
+                        {banda.integrantes && banda.integrantes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {banda.integrantes.slice(0, 3).map((integrante) => (
+                              <span
+                                key={integrante.id}
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-white border border-blue-700"
+                                title={integrante.instrumento || ''}
+                              >
+                                {integrante.apelido || integrante.nome}
+                              </span>
+                            ))}
+                            {banda.integrantes.length > 3 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-700 text-white border border-gray-600">
+                                +{banda.integrantes.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-500 text-sm">Nenhum integrante</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="text-gray-400">Nenhuma banda encontrada</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <BandasTable 
+            bandas={bandas} 
+            onDelete={handleDeleteBanda}
+            onView={handleOpenModal}
+            router={router}
+          />
+        )}
       </div>
 
-      <BandasTable 
-        bandas={bandas} 
-        onDelete={handleDelete}
-        onView={handleView}
-        onEdit={handleEdit}
-      />
+      {/* Dialog para visualizar banda */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-lg bg-gray-800 border border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Detalhes da Banda
+            </DialogTitle>
+          </DialogHeader>
+          
+          {bandaSelecionada && (
+            <div className="space-y-4 mt-2">
+              <div>
+                <h3 className="text-2xl font-bold text-white">{bandaSelecionada.nome}</h3>
+                <div className="mt-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100">
+                    {bandaSelecionada.genero || 'Gênero não definido'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-700">
+                {/* Descrição */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-400">Descrição</h4>
+                  {bandaSelecionada.descricao ? (
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">{bandaSelecionada.descricao}</p>
+                  ) : (
+                    <p className="text-sm text-gray-500">Sem descrição registrada</p>
+                  )}
+                </div>
+
+                {/* Integrantes */}
+                {bandaSelecionada.integrantes && bandaSelecionada.integrantes.length > 0 && (
+                  <div className="space-y-3 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-400">Integrantes</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {bandaSelecionada.integrantes.map((integrante) => (
+                        <span
+                          key={integrante.id}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
+                        >
+                          {integrante.nome} {integrante.instrumento ? `- ${integrante.instrumento}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-gray-700">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                  className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                >
+                  Fechar
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    router.push(`/bandas/editar/${bandaSelecionada.id}`);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Editar
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

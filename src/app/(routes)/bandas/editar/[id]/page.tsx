@@ -2,20 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
 import { Banda } from '@/lib/types';
 import { alertaErro, alertaSucesso } from '@/lib/sweetalert';
+import { BandaForm } from '../../components/BandaForm';
 
 export default function EditarBandaPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [banda, setBanda] = useState<Banda>({
-    id: '',
-    nome: '',
-    genero: '',
-    descricao: ''
-  });
+  const [banda, setBanda] = useState<Banda | null>(null);
   const [loading, setLoading] = useState(true);
-  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     async function fetchBanda() {
@@ -48,10 +44,7 @@ export default function EditarBandaPage({ params }: { params: { id: string } }) 
     fetchBanda();
   }, [params.id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSalvando(true);
-
+  const handleSubmit = async (formData: Omit<Banda, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const response = await fetch('/api/bandas', {
         method: 'POST',
@@ -60,7 +53,10 @@ export default function EditarBandaPage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify({
           action: 'update',
-          data: banda
+          data: {
+            id: params.id,
+            ...formData
+          }
         }),
       });
 
@@ -73,101 +69,42 @@ export default function EditarBandaPage({ params }: { params: { id: string } }) 
     } catch (error) {
       console.error('Erro ao atualizar banda:', error);
       alertaErro('Erro ao atualizar a banda');
-    } finally {
-      setSalvando(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setBanda(prev => ({ ...prev, [name]: value }));
-  };
-
   if (loading) {
-    return <div className="p-8">Carregando...</div>;
+    return <div>Carregando...</div>;
+  }
+
+  if (!banda) {
+    return <div>Banda não encontrada</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Cabeçalho */}
-      <div className="mb-8">
-        <button 
-          onClick={() => router.back()}
-          className="text-gray-400 hover:text-white flex items-center mb-4"
+    <div className="h-full">
+      <div className="mx-auto max-w-5xl pt-12 px-8">
+        <Link
+          href="/bandas"
+          className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-gray-300 mb-6"
         >
-          <ArrowLeft className="mr-2" size={16} />
-          Voltar
-        </button>
-        <h1 className="text-3xl font-bold text-white">Editar Banda</h1>
-      </div>
+          <ChevronLeft size={20} />
+          <span>Voltar</span>
+        </Link>
 
-      {/* Formulário */}
-      <div className="max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="nome" className="block text-sm font-medium text-gray-300">
-                  Nome da Banda
-                </label>
-                <input
-                  type="text"
-                  id="nome"
-                  name="nome"
-                  value={banda.nome}
-                  onChange={handleChange}
-                  required
-                  className="mt-1 block w-full rounded-md bg-gray-900 border border-gray-700 text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
+        <div className="space-y-1 mb-8">
+          <h1 className="text-4xl font-bold text-white">Editar Banda</h1>
+          <p className="text-sm text-zinc-400">
+            Atualize as informações da banda
+          </p>
+        </div>
 
-              <div>
-                <label htmlFor="genero" className="block text-sm font-medium text-gray-300">
-                  Gênero Musical
-                </label>
-                <input
-                  type="text"
-                  id="genero"
-                  name="genero"
-                  value={banda.genero}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md bg-gray-900 border border-gray-700 text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="descricao" className="block text-sm font-medium text-gray-300">
-                  Descrição
-                </label>
-                <textarea
-                  id="descricao"
-                  name="descricao"
-                  value={banda.descricao}
-                  onChange={handleChange}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-gray-900 border border-gray-700 text-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-4 py-2 text-gray-300 hover:text-white transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={salvando}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {salvando ? 'Salvando...' : 'Salvar Alterações'}
-            </button>
-          </div>
-        </form>
+        <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-6">
+          <BandaForm 
+            banda={banda} 
+            onSubmit={handleSubmit} 
+            onCancel={() => router.back()} 
+          />
+        </div>
       </div>
     </div>
   );

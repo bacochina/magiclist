@@ -6,6 +6,67 @@ export interface Musica {
   bpm: number;
   observacoes?: string;
   bandasIds?: string[]; // IDs das bandas que tocam essa música
+  
+  // Campos adicionais do Supabase
+  titulo?: string; // Para compatibilidade com a tabela do Supabase
+  album?: string;
+  duracao?: string;
+  ano_lancamento?: number;
+  genero?: string;
+  url_streaming?: string;
+  url_download?: string;
+  url_capa?: string;
+  letra?: string;
+  classificacao?: number;
+  created_at?: string;
+  updated_at?: string;
+  user_id?: string;
+  
+  // Relacionamentos
+  artistas?: MusicaArtista[];
+  tags?: MusicaTag[];
+}
+
+// Interface específica para o Supabase
+export interface SupabaseMusica {
+  id: string;
+  titulo: string;
+  artista: string;
+  album?: string;
+  duracao?: string;
+  ano_lancamento?: number;
+  genero?: string;
+  url_streaming?: string;
+  url_download?: string;
+  url_capa?: string;
+  letra?: string;
+  classificacao?: number;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  
+  // Campos adicionais para manter compatibilidade com o sistema existente
+  nome?: string;
+  tom?: string;
+  bpm?: number;
+  observacoes?: string;
+}
+
+// Interface específica para o relacionamento música-artistas
+export interface MusicaArtista {
+  id: string;
+  musica_id: string;
+  nome_artista: string;
+  tipo: string;
+  created_at: string;
+}
+
+// Interface específica para o relacionamento música-tags
+export interface MusicaTag {
+  id: string;
+  musica_id: string;
+  tag: string;
+  created_at: string;
 }
 
 export interface Banda {

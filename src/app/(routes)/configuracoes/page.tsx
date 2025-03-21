@@ -110,7 +110,7 @@ const ColorPreview = ({
 );
 
 export default function ConfiguracoesPage() {
-  const { theme, updateTheme, resetTheme } = useTheme();
+  const { theme, updateTheme, resetTheme, isThemeLoaded } = useTheme();
   
   // Estados para as configurações locais (para edição)
   const [primaryColor, setPrimaryColor] = useState(theme.primary);
@@ -143,6 +143,15 @@ export default function ConfiguracoesPage() {
     
     setHasChanges(isChanged);
   }, [primaryColor, backgroundColor, textColor, accentColor, darkShade, theme]);
+  
+  // Se o tema ainda não foi carregado, mostra um indicador de carregamento
+  if (!isThemeLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
   
   // Opções de cores primárias (destaque)
   const primaryOptions = [
@@ -269,32 +278,28 @@ export default function ConfiguracoesPage() {
   const userSavedThemes = 1; // Para o futuro: contagem de temas salvos pelo usuário
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Configurações</h1>
-          <p className="text-gray-400">Personalize a aparência do MagicList para sua preferência</p>
-        </div>
-        
-        <div className="flex space-x-3 mt-4 md:mt-0">
-          <button
-            onClick={resetTheme}
-            className="btn-secondary flex items-center space-x-2"
-            title="Restaurar configurações padrão"
-          >
-            <RotateCcw size={16} />
-            <span>Restaurar Padrão</span>
-          </button>
-          
-          <button
-            onClick={saveSettings}
-            disabled={!hasChanges}
-            className={`btn-primary flex items-center space-x-2 ${!hasChanges ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title="Salvar configurações"
-          >
-            <Save size={16} />
-            <span>Salvar Alterações</span>
-          </button>
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Configurações</h1>
+        <div className="flex items-center gap-4">
+          {hasChanges && (
+            <>
+              <button
+                onClick={resetTheme}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Restaurar Padrão
+              </button>
+              <button
+                onClick={saveSettings}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Salvar Alterações
+              </button>
+            </>
+          )}
         </div>
       </div>
 

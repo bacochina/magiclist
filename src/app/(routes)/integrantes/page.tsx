@@ -2,6 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { 
+  Plus, 
+  Search, 
+  Eye, 
+  FileEdit, 
+  Trash2, 
+  Table as TableIcon, 
+  Grid
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -17,21 +27,21 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import { Eye, FileEdit, Trash2, LayoutGrid, LayoutList, Plus, Filter, Music, Search, List, Grid } from "lucide-react"
-import { toast } from "sonner"
-import { IntegranteForm } from "./components/IntegranteForm"
-import Link from "next/link"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
+import { alertaSucesso, alertaErro, confirmar } from '@/lib/sweetalert';
 import { 
   PhoneIcon, 
   AtSymbolIcon, 
   UserIcon, 
-  MagnifyingGlassIcon,
-  MusicalNoteIcon,
   CreditCardIcon
 } from "@heroicons/react/24/outline"
-import { alertaSucesso, alertaErro, alertaConfirmacao } from '@/lib/sweetalert';
 
 interface Integrante {
   id: string
@@ -50,109 +60,279 @@ interface Integrante {
   chave_pix?: string
 }
 
+// Componente de tabela de integrantes
+const IntegrantesTable = ({ 
+  integrantes, 
+  onDelete, 
+  onView,
+  router
+}: { 
+  integrantes: Integrante[]; 
+  onDelete: (id: string) => void;
+  onView: (integrante: Integrante) => void;
+  router: any;
+}) => {
+  const [integrantesFiltrados, setIntegrantesFiltrados] = useState<Integrante[]>(integrantes);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroInstrumento, setFiltroInstrumento] = useState('todos');
+
+  // Filtra os integrantes quando os critérios de filtro mudam
+  useEffect(() => {
+    const filteredIntegrantes = integrantes.filter(integrante => {
+      const matchesTerm = integrante.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         integrante.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         integrante.telefone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         integrante.instrumento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         integrante.apelido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm === '';
+      
+      const matchesInstrumento = filtroInstrumento === 'todos' || integrante.instrumento === filtroInstrumento;
+      
+      return matchesTerm && matchesInstrumento;
+    });
+    
+    setIntegrantesFiltrados(filteredIntegrantes);
+  }, [integrantes, searchTerm, filtroInstrumento]);
+
+  // Função para lidar com exclusão
+  const handleDelete = async (id: string) => {
+    const confirmed = await confirmar('Excluir integrante', 'Tem certeza que deseja excluir este integrante?', 'warning');
+    if (confirmed) {
+      onDelete(id);
+    }
+  };
+
+  // Array de instrumentos únicos para o filtro
+  const instrumentos = ["todos", ...Array.from(new Set(integrantes.map(integrante => integrante.instrumento || "").filter(Boolean)))];
+
+  return (
+    <>
+      <div className="w-full space-y-6">
+        {/* Barra de pesquisa e filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 bg-gray-850 rounded-lg p-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Pesquisar integrantes..."
+              className="pl-9 bg-gray-900 border-gray-600 text-white placeholder:text-gray-400 focus:ring-blue-600"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <Select value={filtroInstrumento} onValueChange={setFiltroInstrumento}>
+            <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+              <SelectValue placeholder="Filtrar por instrumento" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-600">
+              {instrumentos.map((instrumento) => (
+                <SelectItem key={instrumento} value={instrumento} className="text-white hover:bg-gray-800">
+                  {instrumento === "todos" ? "Todos os instrumentos" : instrumento}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Tabela */}
+        <div className="bg-gray-850 rounded-lg overflow-hidden border border-gray-800 shadow-lg">
+          <Table>
+            <TableHeader className="bg-gray-900">
+              <TableRow className="hover:bg-gray-900/90 border-b border-gray-800">
+                <TableHead className="text-left font-semibold text-white w-[200px]">NOME</TableHead>
+                <TableHead className="text-left font-semibold text-white w-[150px]">INSTRUMENTO</TableHead>
+                <TableHead className="text-left font-semibold text-white">CONTATO</TableHead>
+                <TableHead className="text-left font-semibold text-white">BANDAS</TableHead>
+                <TableHead className="text-left font-semibold text-white w-[120px]">APELIDO</TableHead>
+                <TableHead className="text-right w-[100px]">AÇÕES</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {integrantesFiltrados.length > 0 ? (
+                integrantesFiltrados.map((integrante) => (
+                  <TableRow key={integrante.id} className="hover:bg-gray-800/80 border-b border-gray-800/50">
+                    <TableCell className="font-medium text-white">
+                      {integrante.nome}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-700 text-purple-50">
+                        {integrante.instrumento || 'Não definido'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {integrante.telefone || integrante.email || 'Sem contato'}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {integrante.bandas && integrante.bandas.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {integrante.bandas.slice(0, 3).map((banda) => (
+                            <span 
+                              key={banda.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
+                            >
+                              {banda.nome}
+                            </span>
+                          ))}
+                          {integrante.bandas.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200">
+                              +{integrante.bandas.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        "Nenhuma banda"
+                      )}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {integrante.apelido || 'Sem apelido'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        <button
+                          onClick={() => onView(integrante)}
+                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Ver Detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <Link
+                          href={`/integrantes/${integrante.id}/editar`}
+                          className="text-gray-400 hover:text-yellow-400 transition-colors"
+                          title="Editar"
+                        >
+                          <FileEdit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(integrante.id)}
+                          className="text-gray-400 hover:text-red-400 transition-colors"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-gray-500 py-8">
+                    Nenhum integrante encontrado
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default function IntegrantesPage() {
-  const router = useRouter()
-  const [integrantes, setIntegrantes] = useState<Integrante[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [totalIntegrantes, setTotalIntegrantes] = useState(0)
-  const [totalInstrumentos, setTotalInstrumentos] = useState(0)
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
-  const [selectedInstrumento, setSelectedInstrumento] = useState("")
-  const [selectedIntegrante, setSelectedIntegrante] = useState<Integrante | null>(null)
-  const [isViewOpen, setIsViewOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [integrantes, setIntegrantes] = useState<Integrante[]>([]);
+  const [integranteSelecionado, setIntegranteSelecionado] = useState<Integrante | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"table" | "cards">("table");
+  const router = useRouter();
+  const [totalIntegrantes, setTotalIntegrantes] = useState(0);
+  const [totalInstrumentos, setTotalInstrumentos] = useState(0);
+  const [totalBandas, setTotalBandas] = useState(0);
 
   useEffect(() => {
-    fetchIntegrantes()
-  }, [])
+    buscarIntegrantes();
+  }, []);
 
-  const fetchIntegrantes = async () => {
+  async function buscarIntegrantes() {
     try {
-      const response = await fetch("/api/integrantes")
-      if (!response.ok) throw new Error("Erro ao carregar integrantes")
-      const data = await response.json()
-      setIntegrantes(data)
-      setTotalIntegrantes(data.length)
+      setIsLoading(true);
+      const res = await fetch('/api/integrantes/', {
+        method: 'GET'
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao buscar os integrantes");
+      }
+
+      const resposta = await res.json();
+      console.log('Resposta da API:', resposta);
+      const integrantesData = resposta || [];
+      setIntegrantes(integrantesData);
       
-      // Calcula total de instrumentos únicos
-      const instrumentos = new Set(data.map((i: Integrante) => i.instrumento))
-      setTotalInstrumentos(instrumentos.size)
+      // Calcular estatísticas
+      setTotalIntegrantes(integrantesData.length);
+      
+      // Calcular total de instrumentos únicos
+      const instrumentos = new Set(integrantesData.map((integrante: Integrante) => integrante.instrumento).filter(Boolean));
+      setTotalInstrumentos(instrumentos.size);
+      
+      // Calcular total de bandas únicas
+      const bandasIds = new Set();
+      integrantesData.forEach((integrante: Integrante) => {
+        if (integrante.bandas && integrante.bandas.length > 0) {
+          integrante.bandas.forEach(banda => {
+            if (banda.id) {
+              bandasIds.add(banda.id);
+            }
+          });
+        }
+      });
+      setTotalBandas(bandasIds.size);
     } catch (error) {
-      console.error("Erro ao carregar integrantes:", error)
-      toast.error("Erro ao carregar integrantes")
+      console.error("Erro ao buscar integrantes:", error);
+      setError("Erro ao buscar os integrantes");
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
   }
 
-  const handleDelete = async (id: string) => {
-    const confirmacao = await alertaConfirmacao({
-      titulo: 'Excluir Integrante',
-      texto: 'Tem certeza que deseja excluir este integrante? Esta ação não poderá ser desfeita.',
-      icone: 'warning',
-      confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Não, manter',
-      showCancelButton: true,
-      confirmButtonColor: '#9333ea', // purple-600
-      cancelButtonColor: '#374151', // gray-700
-    });
+  const handleDeleteIntegrante = async (id: string) => {
+    try {
+      const res = await fetch(`/api/integrantes/${id}`, {
+        method: 'DELETE'
+      });
 
-    if (confirmacao.isConfirmed) {
-      try {
-        const response = await fetch(`/api/integrantes/${id}`, {
-          method: "DELETE",
-        });
-
-        if (!response.ok) throw new Error("Erro ao excluir integrante");
-
-        alertaSucesso('Integrante excluído com sucesso!');
-        fetchIntegrantes();
-      } catch (error) {
-        console.error("Erro ao excluir integrante:", error);
-        alertaErro('Erro ao excluir integrante');
+      if (!res.ok) {
+        throw new Error("Erro ao excluir o integrante");
       }
+
+      await buscarIntegrantes();
+      alertaSucesso("Integrante excluído com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alertaErro("Erro ao excluir o integrante");
     }
   };
 
-  const handleView = (integrante: Integrante) => {
-    setSelectedIntegrante(integrante);
-    setIsViewOpen(true);
+  const handleOpenModal = (integrante: Integrante) => {
+    setIntegranteSelecionado(integrante);
+    setIsModalOpen(true);
   };
 
-  const filteredIntegrantes = integrantes.filter((integrante) => {
-    const matchesSearch = integrante.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      integrante.instrumento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      integrante.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      integrante.apelido?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      integrante.chave_pix?.toLowerCase().includes(searchTerm.toLowerCase())
+  if (isLoading) {
+    return <div className="p-4">Carregando...</div>;
+  }
 
-    const matchesInstrumento = selectedInstrumento === "" || 
-      integrante.instrumento === selectedInstrumento
-
-    return matchesSearch && matchesInstrumento
-  })
-
-  const uniqueInstrumentos = Array.from(new Set(integrantes.map(i => i.instrumento).filter(Boolean))).sort()
-
-  if (loading) {
-    return <div>Carregando...</div>
+  if (error) {
+    return <div className="p-4 text-red-500">{error}</div>;
   }
 
   return (
-    <div className="h-full">
-      <div className="mx-auto max-w-7xl pt-12 px-8">
+    <div className="container p-4 mx-auto">
+      <div className="flex flex-col space-y-4">
         <div className="space-y-1">
           <h1 className="text-4xl font-bold text-white">Integrantes</h1>
           <p className="text-sm text-zinc-400">
-            Gerencie os músicos e membros da sua equipe
+            Gerencie seus músicos e membros da equipe
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
-          <div className="stat-card p-5 bg-gray-800 rounded-lg border border-gray-700">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+        <div className="flex flex-wrap gap-4 mt-8">
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-purple-900/20 hover:border-purple-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-600/20 to-purple-700/20 text-purple-400 ring-1 ring-purple-500/30 shadow-inner shadow-purple-600/10">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -169,14 +349,14 @@ export default function IntegrantesPage() {
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
-              <h3 className="text-gray-400 text-sm font-medium">Total de integrantes</h3>
+              <div className="text-xs text-gray-400">integrantes</div>
             </div>
-            <div className="text-2xl font-bold text-white">{totalIntegrantes}</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-purple-400 transition-colors duration-300">{totalIntegrantes}</div>
           </div>
 
-          <div className="stat-card p-5 bg-gray-800 rounded-lg border border-gray-700">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-indigo-900/20 hover:border-indigo-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-600/20 to-indigo-700/20 text-indigo-400 ring-1 ring-indigo-500/30 shadow-inner shadow-indigo-600/10">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -192,14 +372,14 @@ export default function IntegrantesPage() {
                   <circle cx="18" cy="16" r="3" />
                 </svg>
               </div>
-              <h3 className="text-gray-400 text-sm font-medium">Funções diferentes</h3>
+              <div className="text-xs text-gray-400">instrumentos</div>
             </div>
-            <div className="text-2xl font-bold text-white">{totalInstrumentos}</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-indigo-200 group-hover:to-indigo-400 transition-colors duration-300">{totalInstrumentos}</div>
           </div>
 
-          <div className="stat-card p-5 bg-gray-800 rounded-lg border border-gray-700">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="p-2 rounded-md bg-gray-700 text-purple-400">
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-blue-900/20 hover:border-blue-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/20 text-blue-400 ring-1 ring-blue-500/30 shadow-inner shadow-blue-600/10">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -210,265 +390,191 @@ export default function IntegrantesPage() {
                   strokeLinejoin="round"
                   className="h-5 w-5"
                 >
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  <path d="M19 9V5L12 2L5 5v4"></path>
+                  <circle cx="12" cy="11" r="2"></circle>
+                  <path d="M12 13v8"></path>
+                  <path d="M9 21h6"></path>
                 </svg>
               </div>
-              <h3 className="text-gray-400 text-sm font-medium">Em bandas</h3>
+              <div className="text-xs text-gray-400">bandas</div>
             </div>
-            <div className="text-2xl font-bold text-white">26</div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-blue-200 group-hover:to-blue-400 transition-colors duration-300">{totalBandas}</div>
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden mt-8">
-      <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[250px]">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-                  </div>
-            <input
-              type="text"
-                        placeholder="Buscar integrantes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
-            <Filter size={18} className="text-gray-400" />
-            <select
-                  value={selectedInstrumento}
-                  onChange={(e) => setSelectedInstrumento(e.target.value)}
-              className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="">Todos os instrumentos</option>
-                  {uniqueInstrumentos.map((instrumento) => (
-                    <option key={instrumento} value={instrumento}>
+        <div className="flex justify-between items-center mt-8">
+          <div className="flex space-x-2">
+            <Button 
+              onClick={() => setView("table")} 
+              variant={view === "table" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em tabela"
+            >
+              <TableIcon className="h-4 w-4 mr-1" />
+              Tabela
+            </Button>
+            <Button 
+              onClick={() => setView("cards")} 
+              variant={view === "cards" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em cartões"
+            >
+              <Grid className="h-4 w-4 mr-1" />
+              Cartões
+            </Button>
+          </div>
+          <Button
+            onClick={() => router.push('/integrantes/novo')}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Novo Integrante
+          </Button>
+        </div>
+
+        {view === "cards" ? (
+          <div className="w-full space-y-6 mt-6">
+            {/* Barra de pesquisa e filtros */}
+            <div className="flex flex-col sm:flex-row gap-3 bg-gray-850 rounded-lg p-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Pesquisar integrantes..."
+                  className="pl-9 bg-gray-900 border-gray-600 text-white placeholder:text-gray-400 focus:ring-blue-600"
+                />
+              </div>
+              
+              <Select defaultValue="todos">
+                <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+                  <SelectValue placeholder="Filtrar por instrumento" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-600">
+                  <SelectItem value="todos" className="text-white hover:bg-gray-800">
+                    Todos os instrumentos
+                  </SelectItem>
+                  {Array.from(new Set(integrantes.map(integrante => integrante.instrumento || "").filter(Boolean))).map((instrumento) => (
+                    <SelectItem key={instrumento} value={instrumento} className="text-white hover:bg-gray-800">
                       {instrumento}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-              {/* Botões de visualização */}
-          <div className="flex items-center space-x-1 ml-auto">
-                      <button
-              type="button"
-              className={`p-2 rounded-l ${
-                    viewMode === 'list'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                        }`}
-                  onClick={() => setViewMode('list')}
-              title="Visualização em Lista"
-                      >
-              <List size={18} />
-                      </button>
-                      <button
-              type="button"
-              className={`p-2 rounded-r ${
-                    viewMode === 'grid'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-                        }`}
-                  onClick={() => setViewMode('grid')}
-                  title="Visualização em Grade"
-                      >
-              <Grid size={18} />
-                      </button>
-                    </div>
-                    
-              <Link
-                href="/integrantes/novo"
-                className="btn-primary"
-              >
-            <Plus size={18} className="mr-1" />
-                      Novo Integrante
-          </Link>
-        </div>
-        </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          {viewMode === 'list' ? (
-          <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Instrumento</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Apelido</TableHead>
-                    <TableHead>PIX</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredIntegrantes.map((integrante) => (
-                    <TableRow key={integrante.id}>
-                      <TableCell className="font-semibold">{integrante.nome}</TableCell>
-                      <TableCell>{integrante.instrumento || "-"}</TableCell>
-                      <TableCell>{integrante.telefone || "-"}</TableCell>
-                      <TableCell>{integrante.email || "-"}</TableCell>
-                      <TableCell>{integrante.apelido || "-"}</TableCell>
-                      <TableCell>{integrante.tipo_chave_pix || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => handleView(integrante)}
-                            className="text-blue-400 hover:text-blue-300 transition-colors"
-                          title="Visualizar"
-                        >
-                            <Eye className="h-4 w-4" />
-                        </button>
-                      <button
-                            onClick={() => router.push(`/integrantes/${integrante.id}/editar`)}
-                            className="text-yellow-400 hover:text-yellow-300 transition-colors"
-                          title="Editar"
-                        >
-                            <FileEdit className="h-4 w-4" />
-                      </button>
-                      <button
-                            onClick={() => handleDelete(integrante.id)}
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Excluir"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                      </TableCell>
-                    </TableRow>
-              ))}
-                </TableBody>
-              </Table>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-              {filteredIntegrantes.map((integrante) => (
-                        <div 
-                          key={integrante.id} 
-                className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
-              >
-                {/* Cabeçalho do cartão */}
-                <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
-                  <div className="flex items-center w-full">
-                    <div className="flex-1 min-w-0">
-                      <h3 
-                        className="text-base font-medium text-white leading-tight line-clamp-2 text-center"
-                          title={integrante.nome}
-                      >
-                        {integrante.nome}
-                      </h3>
-                    </div>
-                            </div>
-                  <div className="mt-1 flex items-center justify-center w-full">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
-                        {integrante.instrumento || 'Instrumento não definido'}
-                            </span>
-                          </div>
-                </div>
-                
-                {/* Corpo do cartão */}
-                <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
-                            <div className="space-y-3">
-                      {/* Contatos */}
+            {/* Exibição dos cartões */}
+            {integrantes.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {integrantes.map((integrante) => (
+                  <div
+                    key={integrante.id}
+                    className="group relative bg-gray-800 hover:bg-gray-700 rounded-lg p-4 border border-gray-700 hover:border-gray-500 transition-all duration-200 shadow-lg"
+                  >
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-start justify-between mb-4">
                         <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Contatos</p>
-                        <div className="space-y-2 text-sm text-gray-300">
-                          {integrante.apelido && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <UserIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-400">Apelido:</span>
-                              <span className="text-gray-200">{integrante.apelido}</span>
-                              </div>
-                          )}
-                          {integrante.telefone && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <PhoneIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-200">{integrante.telefone}</span>
-                                </div>
-                              )}
-                              {integrante.email && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <AtSymbolIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-200">{integrante.email}</span>
-                            </div>
-                          )}
-                          {integrante.tipo_chave_pix && integrante.chave_pix && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CreditCardIcon className="h-4 w-4 text-gray-400" />
-                              <span className="text-gray-400">{integrante.tipo_chave_pix}:</span>
-                              <span className="text-gray-200">{integrante.chave_pix}</span>
+                          <h3 className="text-lg font-semibold text-white mb-1">
+                            {integrante.nome}
+                          </h3>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-700 text-white">
+                            {integrante.instrumento || 'Não definido'}
+                          </span>
                         </div>
-                          )}
-                          {!integrante.telefone && !integrante.email && !integrante.apelido && 
-                            !(integrante.tipo_chave_pix && integrante.chave_pix) && (
-                            <div className="text-gray-500 text-sm">Sem contatos registrados</div>
-                          )}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleOpenModal(integrante)}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Ver Detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <Link
+                            href={`/integrantes/${integrante.id}/editar`}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Editar"
+                          >
+                            <FileEdit className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteIntegrante(integrante.id)}
+                            className="p-1.5 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                                </div>
-                              
-                    {/* Bandas */}
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Bandas</p>
+                      </div>
+
+                      <div className="space-y-3 text-gray-300 mb-4">
+                        {integrante.apelido && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <UserIcon className="h-4 w-4 text-gray-400" />
+                            <span>{integrante.apelido}</span>
+                          </div>
+                        )}
+                        {integrante.telefone && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <PhoneIcon className="h-4 w-4 text-gray-400" />
+                            <span>{integrante.telefone}</span>
+                          </div>
+                        )}
+                        {integrante.email && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <AtSymbolIcon className="h-4 w-4 text-gray-400" />
+                            <span>{integrante.email}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-auto">
+                        <div className="text-sm text-gray-400 mb-2">Bandas:</div>
                         {integrante.bandas && integrante.bandas.length > 0 ? (
-                          <div className="flex flex-wrap gap-1">
-                            {integrante.bandas.map((banda) => (
+                          <div className="flex flex-wrap gap-1.5">
+                            {integrante.bandas.slice(0, 3).map((banda) => (
                               <span
                                 key={banda.id}
-                                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm"
+                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-white border border-blue-700"
                               >
                                 {banda.nome}
                               </span>
                             ))}
+                            {integrante.bandas.length > 3 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-700 text-white border border-gray-600">
+                                +{integrante.bandas.length - 3}
+                              </span>
+                            )}
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center h-16 text-center text-gray-500">
-                            <p className="text-sm">Sem bandas</p>
-                          </div>
+                          <span className="text-gray-500 text-sm">Nenhuma banda</span>
                         )}
                       </div>
-                            </div>
-                          </div>
-                
-                {/* Rodapé com ações */}
-                <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                            <div className="flex space-x-2">
-                              <button
-                        onClick={() => handleView(integrante)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
-                      title="Visualizar integrante"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button
-                        onClick={() => router.push(`/integrantes/${integrante.id}/editar`)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                                title="Editar integrante"
-                              >
-                      <FileEdit className="h-4 w-4" />
-                              </button>
-                              <button
-                        onClick={() => handleDelete(integrante.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                                title="Excluir integrante"
-                              >
-                      <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
                     </div>
-          )}
-        </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <IntegrantesTable 
+                integrantes={integrantes} 
+                onDelete={handleDeleteIntegrante}
+                onView={handleOpenModal}
+                router={router}
+              />
+            )}
+          </div>
+        ) : (
+          <IntegrantesTable 
+            integrantes={integrantes} 
+            onDelete={handleDeleteIntegrante}
+            onView={handleOpenModal}
+            router={router}
+          />
+        )}
       </div>
 
       {/* Dialog para visualizar integrante */}
-      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-lg bg-gray-800 border border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-white">
@@ -476,64 +582,64 @@ export default function IntegrantesPage() {
             </DialogTitle>
           </DialogHeader>
           
-          {selectedIntegrante && (
+          {integranteSelecionado && (
             <div className="space-y-4 mt-2">
               <div>
-                <h3 className="text-2xl font-bold text-white">{selectedIntegrante.nome}</h3>
+                <h3 className="text-2xl font-bold text-white">{integranteSelecionado.nome}</h3>
                 <div className="mt-1">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100">
-                    {selectedIntegrante.instrumento || 'Instrumento não definido'}
+                    {integranteSelecionado.instrumento || 'Instrumento não definido'}
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-gray-700">
                 {/* Contatos */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-gray-400">Contatos</h4>
                   <div className="space-y-2">
-                    {selectedIntegrante.apelido && (
+                    {integranteSelecionado.apelido && (
                       <div className="flex items-center gap-2 text-sm">
                         <UserIcon className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-400">Apelido:</span>
-                        <span className="text-gray-200">{selectedIntegrante.apelido}</span>
+                        <span className="text-gray-200">{integranteSelecionado.apelido}</span>
                       </div>
                     )}
-                    {selectedIntegrante.telefone && (
+                    {integranteSelecionado.telefone && (
                       <div className="flex items-center gap-2 text-sm">
                         <PhoneIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-200">{selectedIntegrante.telefone}</span>
+                        <span className="text-gray-200">{integranteSelecionado.telefone}</span>
                       </div>
                     )}
-                    {selectedIntegrante.email && (
+                    {integranteSelecionado.email && (
                       <div className="flex items-center gap-2 text-sm">
                         <AtSymbolIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-200">{selectedIntegrante.email}</span>
+                        <span className="text-gray-200">{integranteSelecionado.email}</span>
                       </div>
                     )}
-                    {selectedIntegrante.tipo_chave_pix && selectedIntegrante.chave_pix && (
+                    {integranteSelecionado.tipo_chave_pix && integranteSelecionado.chave_pix && (
                       <div className="flex items-center gap-2 text-sm">
                         <CreditCardIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-400">{selectedIntegrante.tipo_chave_pix}:</span>
-                        <span className="text-gray-200">{selectedIntegrante.chave_pix}</span>
+                        <span className="text-gray-400">{integranteSelecionado.tipo_chave_pix}:</span>
+                        <span className="text-gray-200">{integranteSelecionado.chave_pix}</span>
                       </div>
                     )}
-                    {!selectedIntegrante.telefone && !selectedIntegrante.email && !selectedIntegrante.apelido && 
-                      !(selectedIntegrante.tipo_chave_pix && selectedIntegrante.chave_pix) && (
+                    {!integranteSelecionado.telefone && !integranteSelecionado.email && !integranteSelecionado.apelido && 
+                      !(integranteSelecionado.tipo_chave_pix && integranteSelecionado.chave_pix) && (
                       <div className="text-gray-500 text-sm">Sem contatos registrados</div>
                     )}
                   </div>
                 </div>
 
                 {/* Bandas */}
-                <div className="space-y-3">
+                <div className="space-y-3 pt-4 border-t border-gray-700">
                   <h4 className="text-sm font-medium text-gray-400">Bandas</h4>
-                  {selectedIntegrante.bandas && selectedIntegrante.bandas.length > 0 ? (
+                  {integranteSelecionado.bandas && integranteSelecionado.bandas.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {selectedIntegrante.bandas.map((banda) => (
+                      {integranteSelecionado.bandas.map((banda) => (
                         <span
                           key={banda.id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100"
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
                         >
                           {banda.nome}
                         </span>
@@ -543,22 +649,20 @@ export default function IntegrantesPage() {
                     <div className="text-gray-500 text-sm">Não participa de nenhuma banda</div>
                   )}
                 </div>
-              </div>
 
-              {/* Observações */}
-              <div className="pt-4 border-t border-gray-700">
-                <h4 className="text-sm font-medium text-gray-400 mb-2">Observações</h4>
-                {selectedIntegrante.observacoes ? (
-                  <p className="text-sm text-gray-300 whitespace-pre-wrap">{selectedIntegrante.observacoes}</p>
-                ) : (
-                  <p className="text-sm text-gray-500">Sem observações registradas</p>
-        )}
-    </div>
+                {/* Observações */}
+                {integranteSelecionado.observacoes && (
+                  <div className="space-y-3 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-400">Observações</h4>
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">{integranteSelecionado.observacoes}</p>
+                  </div>
+                )}
+              </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-gray-700">
                 <Button
                   variant="outline"
-                  onClick={() => setIsViewOpen(false)}
+                  onClick={() => setIsModalOpen(false)}
                   className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
                 >
                   Fechar
@@ -566,10 +670,10 @@ export default function IntegrantesPage() {
                 <Button
                   variant="default"
                   onClick={() => {
-                    setIsViewOpen(false);
-                    router.push(`/integrantes/${selectedIntegrante.id}/editar`);
+                    setIsModalOpen(false);
+                    router.push(`/integrantes/${integranteSelecionado.id}/editar`);
                   }}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   Editar
                 </Button>
@@ -578,7 +682,6 @@ export default function IntegrantesPage() {
           )}
         </DialogContent>
       </Dialog>
-
     </div>
-  )
+  );
 } 

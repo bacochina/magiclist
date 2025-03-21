@@ -21,6 +21,7 @@ import { musicasSeed, gerarMusicasSeed } from '@/lib/seeds/musicas';
 import { bandasSeed } from '@/lib/seeds/bandas';
 import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
 import { useRouter } from 'next/navigation';
+import { getMusicas, deleteMusica } from '@/lib/supabase/musicas';
 
 // Card de estatísticas para a página de músicas
 const MusicaStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
@@ -432,15 +433,68 @@ const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: {
 };
 
 export default function MusicasPage() {
-  const [musicas, setMusicas] = useHydratedLocalStorage<Musica[]>('musicas', []);
+  const [musicas, setMusicas] = useState<Musica[]>([]);
   const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', bandasSeed);
   const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Efeito para verificar se há músicas e popular com dados de exemplo se necessário
+  // Efeito para carregar músicas do Supabase
   useEffect(() => {
-    // Carregar bandas
+    async function carregarMusicas() {
+      setLoading(true);
+      try {
+        // Tenta carregar músicas do Supabase
+        const musicasSupabase = await getMusicas();
+        
+        if (Array.isArray(musicasSupabase) && musicasSupabase.length > 0) {
+          setMusicas(musicasSupabase);
+        } else {
+          // Fallback para músicas do localStorage se não houver no Supabase
+          const musicasFromStorage = localStorage.getItem('musicas');
+          if (musicasFromStorage) {
+            try {
+              const parsedMusicas = JSON.parse(musicasFromStorage);
+              if (Array.isArray(parsedMusicas)) {
+                setMusicas(parsedMusicas);
+              } else {
+                // Fallback para dados de exemplo
+                setMusicas(musicasSeed);
+              }
+            } catch (error) {
+              console.error('Erro ao fazer parse das músicas do localStorage:', error);
+              setMusicas(musicasSeed);
+            }
+          } else {
+            // Não há músicas no localStorage, usar dados de exemplo
+            setMusicas(musicasSeed);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar músicas do Supabase:', error);
+        // Fallback para músicas do localStorage em caso de erro
+        const musicasFromStorage = localStorage.getItem('musicas');
+        if (musicasFromStorage) {
+          try {
+            const parsedMusicas = JSON.parse(musicasFromStorage);
+            if (Array.isArray(parsedMusicas)) {
+              setMusicas(parsedMusicas);
+            } else {
+              setMusicas(musicasSeed);
+            }
+          } catch (error) {
+            console.error('Erro ao fazer parse das músicas do localStorage:', error);
+            setMusicas(musicasSeed);
+          }
+        } else {
+          setMusicas(musicasSeed);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Carregar bandas do localStorage
     const bandasFromStorage = localStorage.getItem('bandas');
     if (bandasFromStorage) {
       try {
@@ -461,21 +515,7 @@ export default function MusicasPage() {
       localStorage.setItem('bandas', JSON.stringify(bandasSeed));
     }
 
-    if (!Array.isArray(musicas) || musicas.length === 0) {
-      // Verificar se já existem músicas no localStorage
-      const musicasExistentes = localStorage.getItem('musicas');
-      if (!musicasExistentes || JSON.parse(musicasExistentes).length === 0) {
-        // Verificar se temos dados de exemplo
-        if (typeof musicasSeed !== 'undefined' && Array.isArray(musicasSeed)) {
-          // Salvar as músicas de exemplo no localStorage
-          localStorage.setItem('musicas', JSON.stringify(musicasSeed));
-          // Atualizar o estado
-          setMusicas(musicasSeed);
-          console.log('Músicas de exemplo populadas com sucesso!');
-        }
-      }
-    }
-    setLoading(false);
+    carregarMusicas();
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -496,8 +536,20 @@ export default function MusicasPage() {
     
     if (confirmado) {
       try {
-        setMusicas(musicas.filter((m) => m.id !== id));
-        alertaSucesso('Música excluída com sucesso!');
+        // Tenta excluir no Supabase primeiro
+        const sucesso = await deleteMusica(id);
+        
+        if (sucesso) {
+          // Atualiza o estado local
+          setMusicas(musicas.filter((m) => m.id !== id));
+          alertaSucesso('Música excluída com sucesso!');
+        } else {
+          // Fallback para exclusão apenas no estado local
+          setMusicas(musicas.filter((m) => m.id !== id));
+          // Atualiza o localStorage para manter consistência
+          localStorage.setItem('musicas', JSON.stringify(musicas.filter((m) => m.id !== id)));
+          alertaSucesso('Música excluída com sucesso (apenas localmente)!');
+        }
       } catch (error) {
         console.error('Erro ao excluir música:', error);
         alertaErro('Erro ao excluir a música');

@@ -59,6 +59,7 @@ interface ThemeContextType {
   theme: ThemeConfig;
   updateTheme: (newTheme: Partial<ThemeConfig>) => void;
   resetTheme: () => void;
+  isThemeLoaded: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -100,7 +101,7 @@ const THEME_STYLE_ID = 'theme-custom-style';
 // Provedor de Tema
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<ThemeConfig>(defaultTheme);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false);
 
   // Carrega o tema salvo ao inicializar
   useEffect(() => {
@@ -116,14 +117,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error('Erro ao carregar tema:', e);
       } finally {
-        setIsLoaded(true);
+        setIsThemeLoaded(true);
       }
     }
   }, []);
 
   // Aplica as variáveis CSS ao mudar o tema
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isThemeLoaded) return;
     
     // Aplicando estilos diretos nos elementos HTML usando variáveis CSS
     const root = document.documentElement;
@@ -496,7 +497,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     
     console.log("Tema aplicado com sucesso:", theme);
-  }, [theme, isLoaded]);
+  }, [theme, isThemeLoaded]);
 
   // Função para atualizar o tema
   const updateTheme = (newTheme: Partial<ThemeConfig>) => {
@@ -519,7 +520,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme, resetTheme }}>
+    <ThemeContext.Provider value={{ theme, updateTheme, resetTheme, isThemeLoaded }}>
       {children}
     </ThemeContext.Provider>
   );
