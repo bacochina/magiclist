@@ -193,3 +193,58 @@ body {
 .badge-info {
   @apply bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100;
 }
+
+/* Estilos para os controles de volume e frequência */
+input[type="range"] {
+  -webkit-appearance: none;
+  height: var(--track-height, 4px);
+  background: #4a5568;
+  border-radius: 2px;
+  background-image: linear-gradient(#f59e0b, #d97706);
+  background-repeat: no-repeat;
+}
+
+/* Bolinha do controle de volume (40% maior) */
+input[type="range"].volume-control::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 28px; /* Tamanho base de 20px + 40% */
+  width: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: background .3s ease-in-out;
+}
+
+/* Bolinha do controle de frequência (20% maior) */
+input[type="range"].freq-control::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px; /* Tamanho base de 20px + 20% */
+  width: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: background .3s ease-in-out;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+/* Hover state para os controles */
+input[type="range"].volume-control::-webkit-slider-thumb:hover,
+input[type="range"].freq-control::-webkit-slider-thumb:hover {
+  background: #f8f9fa;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Active state para os controles */
+input[type="range"].volume-control::-webkit-slider-thumb:active,
+input[type="range"].freq-control::-webkit-slider-thumb:active {
+  background: #e9ecef;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
