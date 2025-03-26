@@ -1,26 +1,250 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 13, 17, 23;
+  --background-end-rgb: 20, 24, 33;
+  
+  /* Cores de destaque baseadas nas imagens */
+  --primary: 138, 43, 226;     /* Roxo principal */
+  --primary-light: 170, 85, 255;
+  --secondary: 45, 55, 72;     /* Cinza escuro */
+  --success: 56, 178, 125;     /* Verde */
+  --warning: 250, 176, 5;      /* Amarelo */
+  --danger: 239, 68, 68;       /* Vermelho */
+  --info: 59, 130, 246;        /* Azul */
+  
+  /* Cores do cartão/card */
+  --card-bg: 26, 32, 44;
+  --card-border: 45, 55, 72;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--background-start-rgb)),
+    rgb(var(--background-end-rgb))
+  );
+  min-height: 100vh;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(45, 55, 72, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(138, 43, 226, 0.5);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(138, 43, 226, 0.7);
+}
+
+/* Animações */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.glass {
+  background: rgba(26, 32, 44, 0.8);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(45, 55, 72, 0.3);
+  border-radius: 8px;
+}
+
+.glass-dark {
+  background: rgba(17, 24, 39, 0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(45, 55, 72, 0.4);
+  border-radius: 8px;
+}
+
+.text-gradient {
+  background: linear-gradient(to right, rgb(var(--primary-light)), rgb(var(--primary)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.btn-primary {
+  @apply bg-purple-700 hover:bg-purple-800 text-white font-medium py-2 px-4 rounded-md 
+  transition-all duration-200 flex items-center justify-center shadow-md;
+}
+
+.btn-secondary {
+  @apply bg-gray-700 hover:bg-gray-800 text-white font-medium py-2 px-4 rounded-md 
+  transition-all duration-200 flex items-center justify-center border border-gray-600;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md 
+  transition-all duration-200 flex items-center justify-center;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md 
+  transition-all duration-200 flex items-center justify-center;
+}
+
+.btn-warning {
+  @apply bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md 
+  transition-all duration-200 flex items-center justify-center;
+}
+
+.card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg p-6 shadow-xl;
+}
+
+.dashboard-card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-4 flex flex-col;
+}
+
+.stat-card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-4;
+}
+
+.input {
+  @apply bg-gray-900 border border-gray-700 rounded-md px-4 py-2 text-white 
+  focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent;
+}
+
+.table {
+  @apply w-full bg-gray-800 rounded-lg overflow-hidden border border-gray-700;
+}
+
+.table th {
+  @apply py-3 px-4 bg-gray-900 text-left text-xs font-medium text-gray-300 uppercase tracking-wider border-b border-gray-700;
+}
+
+.table td {
+  @apply py-3 px-4 border-b border-gray-700 text-sm text-gray-300;
+}
+
+.table tr:hover {
+  @apply bg-gray-700 transition-colors duration-150;
+}
+
+.modal {
+  @apply fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70;
+}
+
+.modal-content {
+  @apply bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6 
+  max-w-md w-full mx-auto animate-fadeIn;
+}
+
+.tooltip {
+  @apply absolute invisible opacity-0 bg-gray-900 text-white text-xs rounded-md py-1 px-2 
+  transition-opacity duration-150 ease-in-out z-10 bottom-full mb-2;
+}
+
+.tooltip-trigger:hover .tooltip {
+  @apply visible opacity-100;
+}
+
+/* Elementos de Dashboard */
+.dashboard-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6;
+}
+
+.chart-container {
+  @apply bg-gray-800 border border-gray-700 rounded-lg p-4 shadow-xl h-full;
+}
+
+/* Status Badges */
+.badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.badge-success {
+  @apply bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100;
+}
+
+.badge-danger {
+  @apply bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100;
+}
+
+.badge-info {
+  @apply bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100;
+}
+
+/* Estilos para os controles de volume e frequência */
+input[type="range"] {
+  -webkit-appearance: none;
+  height: var(--track-height, 4px);
+  background: #4a5568;
+  border-radius: 2px;
+  background-image: linear-gradient(#f59e0b, #d97706);
+  background-repeat: no-repeat;
+}
+
+/* Bolinha do controle de volume (40% maior) */
+input[type="range"].volume-control::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 28px; /* Tamanho base de 20px + 40% */
+  width: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: background .3s ease-in-out;
+}
+
+/* Bolinha do controle de frequência (20% maior) */
+input[type="range"].freq-control::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 24px; /* Tamanho base de 20px + 20% */
+  width: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  transition: background .3s ease-in-out;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  box-shadow: none;
+  border: none;
+  background: transparent;
+}
+
+/* Hover state para os controles */
+input[type="range"].volume-control::-webkit-slider-thumb:hover,
+input[type="range"].freq-control::-webkit-slider-thumb:hover {
+  background: #f8f9fa;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Active state para os controles */
+input[type="range"].volume-control::-webkit-slider-thumb:active,
+input[type="range"].freq-control::-webkit-slider-thumb:active {
+  background: #e9ecef;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }

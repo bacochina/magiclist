@@ -5,12 +5,33 @@ import { Modal } from '@/components/ui/Modal';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+<<<<<<< HEAD
 import { Pedaleira } from '@/lib/types';
 
+=======
+import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
+
+interface Pedaleira {
+  id: string;
+  nome: string;
+  marca: string;
+  modelo: string;
+  descricao?: string;
+  usaLetras: boolean;
+  qtdeBancos: number;
+  qtdePresetsporBanco: number;
+  bancos?: any[];
+}
+
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 const pedaleiraSchema = z.object({
   id: z.string().optional(),
   nome: z.string().min(1, 'O nome é obrigatório'),
   marca: z.string().min(1, 'A marca é obrigatória'),
+<<<<<<< HEAD
+=======
+  modelo: z.string().min(1, 'O modelo é obrigatório'),
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
   usaLetras: z.boolean().default(false),
   qtdeBancos: z.number().min(1, 'A quantidade de bancos deve ser maior que 0').max(99, 'A quantidade máxima de bancos é 99'),
   qtdePresetsporBanco: z.number().min(1, 'A quantidade de presets por banco deve ser maior que 0').max(9, 'A quantidade máxima de presets por banco é 9'),
@@ -23,6 +44,10 @@ const mockPedaleiras: Pedaleira[] = [
     id: '1',
     nome: 'Pedaleira 1',
     marca: 'Boss',
+<<<<<<< HEAD
+=======
+    modelo: 'GT-1000',
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
     usaLetras: true,
     qtdeBancos: 4,
     qtdePresetsporBanco: 5,
@@ -45,6 +70,10 @@ export default function PedaleirasPage() {
     defaultValues: pedaleiraEditando || {
       nome: '',
       marca: '',
+<<<<<<< HEAD
+=======
+      modelo: '',
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       usaLetras: false,
       qtdeBancos: 1,
       qtdePresetsporBanco: 5
@@ -76,9 +105,21 @@ export default function PedaleirasPage() {
     reset(pedaleira);
   };
 
-  const handleExcluir = (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta pedaleira?')) {
-      setPedaleiras(pedaleiras.filter(p => p.id !== id));
+  const handleExcluirPedaleira = async (id: string) => {
+    const confirmado = await confirmar(
+      'Excluir pedaleira',
+      'Tem certeza que deseja excluir esta pedaleira?',
+      'warning'
+    );
+    
+    if (confirmado) {
+      try {
+        setPedaleiras(pedaleiras.filter(p => p.id !== id));
+        alertaSucesso('Pedaleira excluída com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir pedaleira:', error);
+        alertaErro('Erro ao excluir a pedaleira');
+      }
     }
   };
 
@@ -135,7 +176,7 @@ export default function PedaleirasPage() {
                       Editar
                     </button>
                     <button
-                      onClick={() => handleExcluir(pedaleira.id)}
+                      onClick={() => handleExcluirPedaleira(pedaleira.id)}
                       className="text-red-600 hover:text-red-900"
                     >
                       Excluir
@@ -210,6 +251,24 @@ export default function PedaleirasPage() {
             )}
           </div>
 
+<<<<<<< HEAD
+=======
+          <div>
+            <label htmlFor="modelo" className="block text-sm font-medium text-gray-700">
+              Modelo
+            </label>
+            <input
+              type="text"
+              id="modelo"
+              {...register('modelo')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+            {errors.modelo && (
+              <p className="mt-1 text-sm text-red-600">{errors.modelo.message}</p>
+            )}
+          </div>
+
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="qtdeBancos" className="block text-sm font-medium text-gray-700">

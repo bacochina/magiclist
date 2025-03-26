@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client';
 
 import { useState } from 'react';
@@ -310,4 +311,14 @@ export default function LayoutsPage() {
       </div>
     </DndProvider>
   );
+=======
+import { DroppedElement } from './components/DroppedElement';
+import { DroppableArea } from './components/DroppableArea';
+import { LayoutClient } from './components/LayoutClient';
+
+export const dynamic = 'force-dynamic';
+
+export default function LayoutsPage() {
+  return <LayoutClient />;
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 } 

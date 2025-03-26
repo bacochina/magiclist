@@ -1,5 +1,6 @@
 'use client';
 
+<<<<<<< HEAD
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -12,10 +13,23 @@ interface MusicaDetalhesProps {
     tom: string;
     observacoes?: string;
   };
+=======
+interface Musica {
+  id: string;
+  nome: string;
+  artista: string;
+  tom: string;
+  observacoes?: string;
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 }
 
-export function MusicaDetalhes({ isOpen, onClose, musica }: MusicaDetalhesProps) {
+interface MusicaDetalhesProps {
+  musica: Musica;
+}
+
+export function MusicaDetalhes({ musica }: MusicaDetalhesProps) {
   return (
+<<<<<<< HEAD
     <Dialog
       open={isOpen}
       onClose={onClose}
@@ -57,7 +71,30 @@ export function MusicaDetalhes({ isOpen, onClose, musica }: MusicaDetalhesProps)
             </div>
           </div>
         </Dialog.Panel>
+=======
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">Nome</h3>
+        <p className="mt-1 text-sm text-gray-900">{musica.nome}</p>
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       </div>
-    </Dialog>
+
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">Artista</h3>
+        <p className="mt-1 text-sm text-gray-900">{musica.artista}</p>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">Tom</h3>
+        <p className="mt-1 text-sm text-gray-900">{musica.tom}</p>
+      </div>
+
+      {musica.observacoes && (
+        <div>
+          <h3 className="text-sm font-medium text-gray-500">Observações</h3>
+          <p className="mt-1 text-sm text-gray-900">{musica.observacoes}</p>
+        </div>
+      )}
+    </div>
   );
 } 

@@ -1,10 +1,18 @@
 'use client';
 
 import { Dialog } from '@headlessui/react';
+<<<<<<< HEAD
 import { XMarkIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
 import { StrictMode } from 'react';
+=======
+import { XMarkIcon, PlusIcon, Bars3Icon, QueueListIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
+import { StrictMode } from 'react';
+import { Bloco } from '@/lib/types';
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 
 interface Musica {
   id: string;
@@ -12,17 +20,13 @@ interface Musica {
   artista: string;
   tom: string;
   bpm?: string;
+  observacoes?: string;
 }
 
 interface BlocoDetalhesProps {
   isOpen: boolean;
   onClose: () => void;
-  bloco: {
-    id: string;
-    nome: string;
-    descricao?: string;
-    musicas: Musica[];
-  };
+  bloco: Bloco;
   musicasDisponiveis: Musica[];
   onAdicionarMusica: (musicaId: string) => void;
   onRemoverMusica: (musicaId: string) => void;
@@ -229,6 +233,34 @@ export function BlocoDetalhes({
                       </ul>
                     </div>
                   )}
+                </div>
+
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <h4 className="text-sm font-medium text-gray-500">Músicas do Bloco</h4>
+                  <div className="mt-2 space-y-2">
+                    {musicas.map((musica) => (
+                      <div
+                        key={musica.id}
+                        className="flex items-center space-x-3 bg-white p-3 rounded-md border border-gray-200"
+                      >
+                        <QueueListIcon className="h-5 w-5 text-gray-400" />
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900">{musica.nome}</h4>
+                          <p className="text-sm text-gray-500">
+                            {musica.artista} • Tom: {musica.tom} • BPM: {musica.bpm}
+                          </p>
+                          {musica.observacoes && (
+                            <p className="text-sm text-gray-500 mt-1">{musica.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {musicas.length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Este bloco ainda não possui músicas.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

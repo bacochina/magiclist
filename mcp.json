@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "supabase-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@alexander-zuev/supabase-mcp-server",
+        "--config",
+        "{\"supabaseProjectRef\":\"nlubmklrriltyjagmsig\",\"supabaseDbPassword\":\"Wl1EuKEXLoxbLATW\",\"supabaseRegion\":\"us-west-1\",\"supabaseAccessToken\":\"sbp_8580881de3c97f83b2b4947ecf215a2ad245aefd\",\"supabaseServiceRoleKey\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sdWJta2xycmlsdHlqYWdtc2lnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MTk0NTEyNSwiZXhwIjoyMDU3NTIxMTI1fQ.sAWTPi-cpKgBYG5R0Bh-y_LlKodVYT3rBCivRMTXxj4\"}"
+      ]
+    }
+  }
+} 

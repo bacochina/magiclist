@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 interface Musica {
   id: string;
   nome: string;
@@ -69,4 +70,27 @@ export const blocosExemplo: Bloco[] = [
     descricao: 'Clássicos da música brasileira',
     musicas: [musicasExemplo[2]], // Garota de Ipanema
   },
+=======
+import { musicasSeed } from './musicas';
+
+export const blocosSeed = [
+  {
+    id: '1',
+    nome: 'Rock Clássico',
+    descricao: 'Bloco com músicas clássicas do rock',
+    musicas: musicasSeed.slice(0, 3)
+  },
+  {
+    id: '2',
+    nome: 'Metal',
+    descricao: 'Bloco com músicas de metal',
+    musicas: musicasSeed.slice(3, 6)
+  },
+  {
+    id: '3',
+    nome: 'Rock Alternativo',
+    descricao: 'Bloco com músicas de rock alternativo',
+    musicas: musicasSeed.slice(6, 9)
+  }
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 ]; 

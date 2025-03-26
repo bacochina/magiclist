@@ -105,7 +105,156 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE.md](L
 Seu Nome - [@seutwitter](https://twitter.com/seutwitter)
 
 Link do Projeto: [https://github.com/seu-usuario/magiclist](https://github.com/seu-usuario/magiclist)
+<<<<<<< HEAD
 =======
 # magiclist
 Gerador de Repertórios
 >>>>>>> 1c0f6b5d98171b23b6c10c38b3f10aa595f70f0e
+=======
+
+## SweetAlert2
+
+O projeto utiliza a biblioteca SweetAlert2 para exibir alertas, confirmações e diálogos de forma elegante e responsiva.
+
+### Instalação
+
+A biblioteca já está instalada no projeto. Caso precise reinstalá-la:
+
+```bash
+npm install sweetalert2
+```
+
+### Importação dos Estilos
+
+Os estilos do SweetAlert2 são importados globalmente em `src/app/layout.tsx`:
+
+```typescript
+import 'sweetalert2/dist/sweetalert2.min.css'
+```
+
+### Utilitários Disponíveis
+
+O projeto oferece vários utilitários para facilitar o uso do SweetAlert2, localizados em `src/lib/sweetalert.ts`:
+
+#### Alertas Simples (Toast)
+
+```typescript
+import { alertaSucesso, alertaErro, alertaInfo, alertaAviso } from '@/lib/sweetalert';
+
+// Exemplos de uso
+alertaSucesso('Operação realizada com sucesso!');
+alertaErro('Ocorreu um erro na operação!');
+alertaInfo('Esta é uma informação importante.');
+alertaAviso('Atenção! Esta ação requer cuidado.');
+```
+
+#### Confirmações
+
+```typescript
+import { confirmar } from '@/lib/sweetalert';
+
+// Exemplo de uso
+const handleExcluirItem = async (id: string) => {
+  const confirmado = await confirmar(
+    'Excluir item',
+    'Tem certeza que deseja excluir este item?',
+    'warning'
+  );
+  
+  if (confirmado) {
+    // Prosseguir com a exclusão
+  }
+};
+```
+
+#### Alerta Padrão
+
+```typescript
+import { alerta } from '@/lib/sweetalert';
+
+// Exemplo de uso
+alerta('Título', 'Esta é uma mensagem de alerta padrão.', 'info');
+```
+
+#### Alerta com HTML
+
+```typescript
+import { alertaHTML } from '@/lib/sweetalert';
+
+// Exemplo de uso
+alertaHTML(
+  'Alerta com HTML', 
+  '<b>HTML</b> formatado com <i>estilos</i> e <u>elementos</u>', 
+  'info'
+);
+```
+
+#### Input de Texto
+
+```typescript
+import { inputTexto } from '@/lib/sweetalert';
+
+// Exemplo de uso
+const texto = await inputTexto(
+  'Digite um valor',
+  'Insira seu texto abaixo:',
+  'Digite aqui...'
+);
+if (texto) {
+  // Fazer algo com o texto digitado
+}
+```
+
+#### Alerta Temporizado
+
+```typescript
+import { alertaComTempo } from '@/lib/sweetalert';
+
+// Exemplo de uso - fecha após 3 segundos
+alertaComTempo(
+  'Alerta Temporizado',
+  'Este alerta fechará automaticamente em 3 segundos',
+  'info',
+  3000
+);
+```
+
+#### Uso Avançado
+
+Para casos mais específicos, você pode importar o Swal diretamente:
+
+```typescript
+import Swal from '@/lib/sweetalert';
+
+// Exemplo de uso avançado
+Swal.fire({
+  title: 'Título personalizado',
+  text: 'Mensagem personalizada',
+  icon: 'success',
+  showCancelButton: true,
+  confirmButtonText: 'Sim',
+  cancelButtonText: 'Não',
+  // ... outras opções
+});
+```
+
+### Documentação Completa
+
+Para mais informações, consulte a [documentação oficial do SweetAlert2](https://sweetalert2.github.io/).
+
+## Iniciando o Projeto
+
+```bash
+# Instalar dependências
+npm install
+
+# Iniciar servidor de desenvolvimento
+npm run dev
+
+# Construir para produção
+npm run build
+
+# Iniciar em modo de produção
+npm start
+```
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
