@@ -25,14 +25,16 @@ Uma aplicação web moderna para gerenciamento de repertórios musicais, desenvo
 
 ## Tecnologias Utilizadas
 
-- Next.js 14
+- Next.js 14 (Framework React)
 - TypeScript
-- Tailwind CSS
-- React Hook Form
-- Zod
-- Headless UI
-- Prisma (ORM)
-- PostgreSQL
+- Tailwind CSS (Estilização)
+- Supabase (Banco de dados e Autenticação)
+- Shadcn/ui (Componentes)
+- React Hook Form (Formulários)
+- Zod (Validação)
+- SweetAlert2 (Alertas)
+- Sonner (Toasts)
+- Lucide React (Ícones)
 
 ## Pré-requisitos
 

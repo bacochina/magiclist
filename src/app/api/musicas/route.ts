@@ -1,115 +1,213 @@
-'use client';
-
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js'
 
-// Schema de validação para criação de música
-const musicaSchema = z.object({
-  nome: z.string().min(1, 'Nome é obrigatório'),
-  artista: z.string().min(1, 'Artista é obrigatório'),
-  tom: z.string().min(1, 'Tom é obrigatório'),
-  bpm: z.number().optional(),
-  bandaId: z.string().min(1, 'Banda é obrigatória'),
-  observacoes: z.string().optional(),
-});
+// Usar variáveis de ambiente
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Função para carregar músicas do localStorage
-const getMusicas = () => {
-  if (typeof window === 'undefined') return [];
-  const musicas = localStorage.getItem('musicas');
-  return musicas ? JSON.parse(musicas) : [];
-};
+// Verificar se as variáveis de ambiente estão definidas
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Erro: Variáveis de ambiente do Supabase não encontradas')
+  throw new Error('Configuração do Supabase incompleta')
+}
 
-// Função para salvar músicas no localStorage
-const saveMusicas = (musicas: any[]) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem('musicas', JSON.stringify(musicas));
-};
+// Criar cliente Supabase uma única vez
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function GET() {
-  const musicas = getMusicas();
-  return NextResponse.json(musicas);
+  try {
+    const { data: musicas, error } = await supabase
+      .from("musicas")
+      .select(`
+        *,
+        musicas_bandas (
+          bandas (
+            id,
+            nome,
+            genero
+          )
+        )
+      `)
+      .order('titulo')
+
+    if (error) throw error
+
+    // Formatar os dados para incluir as bandas de forma mais acessível
+    const musicasFormatadas = musicas.map((musica: any) => ({
+      ...musica,
+      bandas: musica.musicas_bandas?.map((rel: any) => rel.bandas) || []
+    }))
+
+    return NextResponse.json(musicasFormatadas)
+  } catch (error) {
+    console.error("Erro ao buscar músicas:", error)
+    return NextResponse.json(
+      { error: "Erro ao buscar as músicas" },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: Request) {
-  const data = await request.json();
-  const novaMusica = {
-    id: String(Date.now()),
-    ...data
-  };
-  const musicas = getMusicas();
-  musicas.push(novaMusica);
-  saveMusicas(musicas);
-  return NextResponse.json(novaMusica);
+  try {
+    const { action, data } = await request.json()
+
+    switch (action) {
+      case 'create': {
+        const { bandas, ...musicaData } = data
+        
+        // 1. Inserir música
+        const { data: newMusica, error: createError } = await supabase
+          .from('musicas')
+          .insert([{
+            titulo: musicaData.titulo,
+            artista: musicaData.artista,
+            genero: musicaData.genero || '',
+            duracao: musicaData.duracao || '',
+            tom: musicaData.tom || '',
+            bpm: musicaData.bpm || '',
+            observacoes: musicaData.observacoes || '',
+            link_letra: musicaData.link_letra || '',
+            link_cifra: musicaData.link_cifra || '',
+            link_mp3: musicaData.link_mp3 || '',
+            link_vs: musicaData.link_vs || '',
+            status_vs: musicaData.status_vs || 'Não Tem'
+          }])
+          .select()
+          .single()
+          
+        if (createError) {
+          console.error('Erro ao criar música:', createError)
+          throw createError
+        }
+        
+        // 2. Se houver bandas selecionadas, criar relações
+        if (bandas && bandas.length > 0) {
+          const bandasRelations = bandas.map((bandaId: string) => ({
+            musica_id: newMusica.id,
+            banda_id: bandaId
+          }))
+          
+          const { error: relationError } = await supabase
+            .from('musicas_bandas')
+            .insert(bandasRelations)
+            
+          if (relationError) {
+            console.error('Erro ao criar relações com bandas:', relationError)
+            throw relationError
+          }
+        }
+        
+        return NextResponse.json(newMusica)
+      }
+        
+      default:
+        return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
+    }
+  } catch (error) {
+    console.error('Erro na API de músicas:', error)
+    return NextResponse.json(
+      { error: 'Erro ao processar a requisição' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function PUT(request: Request) {
-  const data = await request.json();
-  const musicas = getMusicas();
-  const index = musicas.findIndex(m => m.id === data.id);
-  if (index === -1) {
-    return NextResponse.json({ error: 'Música não encontrada' }, { status: 404 });
+  try {
+    const { id, ...updateData } = await request.json()
+
+    const { data: musica, error } = await supabase
+      .from('musicas')
+      .update({
+        titulo: updateData.titulo,
+        artista: updateData.artista,
+        genero: updateData.genero || '',
+        duracao: updateData.duracao || '',
+        tom: updateData.tom || '',
+        bpm: updateData.bpm || '',
+        observacoes: updateData.observacoes || '',
+        link_letra: updateData.link_letra || '',
+        link_cifra: updateData.link_cifra || '',
+        link_mp3: updateData.link_mp3 || '',
+        link_vs: updateData.link_vs || '',
+        status_vs: updateData.status_vs || 'Não Tem'
+      })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // Atualizar relações com bandas
+    if (updateData.bandas) {
+      // Primeiro, remover todas as relações existentes
+      const { error: delError } = await supabase
+        .from('musicas_bandas')
+        .delete()
+        .eq('musica_id', id)
+
+      if (delError) throw delError
+
+      // Depois, adicionar as novas relações
+      if (updateData.bandas.length > 0) {
+        const relacoes = updateData.bandas.map((bandaId: string) => ({
+          musica_id: id,
+          banda_id: bandaId
+        }))
+
+        const { error: relError } = await supabase
+          .from('musicas_bandas')
+          .insert(relacoes)
+
+        if (relError) throw relError
+      }
+    }
+
+    return NextResponse.json({ musica })
+  } catch (error) {
+    console.error('Erro ao atualizar música:', error)
+    return NextResponse.json(
+      { error: 'Erro ao atualizar música' },
+      { status: 500 }
+    )
   }
-  musicas[index] = { ...musicas[index], ...data };
-  saveMusicas(musicas);
-  return NextResponse.json(musicas[index]);
 }
 
 export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-  if (!id) {
-    return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
-  }
-  const musicas = getMusicas();
-  const index = musicas.findIndex(m => m.id === id);
-  if (index === -1) {
-    return NextResponse.json({ error: 'Música não encontrada' }, { status: 404 });
-  }
-  const novasMusicas = musicas.filter(m => m.id !== id);
-  saveMusicas(novasMusicas);
-  return NextResponse.json({ success: true });
-}
-
-export async function POST_prisma(request: Request) {
   try {
-    const data = await request.json();
-    
-    // Validação dos dados
-    const validacao = musicaSchema.safeParse(data);
-    if (!validacao.success) {
-      return NextResponse.json(
-        { error: 'Dados inválidos', detalhes: validacao.error.format() },
-        { status: 400 }
-      );
-    }
-    
-    // Verificar se a banda existe
-    const banda = await prisma.banda.findUnique({
-      where: { id: validacao.data.bandaId },
-    });
-    
-    if (!banda) {
-      return NextResponse.json(
-        { error: 'Banda não encontrada' },
-        { status: 404 }
-      );
-    }
-    
-    // Criação da música no banco de dados
-    const novaMusica = await prisma.musica.create({
-      data: validacao.data,
-      include: {
-        banda: true,
-      },
-    });
+    const url = new URL(request.url)
+    const id = url.pathname.split('/').pop()
 
-    return NextResponse.json(novaMusica, { status: 201 });
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID da música não fornecido' },
+        { status: 400 }
+      )
+    }
+
+    // Primeiro, remover as relações com bandas
+    const { error: relError } = await supabase
+      .from('musicas_bandas')
+      .delete()
+      .eq('musica_id', id)
+
+    if (relError) throw relError
+
+    // Depois, remover a música
+    const { error } = await supabase
+      .from('musicas')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Erro ao criar música:', error);
+    console.error('Erro ao excluir música:', error)
     return NextResponse.json(
-      { error: 'Erro ao criar música' },
+      { error: 'Erro ao excluir música' },
       { status: 500 }
-    );
+    )
   }
 } 

@@ -1,0 +1,26 @@
+25/03/2025 - 8:43h
+
+Após excluir todos as páginas referente a cadastro de shows e novo shows
+Após excluir tudo no projeto referente a Prisma (Bco de Dados) pois utilizamos o Supabase
+
+Após atualizarmos as chaves da API do Supabase
+    Project URL, 
+    Anon Public e 
+    Service Role 
+
+
+Build do Projeto - Sem erros
+
+Excelente! O servidor de desenvolvimento está rodando sem erros. Agora você pode acessar a aplicação em http://localhost:3000 e tudo deve estar funcionando corretamente com o Supabase.
+Algumas observações importantes:
+O build foi concluído com sucesso
+Não há mais erros relacionados à chave da API do Supabase
+O servidor de desenvolvimento iniciou sem problemas
+A aplicação está pronta para ser testada
+Você pode agora navegar pela aplicação e testar as funcionalidades. Há algo específico que você gostaria de testar ou verificar?
+
+-------------------------------------------------------
+
+
+
+

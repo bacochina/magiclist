@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  /* Cores base do sistema */
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 13, 17, 23;
   --background-end-rgb: 20, 24, 33;
@@ -19,6 +20,31 @@
   /* Cores do cartão/card */
   --card-bg: 26, 32, 44;
   --card-border: 45, 55, 72;
+
+  /* Cores semânticas para texto e elementos de UI */
+  --text-primary: var(--foreground-rgb);
+  --text-secondary: 156, 163, 175;
+  --text-muted: 107, 114, 128;
+  
+  /* Cores de ação */
+  --action-primary: var(--primary);
+  --action-primary-hover: var(--primary-light);
+  --action-secondary: var(--secondary);
+  --action-success: var(--success);
+  --action-warning: var(--warning);
+  --action-danger: var(--danger);
+  --action-info: var(--info);
+
+  /* Cores de estado */
+  --state-hover: 75, 85, 99;
+  --state-active: 55, 65, 81;
+  --state-focus: var(--primary);
+  --state-disabled: 75, 85, 99;
+
+  /* Cores de borda */
+  --border-primary: var(--card-border);
+  --border-secondary: 55, 65, 81;
+  --border-muted: 45, 55, 72;
 }
 
 body {
@@ -247,4 +273,42 @@ input[type="range"].volume-control::-webkit-slider-thumb:active,
 input[type="range"].freq-control::-webkit-slider-thumb:active {
   background: #e9ecef;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Esconde o menu lateral nos previews */
+iframe[title^="Preview"] ~ div > aside {
+  display: none !important;
+}
+
+/* Estilos para o container de preview */
+.preview-container {
+  transform: scale(0.9);
+  transform-origin: top center;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.preview-container > div {
+  height: auto !important;
+  min-height: 100%;
+}
+
+/* Evitar que elementos dentro dos previews vazem e causem problemas de layout */
+.preview-container * {
+  max-width: 100%;
+}
+
+/* Ajustes para navigation nos previews */
+.preview-container nav {
+  display: none;
+}
+
+/* Wrapper para as páginas de preview */
+.preview-page-wrapper {
+  padding: 1rem;
+  background: transparent;
+}
+
+.preview-page-wrapper main {
+  padding: 0 !important;
 }

@@ -1,621 +1,595 @@
-'use client';
+"use client"
 
-import { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { 
-  Music, 
   Plus, 
   Search, 
-  Filter, 
+  Eye, 
   FileEdit, 
   Trash2, 
-  Eye,
-  List,
+  Table as TableIcon, 
   Grid,
-  Clock,
-  Tag
-} from 'lucide-react';
-import { Musica, Banda } from '@/lib/types';
-import { useHydratedLocalStorage } from '@/hooks/useHydratedLocalStorage';
-import { musicasSeed, gerarMusicasSeed } from '@/lib/seeds/musicas';
-import { bandasSeed } from '@/lib/seeds/bandas';
-import { confirmar, alertaSucesso, alertaErro } from '@/lib/sweetalert';
-import { useRouter } from 'next/navigation';
-import { getMusicas, deleteMusica } from '@/lib/supabase/musicas';
+  Music2,
+  LayoutGrid,
+  LayoutList
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
+import { alertaSucesso, alertaErro, confirmar, alertaConfirmacao } from '@/lib/sweetalert'
+import { toast } from 'sonner'
+import { MusicaForm } from './components/MusicaForm'
+import { MusicaTable } from './components/MusicaTable'
+import { MusicaCard } from './components/MusicaCard'
 
-// Card de estatísticas para a página de músicas
-const MusicaStatCard = ({ title, value, icon }: { title: string; value: string | number; icon: React.ReactNode }) => (
-  <div className="stat-card p-5">
-    <div className="flex items-center space-x-3 mb-2">
-      <div className="p-2 rounded-md bg-gray-700 text-purple-400">
-        {icon}
-      </div>
-      <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
-    </div>
-    <div className="text-2xl font-bold text-white">{value}</div>
-  </div>
-);
+interface Banda {
+  id: string
+  nome: string
+  genero: string
+}
+
+interface Musica {
+  id: string
+  titulo: string
+  artista: string
+  genero: string
+  duracao: string
+  tom: string
+  bpm: string
+  observacoes?: string
+  link_letra?: string
+  link_cifra?: string
+  link_mp3?: string
+  link_vs?: string
+  status_vs?: string
+  bandas?: Banda[]
+}
+
+interface Stats {
+  totalMusicas: number
+  totalGeneros: number
+  totalBandas: number
+}
 
 // Componente de tabela de músicas
-const MusicasTable = ({ musicas, bandas, onDelete, onView, onEdit }: { 
-  musicas: Musica[]; 
-  bandas: Banda[];
-  onDelete: (id: string) => void;
-  onView: (id: string) => void;
-  onEdit: (id: string) => void;
+const MusicasTable = ({ 
+  musicas, 
+  onDelete, 
+  onView,
+  router
+}: { 
+  musicas: Musica[]
+  onDelete: (musica: Musica) => void
+  onView: (musica: Musica) => void
+  router: any
 }) => {
-  const [sortColumn, setSortColumn] = useState<string>('nome');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [musicasFiltradas, setMusicasFiltradas] = useState<Musica[]>(Array.isArray(musicas) ? musicas : []);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtroTom, setFiltroTom] = useState<string>('todos');
-  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
+  const [musicasFiltradas, setMusicasFiltradas] = useState<Musica[]>(musicas)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filtroGenero, setFiltroGenero] = useState('todos')
 
-  // Função para obter os nomes das bandas a partir dos IDs
-  const getNomesBandas = (bandasIds: string[] = []) => {
-    if (!Array.isArray(bandas) || !Array.isArray(bandasIds)) return '';
-    return bandasIds
-      .map(id => bandas.find(banda => banda.id === id)?.nome)
-      .filter(Boolean)
-      .join(', ');
-  };
-
+  // Filtra as músicas quando os critérios de filtro mudam
   useEffect(() => {
-    // Garantir que musicas é um array
-    if (!Array.isArray(musicas)) {
-      setMusicasFiltradas([]);
-      return;
-    }
+    const filteredMusicas = musicas.filter(musica => {
+      const matchesTerm = musica.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         musica.artista?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         musica.genero?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         musica.tom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         searchTerm === ''
+      
+      const matchesGenero = filtroGenero === 'todos' || musica.genero === filtroGenero
+      
+      return matchesTerm && matchesGenero
+    })
     
-    // Filtrar por busca e tom
-    let filtered = [...musicas];
-    
-    if (searchTerm) {
-      filtered = filtered.filter(musica => 
-        (musica.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (musica.artista || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (musica.tom || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    if (filtroTom !== 'todos') {
-      filtered = filtered.filter(musica => 
-        musica.tom === filtroTom
-      );
-    }
-    
-    // Ordenar
-    filtered = [...filtered].sort((a, b) => {
-      if (sortColumn === 'nome') {
-        const nomeA = (a.nome || '');
-        const nomeB = (b.nome || '');
-        return sortDirection === 'asc' 
-          ? nomeA.localeCompare(nomeB) 
-          : nomeB.localeCompare(nomeA);
-      }
-      if (sortColumn === 'artista') {
-        const artistaA = a.artista || '';
-        const artistaB = b.artista || '';
-        return sortDirection === 'asc' 
-          ? artistaA.localeCompare(artistaB) 
-          : artistaB.localeCompare(artistaA);
-      }
-      if (sortColumn === 'bpm') {
-        const bpmA = a.bpm || 0;
-        const bpmB = b.bpm || 0;
-        return sortDirection === 'asc' 
-          ? bpmA - bpmB 
-          : bpmB - bpmA;
-      }
-      return 0;
-    });
-    
-    setMusicasFiltradas(filtered);
-  }, [musicas, sortColumn, sortDirection, searchTerm, filtroTom]);
+    setMusicasFiltradas(filteredMusicas)
+  }, [musicas, searchTerm, filtroGenero])
 
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+  // Função para lidar com exclusão
+  const handleDelete = async (musica: Musica) => {
+    const confirmed = await confirmar('Excluir música', 'Tem certeza que deseja excluir esta música?', 'warning')
+    if (confirmed) {
+      onDelete(musica)
     }
-  };
+  }
 
-  // Extrair lista única de tons para o filtro
-  const tons = useMemo(() => {
-    if (!Array.isArray(musicas)) return ['todos'];
-    const tonsUnicos = ['todos', ...new Set(musicas.map(m => m.tom).filter(Boolean) as string[])];
-    return tonsUnicos.sort();
-  }, [musicas]);
+  // Array de gêneros únicos para o filtro
+  const generos = ["todos", ...Array.from(new Set(musicas.map(musica => musica.genero || "").filter(Boolean)))]
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden">
-      {/* Filtros e Busca */}
-      <div className="p-4 border-b border-gray-700 flex flex-wrap items-center justify-between gap-4">
-        <div className="relative flex-1 min-w-[250px]">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search size={18} className="text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                        placeholder="Buscar músicas..."
-            className="bg-gray-900 text-white pl-10 pr-4 py-2 rounded-md border border-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-2">
-            <Filter size={18} className="text-gray-400" />
-            <select
-              className="bg-gray-900 text-white px-3 py-2 rounded-md border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={filtroTom}
-              onChange={(e) => setFiltroTom(e.target.value)}
-            >
-              {tons.map(tom => (
-                <option key={tom} value={tom}>
-                  {tom === 'todos' ? 'Todos os tons' : tom}
-                </option>
-              ))}
-            </select>
+    <>
+      <div className="w-full space-y-6">
+        {/* Barra de pesquisa e filtros */}
+        <div className="flex flex-col sm:flex-row gap-3 bg-gray-850 rounded-lg p-4">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Pesquisar músicas..."
+              className="pl-9 bg-gray-900 border-gray-600 text-white placeholder:text-gray-400 focus:ring-blue-600"
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            />
           </div>
           
-          {/* Botões de visualização - Lista primeiro, depois cartões */}
-          <div className="flex items-center space-x-1 ml-auto">
-            <button
-              type="button"
-              className={`p-2 rounded-l ${
-                modoVisualizacao === 'lista'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => setModoVisualizacao('lista')}
-              title="Visualização em Lista"
-            >
-              <List size={18} />
-            </button>
-                    <button
-              type="button"
-              className={`p-2 rounded-r ${
-                modoVisualizacao === 'cartoes'
-                  ? 'bg-gray-700 text-gray-100'
-                  : 'text-gray-400 hover:text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => setModoVisualizacao('cartoes')}
-              title="Visualização em Cartões"
-            >
-              <Grid size={18} />
-                  </button>
-                </div>
+          <Select value={filtroGenero} onValueChange={setFiltroGenero}>
+            <SelectTrigger className="w-full sm:w-[180px] bg-gray-900 border-gray-600 text-white">
+              <SelectValue placeholder="Filtrar por gênero" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-900 border-gray-600">
+              {generos.map((genero) => (
+                <SelectItem key={genero} value={genero} className="text-white hover:bg-gray-800">
+                  {genero === "todos" ? "Todos os gêneros" : genero}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          <Link href="/musicas/nova" className="btn-primary">
-            <Plus size={18} className="mr-1" />
-            Nova Música
-          </Link>
-              </div>
-            </div>
-
-      {musicasFiltradas.length > 0 ? (
-        modoVisualizacao === 'lista' ? (
-          /* Tabela */
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-700">
-              <thead>
-                <tr>
-                  <th 
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'nome' ? 'text-white' : ''}`}
-                    onClick={() => handleSort('nome')}
-                  >
-                    <div className="flex items-center">
-                      <span>Título</span>
-                      {sortColumn === 'nome' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'artista' ? 'text-white' : ''}`}
-                    onClick={() => handleSort('artista')}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>Artista</span>
-                      {sortColumn === 'artista' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Tom
-                  </th>
-                  <th 
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider cursor-pointer ${sortColumn === 'bpm' ? 'text-white' : ''}`}
-                    onClick={() => handleSort('bpm')}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>BPM</span>
-                      {sortColumn === 'bpm' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Bandas
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {musicasFiltradas.map((musica) => (
-                  <tr key={musica.id} className="hover:bg-gray-750">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                      {musica.nome}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+        {/* Tabela */}
+        <div className="bg-gray-850 rounded-lg overflow-hidden border border-gray-800 shadow-lg">
+          <Table>
+            <TableHeader className="bg-gray-900">
+              <TableRow className="hover:bg-gray-900/90 border-b border-gray-800">
+                <TableHead className="text-left font-semibold text-white w-[200px]">TÍTULO</TableHead>
+                <TableHead className="text-left font-semibold text-white w-[150px]">ARTISTA</TableHead>
+                <TableHead className="text-left font-semibold text-white">GÊNERO</TableHead>
+                <TableHead className="text-left font-semibold text-white">TOM</TableHead>
+                <TableHead className="text-left font-semibold text-white">BANDAS</TableHead>
+                <TableHead className="text-left font-semibold text-white w-[120px]">STATUS VS</TableHead>
+                <TableHead className="text-right w-[100px]">AÇÕES</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {musicasFiltradas.length > 0 ? (
+                musicasFiltradas.map((musica) => (
+                  <TableRow key={musica.id} className="hover:bg-gray-800/80 border-b border-gray-800/50">
+                    <TableCell className="font-medium text-white">
+                      {musica.titulo}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
                       {musica.artista}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      <span className="px-2 py-1 bg-purple-900 bg-opacity-40 text-purple-300 rounded-full text-xs">
-                        {musica.tom || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-700 text-purple-50">
+                        {musica.genero || 'Não definido'}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {musica.bpm || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-300">
-                      {musica.bandasIds && musica.bandasIds.length > 0 ? (
-                        getNomesBandas(musica.bandasIds)
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {musica.tom || 'Não definido'}
+                    </TableCell>
+                    <TableCell className="text-gray-300">
+                      {musica.bandas && musica.bandas.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {musica.bandas.slice(0, 3).map((banda) => (
+                            <span 
+                              key={banda.id}
+                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
+                            >
+                              {banda.nome}
+                            </span>
+                          ))}
+                          {musica.bandas.length > 3 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-600 text-gray-200">
+                              +{musica.bandas.length - 3}
+                            </span>
+                          )}
+                        </div>
                       ) : (
-                        <span className="text-gray-500">Nenhuma banda</span>
+                        "Nenhuma banda"
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        musica.status_vs === 'VS (A Fazer)' ? 'bg-yellow-600 text-yellow-50' :
+                        musica.status_vs === 'VS (Fazendo)' ? 'bg-blue-600 text-blue-50' :
+                        musica.status_vs === 'VS (Feito)' ? 'bg-green-600 text-green-50' :
+                        'bg-gray-600 text-gray-50'
+                      }`}>
+                        {musica.status_vs}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => onView(musica.id)}
-                          className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
-                          title="Visualizar"
+                          onClick={() => onView(musica)}
+                          className="text-gray-400 hover:text-blue-400 transition-colors"
+                          title="Ver Detalhes"
                         >
-                          <Eye size={18} />
+                          <Eye className="h-4 w-4" />
                         </button>
-                      <button
-                          onClick={() => onEdit(musica.id)}
-                          className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                        <Link
+                          href={`/musicas/${musica.id}/editar`}
+                          className="text-gray-400 hover:text-yellow-400 transition-colors"
                           title="Editar"
                         >
-                          <FileEdit size={18} />
-                      </button>
+                          <FileEdit className="h-4 w-4" />
+                        </Link>
                         <button
-                          onClick={() => onDelete(musica.id)}
-                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                          onClick={() => handleDelete(musica)}
+                          className="text-gray-400 hover:text-red-400 transition-colors"
                           title="Excluir"
                         >
-                          <Trash2 size={18} />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* Visualização em Cartões */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6 bg-gray-900/30 rounded-lg">
-            {musicasFiltradas.map((musica) => (
-              <div 
-                key={musica.id} 
-                className="bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden rounded-xl border border-gray-700 flex flex-col h-full hover:translate-y-[-3px] hover:border-indigo-500/50"
-              >
-                {/* Cabeçalho do cartão */}
-                <div className="p-3 flex flex-col bg-gradient-to-r from-indigo-800 to-indigo-900 border-b border-indigo-700">
-                  <div className="flex items-center w-full">
-                    <div className="flex-1 min-w-0">
-                      <h3 
-                        className="text-base font-medium text-white leading-tight line-clamp-1 text-center"
-                        title={musica.nome || ''}
-                      >
-                        {musica.nome}
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="mt-1 flex items-center justify-center w-full">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100 shadow-sm">
-                      {musica.artista}
-                    </span>
-                    </div>
-                  </div>
-
-                {/* Corpo do cartão */}
-                <div className="px-4 py-4 flex-grow bg-gradient-to-b from-gray-800 to-gray-850">
-                  <div className="space-y-3">
-                    {/* Tom */}
-                    <div className="flex items-start">
-                      <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
-                        <Tag size={16} className="text-indigo-300" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Tom</p>
-                        <p className="text-gray-200 text-sm">
-                          {musica.tom || 'Não definido'}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* BPM */}
-                    <div className="flex items-start">
-                      <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
-                        <Clock size={16} className="text-indigo-300" />
-                  </div>
-                                <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">BPM</p>
-                        <p className="text-gray-200 text-sm">
-                          {musica.bpm || 'Não definido'}
-                        </p>
-                </div>
-              </div>
-                              
-                    {/* Bandas */}
-                    <div className="flex items-start">
-                      <div className="bg-gray-700/50 p-1.5 rounded-lg mr-2.5 flex-shrink-0">
-                        <Music size={16} className="text-indigo-300" />
-                              </div>
-              <div>
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Bandas</p>
-                        {musica.bandasIds && musica.bandasIds.length > 0 ? (
-                          <p className="text-gray-200 text-sm break-words">
-                            {getNomesBandas(musica.bandasIds)}
-                          </p>
-                        ) : (
-                          <p className="text-gray-500 text-sm">
-                            Não incluída em nenhuma banda
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                              
-                    {/* Observações (se houver) */}
-                              {musica.observacoes && (
-                      <div className="mt-2.5 pt-2.5 border-t border-gray-700/50">
-                        <p className="text-xs text-gray-400 font-medium mb-0.5">Observações</p>
-                        <p className="text-gray-300 text-sm line-clamp-2">{musica.observacoes}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                
-                {/* Rodapé com ações */}
-                <div className="p-3 sm:px-6 flex justify-end items-center bg-gray-850 border-t border-gray-700/50 mt-auto">
-                            <div className="flex space-x-2">
-                              <button
-                      onClick={() => onView(musica.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-blue-300 hover:bg-blue-800/30 transition-colors duration-200"
-                      title="Visualizar música"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                          <button
-                      onClick={() => onEdit(musica.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-yellow-300 hover:bg-yellow-800/30 transition-colors duration-200"
-                            title="Editar música"
-                          >
-                      <FileEdit className="h-4 w-4" />
-                          </button>
-                          <button
-                      onClick={() => onDelete(musica.id)}
-                      className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-red-300 hover:bg-red-800/30 transition-colors duration-200"
-                            title="Excluir música"
-                          >
-                      <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ) : (
-        <div className="p-8 text-center">
-          <div className="text-gray-400">Nenhuma música encontrada</div>
-                </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                    Nenhuma música encontrada
+                  </TableCell>
+                </TableRow>
               )}
-            </div>
-  );
-};
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </>
+  )
+}
 
 export default function MusicasPage() {
-  const [musicas, setMusicas] = useState<Musica[]>([]);
-  const [bandas, setBandas] = useHydratedLocalStorage<Banda[]>('bandas', bandasSeed);
-  const [modoVisualizacao, setModoVisualizacao] = useState<'lista' | 'cartoes'>('lista');
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(true)
+  const [musicas, setMusicas] = useState<Musica[]>([])
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isViewMode, setIsViewMode] = useState<'grid' | 'table'>('table')
+  const [selectedMusica, setSelectedMusica] = useState<Musica | null>(null)
+  const [stats, setStats] = useState<Stats>({
+    totalMusicas: 0,
+    totalGeneros: 0,
+    totalBandas: 0
+  })
 
-  // Efeito para carregar músicas do Supabase
+  // Buscar músicas e calcular estatísticas
   useEffect(() => {
-    async function carregarMusicas() {
-      setLoading(true);
+    const fetchMusicas = async () => {
       try {
-        // Tenta carregar músicas do Supabase
-        const musicasSupabase = await getMusicas();
-        
-        if (Array.isArray(musicasSupabase) && musicasSupabase.length > 0) {
-          setMusicas(musicasSupabase);
-        } else {
-          // Fallback para músicas do localStorage se não houver no Supabase
-          const musicasFromStorage = localStorage.getItem('musicas');
-          if (musicasFromStorage) {
-            try {
-              const parsedMusicas = JSON.parse(musicasFromStorage);
-              if (Array.isArray(parsedMusicas)) {
-                setMusicas(parsedMusicas);
-              } else {
-                // Fallback para dados de exemplo
-                setMusicas(musicasSeed);
-              }
-            } catch (error) {
-              console.error('Erro ao fazer parse das músicas do localStorage:', error);
-              setMusicas(musicasSeed);
-            }
-          } else {
-            // Não há músicas no localStorage, usar dados de exemplo
-            setMusicas(musicasSeed);
-          }
-        }
+        const response = await fetch('/api/musicas')
+        if (!response.ok) throw new Error('Erro ao buscar músicas')
+        const data = await response.json()
+        setMusicas(data)
+
+        // Calcular estatísticas
+        const generos = new Set(data.map((m: Musica) => m.genero))
+        const bandas = new Set(data.flatMap((m: Musica) => m.bandas?.map(b => b.id) || []))
+
+        setStats({
+          totalMusicas: data.length,
+          totalGeneros: generos.size,
+          totalBandas: bandas.size
+        })
       } catch (error) {
-        console.error('Erro ao carregar músicas do Supabase:', error);
-        // Fallback para músicas do localStorage em caso de erro
-        const musicasFromStorage = localStorage.getItem('musicas');
-        if (musicasFromStorage) {
-          try {
-            const parsedMusicas = JSON.parse(musicasFromStorage);
-            if (Array.isArray(parsedMusicas)) {
-              setMusicas(parsedMusicas);
-            } else {
-              setMusicas(musicasSeed);
-            }
-          } catch (error) {
-            console.error('Erro ao fazer parse das músicas do localStorage:', error);
-            setMusicas(musicasSeed);
-          }
-        } else {
-          setMusicas(musicasSeed);
-        }
+        console.error('Erro ao buscar músicas:', error)
+        toast.error('Erro ao carregar músicas')
       } finally {
-        setLoading(false);
+        setIsLoading(false)
       }
     }
 
-    // Carregar bandas do localStorage
-    const bandasFromStorage = localStorage.getItem('bandas');
-    if (bandasFromStorage) {
-      try {
-        const parsedBandas = JSON.parse(bandasFromStorage);
-        if (Array.isArray(parsedBandas)) {
-          setBandas(parsedBandas);
-        } else {
-          setBandas(bandasSeed);
-          localStorage.setItem('bandas', JSON.stringify(bandasSeed));
-        }
-      } catch (error) {
-        console.error('Erro ao fazer parse das bandas:', error);
-        setBandas(bandasSeed);
-        localStorage.setItem('bandas', JSON.stringify(bandasSeed));
+    fetchMusicas()
+  }, [])
+
+  // Função para excluir música
+  const handleDelete = async (musica: Musica) => {
+    try {
+      const confirmado = await alertaConfirmacao({
+        titulo: 'Excluir música?',
+        texto: `Tem certeza que deseja excluir a música "${musica.titulo}"?`,
+        confirmButtonText: 'Sim, excluir',
+        cancelButtonText: 'Cancelar',
+        icone: 'warning'
+      })
+
+      if (!confirmado) {
+        return
       }
-    } else {
-      setBandas(bandasSeed);
-      localStorage.setItem('bandas', JSON.stringify(bandasSeed));
-    }
 
-    carregarMusicas();
-  }, []);
+      const response = await fetch(`/api/musicas/${musica.id}`, {
+        method: 'DELETE',
+      })
 
-  const handleDelete = async (id: string) => {
-    if (!Array.isArray(musicas)) {
-      alertaErro('Não foi possível excluir a música');
-      return;
-    }
-    
-    const musica = musicas.find(m => m.id === id);
-    
-    if (!musica) return;
-    
-    const confirmado = await confirmar(
-      'Excluir música',
-      `Tem certeza que deseja excluir a música "${musica.nome}"?`,
-      'warning'
-    );
-    
-    if (confirmado) {
-      try {
-        // Tenta excluir no Supabase primeiro
-        const sucesso = await deleteMusica(id);
-        
-        if (sucesso) {
-          // Atualiza o estado local
-          setMusicas(musicas.filter((m) => m.id !== id));
-          alertaSucesso('Música excluída com sucesso!');
-        } else {
-          // Fallback para exclusão apenas no estado local
-          setMusicas(musicas.filter((m) => m.id !== id));
-          // Atualiza o localStorage para manter consistência
-          localStorage.setItem('musicas', JSON.stringify(musicas.filter((m) => m.id !== id)));
-          alertaSucesso('Música excluída com sucesso (apenas localmente)!');
-        }
-      } catch (error) {
-        console.error('Erro ao excluir música:', error);
-        alertaErro('Erro ao excluir a música');
+      if (!response.ok) {
+        throw new Error('Erro ao excluir música')
       }
+
+      // Atualizar a lista de músicas localmente
+      const updatedMusicas = musicas.filter(m => m.id !== musica.id)
+      setMusicas(updatedMusicas)
+      
+      // Atualizar estatísticas
+      const generos = new Set(updatedMusicas.map(m => m.genero))
+      const bandas = new Set(updatedMusicas.flatMap(m => m.bandas?.map(b => b.id) || []))
+      
+      setStats({
+        totalMusicas: updatedMusicas.length,
+        totalGeneros: generos.size,
+        totalBandas: bandas.size
+      })
+
+      alertaSucesso('Música excluída com sucesso!')
+    } catch (error) {
+      console.error('Erro ao excluir música:', error)
+      alertaErro('Erro ao excluir música')
     }
-  };
+  }
 
-  const handleView = (id: string) => {
-    // Na implementação real, redireciona para a página de visualização
-    console.log('Visualizar música:', id);
-  };
+  // Função para visualizar detalhes da música
+  const handleView = (musica: Musica) => {
+    setSelectedMusica(musica)
+  }
 
-  const handleEdit = (id: string) => {
-    // Usar o router do Next.js em vez de window.location
-    router.push(`/musicas/editar/${id}`);
-  };
-
-  // Calcula estatísticas
-  const totalMusicas = Array.isArray(musicas) ? musicas.length : 0;
-  const tonsUnicos = new Set(Array.isArray(musicas) ? musicas.map(m => m.tom).filter(Boolean) : []).size;
-  
-  // Calcular BPM médio
-  const bpmTotal = Array.isArray(musicas) ? musicas.reduce((sum, musica) => sum + (musica.bpm || 0), 0) : 0;
-  const bpmMedio = totalMusicas > 0 ? Math.round(bpmTotal / totalMusicas) : 0;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-200" />
+      </div>
+    )
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Músicas</h1>
-          <p className="text-gray-400">Gerencie o repertório das suas bandas</p>
+    <div className="container p-4 mx-auto">
+      <div className="flex flex-col space-y-4">
+        {/* Cabeçalho */}
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-white">Músicas</h1>
+          <p className="text-sm text-zinc-400">
+            Gerencie o repertório musical da sua igreja
+          </p>
         </div>
-      </div>
-      
-      {/* Cards de estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <MusicaStatCard 
-          title="Total de Músicas" 
-          value={totalMusicas} 
-          icon={<Music size={20} />}
-        />
-        <MusicaStatCard 
-          title="Tons diferentes" 
-          value={tonsUnicos} 
-          icon={<Tag size={20} />}
-        />
-        <MusicaStatCard 
-          title="BPM médio" 
-          value={bpmMedio ? `${bpmMedio} BPM` : 'N/A'} 
-          icon={<Clock size={20} />}
-        />
-      </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        {/* Cards de Estatísticas */}
+        <div className="flex flex-wrap gap-4 mt-8">
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-purple-900/20 hover:border-purple-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-purple-600/20 to-purple-700/20 text-purple-400 ring-1 ring-purple-500/30 shadow-inner shadow-purple-600/10">
+                <Music2 className="h-5 w-5" />
+              </div>
+              <div className="text-xs text-gray-400">músicas</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-purple-200 group-hover:to-purple-400 transition-colors duration-300">
+              {stats.totalMusicas}
+            </div>
+          </div>
+
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-blue-900/20 hover:border-blue-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600/20 to-blue-700/20 text-blue-400 ring-1 ring-blue-500/30 shadow-inner shadow-blue-600/10">
+                <Music2 className="h-5 w-5" />
+              </div>
+              <div className="text-xs text-gray-400">gêneros</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-blue-200 group-hover:to-blue-400 transition-colors duration-300">
+              {stats.totalGeneros}
+            </div>
+          </div>
+
+          <div className="stat-card group relative overflow-hidden p-3 bg-gradient-to-r from-gray-800 to-gray-800/95 rounded-xl border border-gray-700/50 shadow-md transition-all duration-300 hover:shadow-green-900/20 hover:border-green-500/30 flex flex-1 items-center justify-between min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-green-600/20 to-green-700/20 text-green-400 ring-1 ring-green-500/30 shadow-inner shadow-green-600/10">
+                <Music2 className="h-5 w-5" />
+              </div>
+              <div className="text-xs text-gray-400">bandas</div>
+            </div>
+            <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent group-hover:from-green-200 group-hover:to-green-400 transition-colors duration-300">
+              {stats.totalBandas}
+            </div>
+          </div>
         </div>
-      ) : (
-        <MusicasTable 
-          musicas={musicas} 
-          bandas={bandas}
-          onDelete={handleDelete}
-          onView={handleView}
-          onEdit={handleEdit}
-        />
-      )}
+
+        {/* Barra de Ações */}
+        <div className="flex justify-between items-center mt-8">
+          <div className="flex space-x-2">
+            <Button 
+              onClick={() => setIsViewMode("table")} 
+              variant={isViewMode === "table" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em tabela"
+            >
+              <LayoutList className="h-4 w-4 mr-1" />
+              Tabela
+            </Button>
+            <Button 
+              onClick={() => setIsViewMode("grid")} 
+              variant={isViewMode === "grid" ? "outline" : "default"}
+              size="sm"
+              className="hidden sm:flex"
+              title="Visualização em cartões"
+            >
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Cartões
+            </Button>
+          </div>
+          <Button
+            onClick={() => router.push('/musicas/novo')}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Música
+          </Button>
+        </div>
+
+        {/* Conteúdo Principal */}
+        {isViewMode === 'table' ? (
+          <MusicaTable
+            musicas={musicas}
+            onDelete={handleDelete}
+            onView={handleView}
+            router={router}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {musicas.map((musica) => (
+              <MusicaCard
+                key={musica.id}
+                musica={musica}
+                onDelete={handleDelete}
+                onView={handleView}
+                router={router}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Dialog de Visualização */}
+        <Dialog open={!!selectedMusica} onOpenChange={() => setSelectedMusica(null)}>
+          <DialogContent className="sm:max-w-lg bg-gray-800 border border-gray-700 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-white">
+                Detalhes da Música
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedMusica && (
+              <div className="space-y-4 mt-2">
+                <div>
+                  <h3 className="text-2xl font-bold text-white">{selectedMusica.titulo}</h3>
+                  <div className="mt-1">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-800/70 text-purple-100">
+                      {selectedMusica.genero || 'Gênero não definido'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Artista</p>
+                    <p className="text-gray-200">{selectedMusica.artista}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Tom</p>
+                    <p className="text-gray-200">{selectedMusica.tom || 'Não definido'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">BPM</p>
+                    <p className="text-gray-200">{selectedMusica.bpm || 'Não definido'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Duração</p>
+                    <p className="text-gray-200">{selectedMusica.duracao || 'Não definido'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Status VS</p>
+                    <p className="text-gray-200">{selectedMusica.status_vs || 'Não Tem'}</p>
+                  </div>
+                </div>
+
+                {/* Bandas */}
+                <div className="space-y-3 pt-4 border-t border-gray-700">
+                  <h4 className="text-sm font-medium text-gray-400">Bandas</h4>
+                  {selectedMusica.bandas && selectedMusica.bandas.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedMusica.bandas.map((banda) => (
+                        <span
+                          key={banda.id}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-800 text-white"
+                        >
+                          {banda.nome}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm">Não está em nenhuma banda</div>
+                  )}
+                </div>
+
+                {/* Observações */}
+                {selectedMusica.observacoes && (
+                  <div className="space-y-3 pt-4 border-t border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-400">Observações</h4>
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap">{selectedMusica.observacoes}</p>
+                  </div>
+                )}
+
+                {/* Links */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                  {selectedMusica.link_letra && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedMusica.link_letra, '_blank')}
+                      className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Ver Letra
+                    </Button>
+                  )}
+                  {selectedMusica.link_cifra && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedMusica.link_cifra, '_blank')}
+                      className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Ver Cifra
+                    </Button>
+                  )}
+                  {selectedMusica.link_mp3 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedMusica.link_mp3, '_blank')}
+                      className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Ouvir MP3
+                    </Button>
+                  )}
+                  {selectedMusica.link_vs && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedMusica.link_vs, '_blank')}
+                      className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                    >
+                      Ver VS
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-700">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedMusica(null)}
+                    className="bg-transparent border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                  >
+                    Fechar
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      setSelectedMusica(null)
+                      router.push(`/musicas/${selectedMusica.id}/editar`)
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Editar
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
-  );
+  )
 } 

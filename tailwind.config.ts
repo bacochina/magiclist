@@ -9,6 +9,47 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Cores semânticas
+        primary: 'rgb(var(--primary) / <alpha-value>)',
+        'primary-light': 'rgb(var(--primary-light) / <alpha-value>)',
+        secondary: 'rgb(var(--secondary) / <alpha-value>)',
+        success: 'rgb(var(--success) / <alpha-value>)',
+        warning: 'rgb(var(--warning) / <alpha-value>)',
+        danger: 'rgb(var(--danger) / <alpha-value>)',
+        info: 'rgb(var(--info) / <alpha-value>)',
+        
+        // Cores de texto
+        foreground: 'rgb(var(--text-primary) / <alpha-value>)',
+        'muted-foreground': 'rgb(var(--text-muted) / <alpha-value>)',
+        
+        // Cores de fundo
+        background: {
+          DEFAULT: 'rgb(var(--background-start-rgb) / <alpha-value>)',
+          end: 'rgb(var(--background-end-rgb) / <alpha-value>)',
+        },
+        
+        // Cores de cartão
+        card: {
+          DEFAULT: 'rgb(var(--card-bg) / <alpha-value>)',
+          border: 'rgb(var(--card-border) / <alpha-value>)',
+        },
+        
+        // Cores de estado
+        state: {
+          hover: 'rgb(var(--state-hover) / <alpha-value>)',
+          active: 'rgb(var(--state-active) / <alpha-value>)',
+          focus: 'rgb(var(--state-focus) / <alpha-value>)',
+          disabled: 'rgb(var(--state-disabled) / <alpha-value>)',
+        },
+        
+        // Cores de borda
+        border: {
+          DEFAULT: 'rgb(var(--border-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--border-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--border-muted) / <alpha-value>)',
+        },
+
+        // Cores específicas do tema musical
         'music-blue': {
           50: '#E6F6FF',
           100: '#BAE3FF',

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { pt } from 'date-fns/locale';
 import { 
   Calendar, 
   BarChart2, 
@@ -91,7 +91,7 @@ const StatCard = ({
 const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEvento }) => {
   const formatarData = (data: string) => {
     const date = new Date(data);
-    return format(date, 'dd/MM/yyyy', { locale: ptBR });
+    return format(date, 'dd/MM/yyyy', { locale: pt });
   };
 
   const getEventLink = () => {
@@ -620,7 +620,7 @@ export default function EventosDashboard() {
                 </h3>
                 <div className="flex gap-2">
                   <Button
-                    variant={chartType1 === 'bar' ? 'primary' : 'secondary'}
+                    variant={chartType1 === 'bar' ? 'default' : 'secondary'}
                     size="sm"
                     className={`
                       ${chartType1 === 'bar' 
@@ -635,7 +635,7 @@ export default function EventosDashboard() {
                     Barras
                   </Button>
                   <Button
-                    variant={chartType1 === 'line' ? 'primary' : 'secondary'}
+                    variant={chartType1 === 'line' ? 'default' : 'secondary'}
                     size="sm"
                     className={`
                       ${chartType1 === 'line' 
@@ -753,7 +753,7 @@ export default function EventosDashboard() {
                 </h3>
                 <div className="flex gap-2">
                   <Button
-                    variant={chartType2 === 'pie' ? 'primary' : 'secondary'}
+                    variant={chartType2 === 'pie' ? 'default' : 'secondary'}
                     size="sm"
                     className={`
                       ${chartType2 === 'pie' 
@@ -768,7 +768,7 @@ export default function EventosDashboard() {
                     Pizza
                   </Button>
                   <Button
-                    variant={chartType2 === 'doughnut' ? 'primary' : 'secondary'}
+                    variant={chartType2 === 'doughnut' ? 'default' : 'secondary'}
                     size="sm"
                     className={`
                       ${chartType2 === 'doughnut' 

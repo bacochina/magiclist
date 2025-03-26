@@ -22,7 +22,8 @@ import {
   Home,
   ChevronDown,
   ChevronRight,
-  Database
+  Database,
+  FileCode2
 } from 'lucide-react';
 
 type MenuItem = {
@@ -46,6 +47,15 @@ const menuGroups: MenuGroup[] = [
     icon: <Home className="w-5 h-5" />,
     items: [
       { id: 'home', title: 'Home', href: '/', icon: <Home className="w-5 h-5" /> }
+    ]
+  },
+  {
+    id: 'templates',
+    title: 'Templates',
+    icon: <FileCode2 className="w-5 h-5" />,
+    items: [
+      { id: 'templates-list', title: 'Templates', href: '/templates', icon: <FileCode2 className="w-5 h-5" /> },
+      { id: 'templates-cadastros', title: 'Cadastros', href: '/templates/cadastros', icon: <Database className="w-5 h-5" /> }
     ]
   },
   {
