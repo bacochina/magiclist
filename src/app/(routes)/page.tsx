@@ -149,6 +149,9 @@ const RecentItemsList = ({ title, items }: { title: string; items: any[] }) => (
   </div>
 );
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function Home() {
   const [chartType1, setChartType1] = useState<'bar' | 'line'>('bar');
   const [chartType2, setChartType2] = useState<'pie' | 'doughnut'>('pie');

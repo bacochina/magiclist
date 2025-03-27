@@ -83,4 +83,13 @@ model Integrante {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
   bandas      Banda[]  @relation("IntegranteBanda")
+}
+
+model Banda {
+  id          String       @id @default(uuid())
+  nome        String
+  genero      String?
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+  integrantes Integrante[] @relation("IntegranteBanda")
 } 

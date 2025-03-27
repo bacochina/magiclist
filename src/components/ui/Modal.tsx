@@ -38,16 +38,11 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-<<<<<<< HEAD
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
-=======
               <Dialog.Panel className="relative transform overflow-hidden rounded-xl bg-white/95 backdrop-blur-sm px-4 pb-4 pt-5 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
                 <div className="absolute right-0 top-0 pr-4 pt-4">
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
                     onClick={onClose}
                   >
                     <span className="sr-only">Fechar</span>
@@ -55,11 +50,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
                   </button>
                 </div>
                 <div>
-<<<<<<< HEAD
-                  <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
-=======
                   <Dialog.Title as="h3" className="text-xl font-semibold text-gray-900 flex items-center">
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
                     {title}
                   </Dialog.Title>
                   <div className="mt-4">

@@ -26,16 +26,6 @@ import {
   FileCode2
 } from 'lucide-react';
 
-<<<<<<< HEAD
-const navigation = [
-  { name: 'Bandas', href: '/bandas' },
-  { name: 'Músicas', href: '/musicas' },
-  { name: 'Blocos', href: '/blocos' },
-  { name: 'Repertórios', href: '/repertorios' },
-  { name: 'Layouts', href: '/layouts' },
-  { name: 'Pedaleiras', href: '/pedaleiras' },
-  { name: 'Ajuda', href: '/help' },
-=======
 type MenuItem = {
   id: string;
   title: string;
@@ -141,7 +131,6 @@ const menuGroups: MenuGroup[] = [
       { id: 'help', title: 'Ajuda', href: '/help', icon: <HelpCircle className="w-5 h-5" /> }
     ]
   }
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 ];
 
 export default function Navigation() {

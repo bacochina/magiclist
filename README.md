@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # MagicList - Gerador de Repertórios
 
 Uma aplicação web moderna para gerenciamento de repertórios musicais, desenvolvida com Next.js, TypeScript e Tailwind CSS.
@@ -107,12 +106,6 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE.md](L
 Seu Nome - [@seutwitter](https://twitter.com/seutwitter)
 
 Link do Projeto: [https://github.com/seu-usuario/magiclist](https://github.com/seu-usuario/magiclist)
-<<<<<<< HEAD
-=======
-# magiclist
-Gerador de Repertórios
->>>>>>> 1c0f6b5d98171b23b6c10c38b3f10aa595f70f0e
-=======
 
 ## SweetAlert2
 
@@ -259,4 +252,3 @@ npm run build
 # Iniciar em modo de produção
 npm start
 ```
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6

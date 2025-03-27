@@ -196,21 +196,14 @@ export function RepertorioPDF({ nomeBanda, nomeRepertorio, data, blocos }: Reper
     );
   } catch (error) {
     console.error('Erro ao renderizar PDF:', error);
-<<<<<<< HEAD
-=======
     console.error('Detalhes do erro:', JSON.stringify(error, null, 2));
     console.error('Dados recebidos:', { nomeBanda, nomeRepertorio, data, blocos });
     
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
     return (
       <div className="flex items-center justify-center h-[800px] bg-gray-50">
         <div className="text-center">
           <p className="text-red-600 font-medium">Erro ao carregar o PDF</p>
-<<<<<<< HEAD
-          <p className="text-gray-500 mt-2">Por favor, tente novamente mais tarde</p>
-=======
           <p className="text-gray-500 mt-2">Por favor, verifique o console para mais detalhes</p>
->>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
         </div>
       </div>
     );
