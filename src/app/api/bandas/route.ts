@@ -1,4 +1,18 @@
 import { NextResponse } from 'next/server';
+<<<<<<< HEAD
+import { bandasSeed } from '@/lib/seeds/bandas';
+
+// Simula um banco de dados em memória
+let bandas = [...bandasSeed];
+
+export async function GET() {
+  try {
+    return NextResponse.json({ bandas });
+  } catch (error) {
+    console.error('Erro ao listar bandas:', error);
+    return NextResponse.json(
+      { error: 'Erro ao listar bandas' },
+=======
 import { createClient } from '@supabase/supabase-js';
 
 // Usar variáveis de ambiente
@@ -98,11 +112,31 @@ export async function GET() {
     console.error('Erro na API GET de bandas:', error);
     return NextResponse.json(
       { error: 'Erro ao buscar bandas' },
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       { status: 500 }
     );
   }
 }
 
+<<<<<<< HEAD
+export async function POST(request: Request) {
+  try {
+    const data = await request.json();
+    const novaBanda = {
+      ...data,
+      id: String(bandas.length + 1),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    bandas.push(novaBanda);
+
+    return NextResponse.json(novaBanda);
+  } catch (error) {
+    console.error('Erro ao criar banda:', error);
+    return NextResponse.json(
+      { error: 'Erro ao criar banda' },
+=======
 // Endpoint único para todas as operações
 export async function POST(request: Request) {
   try {
@@ -245,6 +279,7 @@ export async function DELETE(request: Request) {
     console.error('Erro na API DELETE de bandas:', error);
     return NextResponse.json(
       { error: 'Erro ao excluir a banda' },
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       { status: 500 }
     );
   }

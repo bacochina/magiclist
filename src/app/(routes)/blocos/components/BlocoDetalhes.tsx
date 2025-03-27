@@ -1,11 +1,18 @@
 'use client';
 
 import { Dialog } from '@headlessui/react';
+<<<<<<< HEAD
+import { XMarkIcon, PlusIcon, Bars3Icon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
+import { StrictMode } from 'react';
+=======
 import { XMarkIcon, PlusIcon, Bars3Icon, QueueListIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from '@hello-pangea/dnd';
 import { StrictMode } from 'react';
 import { Bloco } from '@/lib/types';
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 
 interface Musica {
   id: string;

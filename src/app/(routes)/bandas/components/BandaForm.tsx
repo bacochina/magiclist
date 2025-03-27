@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Banda } from '@/lib/types';
+<<<<<<< HEAD
+=======
 import { MusicalNoteIcon, UserGroupIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
 
 interface BandaFormProps {
   banda?: Banda;
@@ -24,6 +27,35 @@ export function BandaForm({ banda, onSubmit, onCancel }: BandaFormProps) {
   };
 
   return (
+<<<<<<< HEAD
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="nome" className="block text-sm font-medium text-gray-700">
+          Nome
+        </label>
+        <input
+          type="text"
+          id="nome"
+          value={formData.nome}
+          onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="genero" className="block text-sm font-medium text-gray-700">
+          Gênero
+        </label>
+        <input
+          type="text"
+          id="genero"
+          value={formData.genero}
+          onChange={(e) => setFormData({ ...formData, genero: e.target.value })}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          required
+        />
+=======
     <form onSubmit={handleSubmit} className="space-y-6 text-white max-w-[120%] mx-auto p-6 bg-gray-900/50 backdrop-blur-sm rounded-2xl border border-white/10 shadow-xl">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
         <div className="md:col-span-6 space-y-2">
@@ -61,6 +93,7 @@ export function BandaForm({ banda, onSubmit, onCancel }: BandaFormProps) {
             required
           />
         </div>
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       </div>
 
       <div className="space-y-2">
@@ -72,6 +105,20 @@ export function BandaForm({ banda, onSubmit, onCancel }: BandaFormProps) {
           id="descricao"
           value={formData.descricao}
           onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+<<<<<<< HEAD
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          rows={3}
+        />
+      </div>
+
+      <div className="flex justify-end space-x-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          {banda ? 'Atualizar' : 'Criar'}
+        </Button>
+=======
           className="mt-1 block w-full rounded-xl bg-gray-800/50 border border-white/20 text-sm text-white placeholder-gray-400
                    focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 shadow-sm
                    transition-all duration-200 ease-in-out px-3 py-2"
@@ -99,6 +146,7 @@ export function BandaForm({ banda, onSubmit, onCancel }: BandaFormProps) {
         >
           {banda ? 'Atualizar' : 'Criar'}
         </button>
+>>>>>>> 5d49630809b82c0fd6e9b76bf3898e17ba9220c6
       </div>
     </form>
   );
