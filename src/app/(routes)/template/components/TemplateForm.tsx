@@ -32,7 +32,11 @@ interface CampoForm {
   incluirFiltro: boolean;
 }
 
-export function TemplateForm() {
+interface TemplateFormProps {
+  onSQLGenerated?: (sql: string) => void;
+}
+
+export function TemplateForm({ onSQLGenerated }: TemplateFormProps) {
   const form = useForm();
   
   // Estados para título e subtítulo
@@ -52,9 +56,6 @@ export function TemplateForm() {
   
   // Estado para controlar a visualização do SQL
   const [showSQL, setShowSQL] = useState(false);
-  
-  // Estado para controlar a notificação de cópia
-  const [showCopySuccess, setShowCopySuccess] = useState(false);
   
   // Efeito para gerar subtítulo automaticamente
   useEffect(() => {
@@ -153,62 +154,6 @@ export function TemplateForm() {
     return `Gerencie informações completas sobre ${recurso} com facilidade`;
   };
   
-  // Função para gerar validação sugerida com base no tipo e nome do campo
-  const gerarValidacaoSugerida = (tipoInformacao: string, nomeAmigavel: string): string => {
-    const nomeLower = nomeAmigavel.toLowerCase();
-    
-    // Validações padrão por tipo
-    const validacoesPorTipo: { [key: string]: string } = {
-      text: "Obrigatório, Máximo 255 caracteres",
-      longtext: "Máximo 2000 caracteres",
-      number: "Obrigatório, Número inteiro positivo",
-      date: "Obrigatório, Data válida",
-      datetime: "Obrigatório, Data e hora válidas",
-      boolean: "Obrigatório",
-      enum: "Obrigatório, Selecione uma opção",
-      file: "Arquivo até 10MB, Formatos: jpg, png, pdf",
-      relation: "Obrigatório, Selecione um item"
-    };
-
-    // Validações específicas por nome do campo
-    if (nomeLower.includes("email")) {
-      return "Obrigatório, Email válido";
-    }
-    if (nomeLower.includes("telefone") || nomeLower.includes("celular")) {
-      return "Obrigatório, Formato: (99) 99999-9999";
-    }
-    if (nomeLower.includes("cpf")) {
-      return "Obrigatório, CPF válido";
-    }
-    if (nomeLower.includes("cnpj")) {
-      return "Obrigatório, CNPJ válido";
-    }
-    if (nomeLower.includes("cep")) {
-      return "Obrigatório, CEP válido";
-    }
-    if (nomeLower.includes("senha") || nomeLower.includes("password")) {
-      return "Obrigatório, Mínimo 8 caracteres, 1 maiúscula, 1 número";
-    }
-    if (nomeLower.includes("url") || nomeLower.includes("site") || nomeLower.includes("website")) {
-      return "URL válida começando com http:// ou https://";
-    }
-    if (nomeLower.includes("preco") || nomeLower.includes("valor")) {
-      return "Obrigatório, Valor decimal positivo";
-    }
-    if (nomeLower.includes("quantidade") || nomeLower.includes("estoque")) {
-      return "Obrigatório, Número inteiro maior ou igual a zero";
-    }
-    if (nomeLower.includes("porcentagem") || nomeLower.includes("percentual")) {
-      return "Obrigatório, Valor entre 0 e 100";
-    }
-    if (nomeLower.includes("cor")) {
-      return "Código de cor válido (hex ou nome)";
-    }
-    
-    // Se não houver validação específica, usar a padrão do tipo
-    return validacoesPorTipo[tipoInformacao] || "Obrigatório";
-  };
-  
   // Função para adicionar novo campo
   const adicionarCampo = () => {
     const novoCampo: CampoForm = {
@@ -232,30 +177,9 @@ export function TemplateForm() {
   // Função para atualizar campo
   const atualizarCampo = (id: string, atualizacao: Partial<CampoForm>) => {
     setCampos(
-      campos.map(campo => {
-        if (campo.id === id) {
-          const campoAtualizado = { ...campo, ...atualizacao };
-          
-          // Se o tipo de informação foi alterado, sugerir nova validação
-          if (atualizacao.tipoInformacao && !atualizacao.validacao) {
-            campoAtualizado.validacao = gerarValidacaoSugerida(
-              atualizacao.tipoInformacao,
-              campoAtualizado.nomeAmigavel
-            );
-          }
-          
-          // Se o nome amigável foi alterado, atualizar validação
-          if (atualizacao.nomeAmigavel && !atualizacao.validacao) {
-            campoAtualizado.validacao = gerarValidacaoSugerida(
-              campoAtualizado.tipoInformacao,
-              atualizacao.nomeAmigavel
-            );
-          }
-          
-          return campoAtualizado;
-        }
-        return campo;
-      })
+      campos.map(campo => 
+        campo.id === id ? { ...campo, ...atualizacao } : campo
+      )
     );
   };
   
@@ -391,210 +315,73 @@ export function TemplateForm() {
     }
   };
 
-  // Função para gerar SQL baseado nos campos configurados
+  // Função para gerar SQL baseado nos campos
   const gerarSQL = (): string => {
-    // Verificar se há nome de tabela definido
-    const nomeTab = nomeTabela.trim() || nomePagina.toLowerCase().replace(/\s+/g, '_');
+    let sql = `-- SQL gerado para o template: ${nomePagina}\n\n`;
     
-    // Começar a construir o SQL
-    let sql = `-- Comando SQL para criação da tabela ${nomeTab}\n`;
-    sql += `-- Gerado automaticamente para ${nomePagina}\n\n`;
+    // Criar tabela
+    sql += `CREATE TABLE IF NOT EXISTS ${nomeTabela} (\n`;
+    sql += `    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
     
-    // Criar a tabela
-    sql += `CREATE TABLE public.${nomeTab} (\n`;
-    sql += `  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    
-    // Adicionar os campos
-    const camposSQL = campos.map(campo => {
-      let tipo = '';
-      
-      // Mapear tipo de informação para tipo SQL
+    // Adicionar campos
+    campos.forEach(campo => {
+      let tipoSQL = '';
       switch(campo.tipoInformacao) {
         case 'text':
-          tipo = 'VARCHAR(255)';
+          tipoSQL = 'VARCHAR(255)';
           break;
-        case 'longtext':
-          tipo = 'TEXT';
+        case 'textarea':
+          tipoSQL = 'TEXT';
           break;
         case 'number':
-          tipo = 'NUMERIC';
+          tipoSQL = 'NUMERIC';
           break;
         case 'date':
-          tipo = 'DATE';
+          tipoSQL = 'DATE';
           break;
         case 'datetime':
-          tipo = 'TIMESTAMP WITH TIME ZONE';
+          tipoSQL = 'TIMESTAMP';
           break;
         case 'boolean':
-          tipo = 'BOOLEAN DEFAULT FALSE';
-          break;
-        case 'enum':
-          tipo = 'VARCHAR(50)';
-          break;
-        case 'file':
-          tipo = 'VARCHAR(255)';
-          break;
-        case 'relation':
-          tipo = 'UUID';
+          tipoSQL = 'BOOLEAN';
           break;
         default:
-          tipo = 'VARCHAR(255)';
+          tipoSQL = 'VARCHAR(255)';
       }
       
-      // Adicionar validações
-      let validacoes = '';
-      if (campo.validacao.toLowerCase().includes('obrigatório') || 
-          campo.validacao.toLowerCase().includes('obrigatorio') || 
-          campo.validacao.toLowerCase().includes('required')) {
-        validacoes = ' NOT NULL';
-      }
-      
-      return `  ${campo.nomeSugestao} ${tipo}${validacoes}`;
-    }).join(',\n');
+      sql += `    ${campo.nomeSugestao} ${tipoSQL},\n`;
+    });
     
-    sql += camposSQL;
-    
-    // Adicionar campos padrão de sistema
-    sql += `,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),\n`;
-    sql += `  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()\n`;
+    sql += `    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n`;
+    sql += `    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n`;
     sql += `);\n\n`;
     
-    // Adicionar comentário de tabela
-    sql += `COMMENT ON TABLE public.${nomeTab} IS '${funcaoTabela.replace(/'/g, "''")}';\n\n`;
-    
-    // Adicionar comentários para cada campo
-    campos.forEach(campo => {
-      sql += `COMMENT ON COLUMN public.${nomeTab}.${campo.nomeSugestao} IS '${campo.nomeAmigavel.replace(/'/g, "''")}';\n`;
-    });
-    
-    // Adicionar trigger para atualizar o updated_at
-    sql += `\n-- Trigger para atualizar o campo updated_at automaticamente\n`;
-    sql += `CREATE TRIGGER set_updated_at\n`;
-    sql += `  BEFORE UPDATE ON public.${nomeTab}\n`;
-    sql += `  FOR EACH ROW\n`;
-    sql += `  EXECUTE PROCEDURE public.moddatetime('updated_at');\n\n`;
-    
     // Adicionar índices para campos de pesquisa
-    const camposPesquisa = campos.filter(campo => campo.incluirPesquisa);
-    if (camposPesquisa.length > 0) {
-      sql += `-- Índices para campos de pesquisa\n`;
-      camposPesquisa.forEach(campo => {
-        sql += `CREATE INDEX idx_${nomeTab}_${campo.nomeSugestao} ON public.${nomeTab} (${campo.nomeSugestao});\n`;
-      });
-      sql += '\n';
-    }
-    
-    // Configurar RLS (Row Level Security)
-    sql += `-- Configuração de Row Level Security (RLS)\n`;
-    sql += `ALTER TABLE public.${nomeTab} ENABLE ROW LEVEL SECURITY;\n\n`;
-    
-    // Criar políticas de acesso
-    sql += `-- Políticas de acesso\n`;
-    sql += `CREATE POLICY "Permitir SELECT para usuários autenticados" ON public.${nomeTab}\n`;
-    sql += `  FOR SELECT USING (auth.role() = 'authenticated');\n\n`;
-    
-    sql += `CREATE POLICY "Permitir INSERT para usuários autenticados" ON public.${nomeTab}\n`;
-    sql += `  FOR INSERT WITH CHECK (auth.role() = 'authenticated');\n\n`;
-    
-    sql += `CREATE POLICY "Permitir UPDATE para usuários autenticados" ON public.${nomeTab}\n`;
-    sql += `  FOR UPDATE USING (auth.role() = 'authenticated');\n\n`;
-    
-    sql += `CREATE POLICY "Permitir DELETE para usuários autenticados" ON public.${nomeTab}\n`;
-    sql += `  FOR DELETE USING (auth.role() = 'authenticated');\n\n`;
-    
-    // Criar Views para facilitar consultas
-    sql += `-- View para facilitar consultas\n`;
-    sql += `CREATE OR REPLACE VIEW public.vw_${nomeTab} AS\n`;
-    sql += `  SELECT\n`;
-    sql += `    t.id,\n`;
-    campos.forEach((campo, index) => {
-      sql += `    t.${campo.nomeSugestao}${index < campos.length - 1 ? ',' : ''}\n`;
+    campos.filter(campo => campo.incluirPesquisa).forEach(campo => {
+      sql += `CREATE INDEX idx_${nomeTabela}_${campo.nomeSugestao} ON ${nomeTabela}(${campo.nomeSugestao});\n`;
     });
-    sql += `  FROM public.${nomeTab} t;\n\n`;
     
-    // Permissões da view
-    sql += `-- Permissões da view\n`;
-    sql += `GRANT SELECT ON public.vw_${nomeTab} TO authenticated;\n`;
-    sql += `GRANT SELECT ON public.vw_${nomeTab} TO service_role;\n\n`;
+    // Adicionar trigger para atualizar updated_at
+    sql += `\n-- Trigger para atualizar updated_at\n`;
+    sql += `CREATE OR REPLACE FUNCTION update_updated_at_column()\n`;
+    sql += `RETURNS TRIGGER AS $$\n`;
+    sql += `BEGIN\n`;
+    sql += `    NEW.updated_at = CURRENT_TIMESTAMP;\n`;
+    sql += `    RETURN NEW;\n`;
+    sql += `END;\n`;
+    sql += `$$ language 'plpgsql';\n\n`;
     
-    // Instruções finais
-    sql += `-- Instruções de uso:\n`;
-    sql += `-- 1. Execute este SQL no Editor SQL do Supabase\n`;
-    sql += `-- 2. Configure os hooks de API se necessário\n`;
-    sql += `-- 3. Teste as permissões de acesso\n`;
+    sql += `CREATE TRIGGER update_${nomeTabela}_updated_at\n`;
+    sql += `    BEFORE UPDATE ON ${nomeTabela}\n`;
+    sql += `    FOR EACH ROW\n`;
+    sql += `    EXECUTE FUNCTION update_updated_at_column();\n`;
     
     return sql;
   };
 
-  // Função para gerar SQL para download
-  const generateSQL = () => {
-    if (!nomeTabela) return "";
-    
-    let sql = `-- Criação da tabela ${nomeTabela}\n`;
-    sql += `CREATE TABLE public.${nomeTabela} (\n`;
-    sql += `  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,\n`;
-    
-    // Adicionar campos
-    campos.forEach((campo, index) => {
-      const tipo = getTipoSQL(campo.tipoInformacao);
-      sql += `  ${campo.nomeSugestao} ${tipo}`;
-      
-      // Adicionar vírgula se não for o último campo
-      if (index < campos.length - 1) {
-        sql += ",";
-      }
-      
-      sql += `\n`;
-    });
-    
-    sql += `);\n\n`;
-    
-    // Comentários da tabela
-    sql += `-- Adicionar comentário na tabela\n`;
-    sql += `COMMENT ON TABLE public.${nomeTabela} IS '${funcaoTabela.replace(/'/g, "''")}';\n\n`;
-    
-    // Comentários dos campos
-    campos.forEach(campo => {
-      sql += `-- Comentário para o campo ${campo.nomeSugestao}\n`;
-      sql += `COMMENT ON COLUMN public.${nomeTabela}.${campo.nomeSugestao} IS '${campo.nomeAmigavel.replace(/'/g, "''")}';\n`;
-    });
-    
-    return sql;
-  };
-  
-  // Função para obter o tipo SQL baseado no tipo de informação
-  const getTipoSQL = (tipo: string): string => {
-    switch (tipo) {
-      case 'text':
-        return 'TEXT';
-      case 'number':
-        return 'INTEGER';
-      case 'decimal':
-        return 'DECIMAL(10,2)';
-      case 'date':
-        return 'DATE';
-      case 'datetime':
-        return 'TIMESTAMP WITH TIME ZONE';
-      case 'boolean':
-        return 'BOOLEAN';
-      case 'image':
-        return 'TEXT';
-      case 'file':
-        return 'TEXT';
-      case 'select':
-        return 'TEXT';
-      case 'relation':
-        return 'INTEGER';
-      default:
-        return 'TEXT';
-    }
-  };
-  
   // Função para download do SQL
   const handleDownloadSQL = () => {
-    const sql = generateSQL();
-    if (!sql) return;
-    
+    const sql = gerarSQL();
     const blob = new Blob([sql], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -608,763 +395,16 @@ export function TemplateForm() {
 
   // Função para copiar SQL para área de transferência
   const handleCopySQL = async () => {
-    const sql = generateSQL();
-    if (!sql) return;
-    
-    try {
-      await navigator.clipboard.writeText(sql);
-      setShowCopySuccess(true);
-      setTimeout(() => setShowCopySuccess(false), 2000);
-    } catch (error) {
-      console.error('Erro ao copiar SQL:', error);
+    const sql = gerarSQL();
+    await navigator.clipboard.writeText(sql);
+  };
+
+  // Efeito para notificar o componente pai sobre mudanças no SQL
+  useEffect(() => {
+    if (onSQLGenerated) {
+      onSQLGenerated(gerarSQL());
     }
-  };
-
-  // Função para gerar análise da página de referência
-  const gerarAnaliseReferencia = (): string => {
-    let analise = `# Análise Detalhada da Página de Referência\n\n`;
-    
-    analise += `## 1. Estrutura e Layout\n`;
-    analise += `### 1.1 Organização Visual\n`;
-    analise += `- Layout principal utilizando CSS Grid e Flexbox\n`;
-    analise += `- Sistema de grid responsivo com breakpoints:\n`;
-    analise += `  * Mobile: < 640px (sm)\n`;
-    analise += `  * Tablet: 768px (md)\n`;
-    analise += `  * Desktop: 1024px (lg)\n`;
-    analise += `  * Wide: 1280px (xl)\n`;
-    analise += `- Espaçamento consistente usando escala de 4px (0.25rem)\n`;
-    analise += `- Margens e paddings adaptativos\n\n`;
-
-    analise += `### 1.2 Hierarquia Visual\n`;
-    analise += `- Tipografia escalável:\n`;
-    analise += `  * Títulos principais: 24px/1.5 (text-2xl)\n`;
-    analise += `  * Subtítulos: 18px/1.5 (text-lg)\n`;
-    analise += `  * Texto regular: 16px/1.5\n`;
-    analise += `  * Texto secundário: 14px/1.5 (text-sm)\n`;
-    analise += `- Pesos de fonte:\n`;
-    analise += `  * Regular: 400\n`;
-    analise += `  * Médio: 500\n`;
-    analise += `  * Semibold: 600\n`;
-    analise += `  * Bold: 700\n\n`;
-
-    analise += `### 1.3 Esquema de Cores\n`;
-    analise += `- Cores principais:\n`;
-    analise += `  * Background: slate-900 (#0F172A)\n`;
-    analise += `  * Texto principal: white (#FFFFFF)\n`;
-    analise += `  * Texto secundário: slate-400 (#94A3B8)\n`;
-    analise += `  * Bordas: slate-700 (#334155)\n`;
-    analise += `  * Accent: purple-600 (#9333EA)\n`;
-    analise += `- Estados de hover/focus:\n`;
-    analise += `  * Background hover: slate-800 (#1E293B)\n`;
-    analise += `  * Accent hover: purple-700 (#7E22CE)\n\n`;
-
-    analise += `## 2. Componentes e Interatividade\n`;
-    analise += `### 2.1 Cabeçalho\n`;
-    analise += `- Barra superior fixa com z-index elevado\n`;
-    analise += `- Logo e navegação principal\n`;
-    analise += `- Menu responsivo com hamburguer para mobile\n`;
-    analise += `- Indicador de seção atual\n`;
-    analise += `- Área de perfil e notificações\n\n`;
-
-    analise += `### 2.2 Sistema de Navegação\n`;
-    analise += `- Breadcrumbs para navegação hierárquica\n`;
-    analise += `- Links com estados hover/active\n`;
-    analise += `- Indicadores de loading\n`;
-    analise += `- Feedback visual para interações\n`;
-    analise += `- Tooltips informativos\n\n`;
-
-    analise += `### 2.3 Formulários\n`;
-    analise += `- Campos com estados:\n`;
-    analise += `  * Normal: border-slate-700\n`;
-    analise += `  * Hover: border-slate-600\n`;
-    analise += `  * Focus: ring-2 ring-purple-500\n`;
-    analise += `  * Erro: border-red-500\n`;
-    analise += `- Labels semânticos e acessíveis\n`;
-    analise += `- Mensagens de erro inline\n`;
-    analise += `- Validação em tempo real\n`;
-    analise += `- Autocomplete quando apropriado\n\n`;
-
-    analise += `### 2.4 Tabelas e Listagens\n`;
-    analise += `- Cabeçalhos fixos\n`;
-    analise += `- Ordenação por colunas\n`;
-    analise += `- Paginação com opções de limite\n`;
-    analise += `- Seleção múltipla com checkboxes\n`;
-    analise += `- Ações em lote\n`;
-    analise += `- Células responsivas\n`;
-    analise += `- Estados de hover por linha\n\n`;
-
-    analise += `### 2.5 Modais e Overlays\n`;
-    analise += `- Sistema de portais React\n`;
-    analise += `- Backdrop com blur\n`;
-    analise += `- Animações de entrada/saída\n`;
-    analise += `- Fechamento por ESC/clique fora\n`;
-    analise += `- Trap focus para acessibilidade\n\n`;
-
-    analise += `## 3. Funcionalidades Avançadas\n`;
-    analise += `### 3.1 Sistema de Busca\n`;
-    analise += `- Busca em tempo real (debounced)\n`;
-    analise += `- Highlight de resultados\n`;
-    analise += `- Filtros avançados\n`;
-    analise += `- Histórico de buscas\n`;
-    analise += `- Sugestões inteligentes\n\n`;
-
-    analise += `### 3.2 Gerenciamento de Estado\n`;
-    analise += `- Cache de dados\n`;
-    analise += `- Otimistic updates\n`;
-    analise += `- Revalidação automática\n`;
-    analise += `- Estado de loading/error\n`;
-    analise += `- Persistência local\n\n`;
-
-    analise += `### 3.3 Performance\n`;
-    analise += `- Code splitting automático\n`;
-    analise += `- Lazy loading de imagens\n`;
-    analise += `- Prefetch de rotas\n`;
-    analise += `- Memoização de componentes\n`;
-    analise += `- Service Worker para offline\n\n`;
-
-    analise += `### 3.4 Segurança\n`;
-    analise += `- Sanitização de inputs\n`;
-    analise += `- Proteção contra XSS\n`;
-    analise += `- Rate limiting\n`;
-    analise += `- Validação de tokens\n`;
-    analise += `- Auditoria de ações\n\n`;
-
-    analise += `## 4. Acessibilidade (A11Y)\n`;
-    analise += `### 4.1 Semântica\n`;
-    analise += `- Estrutura HTML5 semântica\n`;
-    analise += `- Landmarks apropriados\n`;
-    analise += `- Hierarquia de headings\n`;
-    analise += `- Labels e descrições\n`;
-    analise += `- Roles ARIA quando necessário\n\n`;
-
-    analise += `### 4.2 Navegação\n`;
-    analise += `- Skip links\n`;
-    analise += `- Foco visível\n`;
-    analise += `- Ordem de tabulação lógica\n`;
-    analise += `- Atalhos de teclado\n`;
-    analise += `- Menus acessíveis\n\n`;
-
-    analise += `### 4.3 Mídia e Conteúdo\n`;
-    analise += `- Textos alternativos\n`;
-    analise += `- Contraste adequado\n`;
-    analise += `- Redimensionamento seguro\n`;
-    analise += `- Legendas e transcrições\n`;
-    analise += `- Modo alto contraste\n\n`;
-
-    analise += `## 5. Responsividade\n`;
-    analise += `### 5.1 Mobile First\n`;
-    analise += `- Layout base para mobile\n`;
-    analise += `- Media queries ascendentes\n`;
-    analise += `- Touch targets adequados\n`;
-    analise += `- Gestos touch nativos\n`;
-    analise += `- Adaptação de conteúdo\n\n`;
-
-    analise += `### 5.2 Adaptações por Dispositivo\n`;
-    analise += `- Navegação adaptativa\n`;
-    analise += `- Imagens responsivas\n`;
-    analise += `- Fontes fluidas\n`;
-    analise += `- Grid responsivo\n`;
-    analise += `- Touch vs Mouse\n\n`;
-
-    analise += `## 6. Integração e Deploy\n`;
-    analise += `### 6.1 Build e Bundle\n`;
-    analise += `- Otimização de assets\n`;
-    analise += `- Tree shaking\n`;
-    analise += `- Minificação\n`;
-    analise += `- Splitting de código\n`;
-    analise += `- Cache busting\n\n`;
-
-    analise += `### 6.2 Monitoramento\n`;
-    analise += `- Analytics de uso\n`;
-    analise += `- Error tracking\n`;
-    analise += `- Performance metrics\n`;
-    analise += `- User feedback\n`;
-    analise += `- Logs de sistema\n\n`;
-
-    return analise;
-  };
-
-  // Função para gerar análise da nova página
-  const gerarAnaliseNovaPagina = (): string => {
-    let analise = `# Análise Detalhada da Nova Página: ${nomePagina}\n\n`;
-    
-    analise += `## 1. Informações Básicas e Metadados\n`;
-    analise += `### 1.1 Identificação\n`;
-    analise += `- Título: ${titulo || 'Não definido'}\n`;
-    analise += `- Subtítulo: ${subtitulo || 'Não definido'}\n`;
-    analise += `- Nome da Tabela: ${nomeTabela || 'Não definido'}\n`;
-    analise += `- Função: ${funcaoTabela || 'Não definida'}\n`;
-    analise += `- Rota: /app/${nomeTabela?.toLowerCase()}\n`;
-    analise += `- Permissões Necessárias: authenticated\n\n`;
-
-    analise += `### 1.2 SEO e Metadados\n`;
-    analise += `- Title Tag: ${titulo} | Nome do Sistema\n`;
-    analise += `- Meta Description: ${subtitulo}\n`;
-    analise += `- Canonical URL: https://seudominio.com/app/${nomeTabela?.toLowerCase()}\n`;
-    analise += `- Open Graph Tags:\n`;
-    analise += `  * og:title: ${titulo}\n`;
-    analise += `  * og:description: ${subtitulo}\n`;
-    analise += `  * og:type: website\n`;
-    analise += `  * og:url: https://seudominio.com/app/${nomeTabela?.toLowerCase()}\n\n`;
-
-    analise += `## 2. Estrutura de Dados Detalhada\n`;
-    analise += `### 2.1 Modelo de Dados\n`;
-    analise += `\`\`\`typescript
-interface ${nomeTabela?.charAt(0).toUpperCase()}${nomeTabela?.slice(1)}Model {
-  id: string;
-${campos.map(campo => {
-  let tipo = 'string';
-  switch(campo.tipoInformacao) {
-    case 'number': tipo = 'number'; break;
-    case 'boolean': tipo = 'boolean'; break;
-    case 'date': tipo = 'Date'; break;
-    case 'datetime': tipo = 'Date'; break;
-    case 'relation': tipo = 'string'; break;
-    default: tipo = 'string';
-  }
-  return `  ${campo.nomeSugestao}: ${tipo};`;
-}).join('\n')}
-  created_at: Date;
-  updated_at: Date;
-}
-\`\`\`\n\n`;
-
-    analise += `### 2.2 Campos Detalhados\n`;
-    campos.forEach((campo, index) => {
-      analise += `#### ${index + 1}. ${campo.nomeAmigavel}\n`;
-      analise += `- **Identificação**:\n`;
-      analise += `  * Nome Técnico: ${campo.nomeSugestao}\n`;
-      analise += `  * Tipo: ${campo.tipoInformacao}\n`;
-      analise += `  * Validação: ${campo.validacao}\n`;
-      
-      analise += `- **Características**:\n`;
-      analise += `  * Nullable: ${campo.validacao.toLowerCase().includes('obrigat') ? 'Não' : 'Sim'}\n`;
-      analise += `  * Indexado: ${campo.incluirPesquisa ? 'Sim' : 'Não'}\n`;
-      analise += `  * Pesquisável: ${campo.incluirPesquisa ? 'Sim' : 'Não'}\n`;
-      analise += `  * Filtrável: ${campo.incluirFiltro ? 'Sim' : 'Não'}\n`;
-      analise += `  * Visível na Listagem: ${campo.mostrarListagem ? 'Sim' : 'Não'}\n`;
-      
-      analise += `- **Validações Específicas**:\n`;
-      if (campo.validacao.toLowerCase().includes('obrigat')) {
-        analise += `  * Required\n`;
-      }
-      if (campo.validacao.toLowerCase().includes('max')) {
-        analise += `  * Máximo de caracteres\n`;
-      }
-      if (campo.validacao.toLowerCase().includes('min')) {
-        analise += `  * Mínimo de caracteres\n`;
-      }
-      if (campo.validacao.toLowerCase().includes('email')) {
-        analise += `  * Formato de email\n`;
-      }
-      
-      analise += `- **Comportamento UI**:\n`;
-      switch(campo.tipoInformacao) {
-        case 'text':
-          analise += `  * Componente: Input text\n`;
-          analise += `  * Placeholder: Digite ${campo.nomeAmigavel.toLowerCase()}\n`;
-          break;
-        case 'longtext':
-          analise += `  * Componente: Textarea\n`;
-          analise += `  * Altura mínima: 100px\n`;
-          break;
-        case 'number':
-          analise += `  * Componente: Input number\n`;
-          analise += `  * Step: 1\n`;
-          break;
-        case 'date':
-          analise += `  * Componente: DatePicker\n`;
-          analise += `  * Formato: DD/MM/YYYY\n`;
-          break;
-        case 'datetime':
-          analise += `  * Componente: DateTimePicker\n`;
-          analise += `  * Formato: DD/MM/YYYY HH:mm\n`;
-          break;
-        case 'boolean':
-          analise += `  * Componente: Switch\n`;
-          analise += `  * Estados: Ativo/Inativo\n`;
-          break;
-        case 'enum':
-          analise += `  * Componente: Select\n`;
-          analise += `  * Comportamento: Dropdown\n`;
-          break;
-        case 'file':
-          analise += `  * Componente: FileUpload\n`;
-          analise += `  * Suporte a drag and drop\n`;
-          break;
-        case 'relation':
-          analise += `  * Componente: AsyncSelect\n`;
-          analise += `  * Busca dinâmica\n`;
-          break;
-      }
-      analise += `\n`;
-    });
-
-    analise += `## 3. Interface do Usuário\n`;
-    analise += `### 3.1 Listagem Principal\n`;
-    analise += `- **Componentes**:\n`;
-    analise += `  * Tabela de dados com ordenação\n`;
-    analise += `  * Paginação (10, 25, 50 itens)\n`;
-    analise += `  * Filtros avançados\n`;
-    analise += `  * Barra de busca global\n`;
-    analise += `  * Botões de ação em massa\n\n`;
-    
-    analise += `- **Colunas da Tabela**:\n`;
-    campos.filter(c => c.mostrarListagem).forEach(campo => {
-      analise += `  * ${campo.nomeAmigavel}\n`;
-      analise += `    - Ordenável: ${['text', 'number', 'date', 'datetime'].includes(campo.tipoInformacao) ? 'Sim' : 'Não'}\n`;
-      analise += `    - Filtrável: ${campo.incluirFiltro ? 'Sim' : 'Não'}\n`;
-      analise += `    - Alinhamento: ${['number', 'boolean'].includes(campo.tipoInformacao) ? 'right' : 'left'}\n`;
-    });
-
-    analise += `\n### 3.2 Formulário de Cadastro/Edição\n`;
-    analise += `- **Layout**:\n`;
-    analise += `  * Grid responsivo de 2 colunas\n`;
-    analise += `  * Agrupamento por seções\n`;
-    analise += `  * Validação em tempo real\n`;
-    analise += `  * Feedback visual de erros\n`;
-    analise += `  * Botões de ação fixos\n\n`;
-
-    analise += `- **Comportamentos**:\n`;
-    analise += `  * Autosave de rascunho\n`;
-    analise += `  * Confirmação ao sair\n`;
-    analise += `  * Upload assíncrono\n`;
-    analise += `  * Preenchimento automático\n`;
-    analise += `  * Máscaras de input\n\n`;
-
-    analise += `## 4. Integrações e APIs\n`;
-    analise += `### 4.1 Endpoints\n`;
-    analise += `\`\`\`typescript
-// Listagem com filtros
-GET /api/${nomeTabela}
-Query Params:
-  - page: number
-  - limit: number
-  - search: string
-  - sort: string
-  - order: 'asc' | 'desc'
-  ${campos.filter(c => c.incluirFiltro).map(c => `- ${c.nomeSugestao}: string`).join('\n  ')}
-
-// Busca por ID
-GET /api/${nomeTabela}/{id}
-
-// Criação
-POST /api/${nomeTabela}
-Body: ${nomeTabela?.charAt(0).toUpperCase()}${nomeTabela?.slice(1)}Model
-
-// Atualização
-PUT /api/${nomeTabela}/{id}
-Body: Partial<${nomeTabela?.charAt(0).toUpperCase()}${nomeTabela?.slice(1)}Model>
-
-// Remoção
-DELETE /api/${nomeTabela}/{id}
-\`\`\`\n\n`;
-
-    analise += `### 4.2 Websockets\n`;
-    analise += `- Canal: ${nomeTabela}_changes\n`;
-    analise += `- Eventos:\n`;
-    analise += `  * ${nomeTabela}_created\n`;
-    analise += `  * ${nomeTabela}_updated\n`;
-    analise += `  * ${nomeTabela}_deleted\n\n`;
-
-    analise += `### 4.3 Cache e Performance\n`;
-    analise += `- **Estratégias**:\n`;
-    analise += `  * Cache-first para listagens\n`;
-    analise += `  * Stale-while-revalidate\n`;
-    analise += `  * Prefetch de dados\n`;
-    analise += `  * Debounce em buscas\n`;
-    analise += `  * Paginação infinita\n\n`;
-
-    analise += `## 5. Segurança e Permissões\n`;
-    analise += `### 5.1 Controle de Acesso\n`;
-    analise += `- **Roles Necessárias**:\n`;
-    analise += `  * Visualização: authenticated\n`;
-    analise += `  * Criação: authenticated\n`;
-    analise += `  * Edição: authenticated\n`;
-    analise += `  * Remoção: authenticated\n\n`;
-
-    analise += `### 5.2 Validações de Segurança\n`;
-    analise += `- Sanitização de inputs\n`;
-    analise += `- Validação de tipos\n`;
-    analise += `- Escape de HTML\n`;
-    analise += `- Proteção CSRF\n`;
-    analise += `- Rate limiting\n\n`;
-
-    analise += `## 6. Testes\n`;
-    analise += `### 6.1 Testes Unitários\n`;
-    analise += `\`\`\`typescript
-describe('${nomePagina}', () => {
-  describe('Validações', () => {
-${campos.map(campo => `    it('deve validar ${campo.nomeAmigavel}', () => {
-      // TODO: implementar teste
-    })`).join('\n')}
-  })
-})
-\`\`\`\n\n`;
-
-    analise += `### 6.2 Testes E2E\n`;
-    analise += `\`\`\`typescript
-describe('${nomePagina} E2E', () => {
-  it('deve listar registros', () => {
-    // TODO: implementar teste
-  })
-
-  it('deve criar novo registro', () => {
-    // TODO: implementar teste
-  })
-
-  it('deve editar registro existente', () => {
-    // TODO: implementar teste
-  })
-
-  it('deve remover registro', () => {
-    // TODO: implementar teste
-  })
-})
-\`\`\`\n\n`;
-
-    return analise;
-  };
-
-  // Funções para download das análises
-  const handleDownloadAnaliseReferencia = () => {
-    const analise = gerarAnaliseReferencia();
-    const blob = new Blob([analise], { type: 'text/markdown' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'analise_pagina_referencia.md';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const handleDownloadAnaliseNovaPagina = () => {
-    const analise = gerarAnaliseNovaPagina();
-    const blob = new Blob([analise], { type: 'text/markdown' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `analise_${nomeTabela || 'nova_pagina'}.md`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  const handleDownloadAnaliseTecnica = () => {
-    const analise = gerarAnaliseTecnica();
-    const blob = new Blob([analise], { type: 'text/markdown' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'analise_tecnica.md';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  };
-
-  // Função para gerar análise técnica
-  const gerarAnaliseTecnica = (): string => {
-    let analise = `# Análise Técnica Detalhada do Sistema\n\n`;
-
-    analise += `## 1. Stack Tecnológica\n`;
-    analise += `### 1.1 Frontend\n`;
-    analise += `- **Next.js 14**\n`;
-    analise += `  * App Router\n`;
-    analise += `  * Server Components\n`;
-    analise += `  * Server Actions\n`;
-    analise += `  * Streaming SSR\n`;
-    analise += `  * React Server Components\n`;
-    analise += `  * Edge Runtime Support\n\n`;
-    
-    analise += `- **React 18**\n`;
-    analise += `  * Concurrent Features\n`;
-    analise += `  * Automatic Batching\n`;
-    analise += `  * Transitions\n`;
-    analise += `  * Suspense\n`;
-    analise += `  * useId Hook\n\n`;
-    
-    analise += `- **TypeScript**\n`;
-    analise += `  * Strict Mode\n`;
-    analise += `  * Path Aliases\n`;
-    analise += `  * Type Checking\n`;
-    analise += `  * Custom Types\n`;
-    analise += `  * Type Guards\n\n`;
-    
-    analise += `- **TailwindCSS**\n`;
-    analise += `  * JIT Compiler\n`;
-    analise += `  * Custom Plugins\n`;
-    analise += `  * Dark Mode\n`;
-    analise += `  * Custom Variants\n`;
-    analise += `  * Responsive Design\n\n`;
-    
-    analise += `- **Shadcn/ui**\n`;
-    analise += `  * Radix UI\n`;
-    analise += `  * Accessible Components\n`;
-    analise += `  * Custom Themes\n`;
-    analise += `  * Component Variants\n`;
-    analise += `  * Reusable Primitives\n\n`;
-
-    analise += `### 1.2 Backend\n`;
-    analise += `- **Supabase**\n`;
-    analise += `  * PostgreSQL 15\n`;
-    analise += `  * PostgREST API\n`;
-    analise += `  * Realtime Subscriptions\n`;
-    analise += `  * Edge Functions\n`;
-    analise += `  * Storage\n`;
-    analise += `  * Authentication\n`;
-    analise += `  * Row Level Security\n`;
-    analise += `  * Database Backups\n`;
-    analise += `  * Monitoring\n\n`;
-    
-    analise += `- **PostgreSQL**\n`;
-    analise += `  * Extensions:\n`;
-    analise += `    - uuid-ossp\n`;
-    analise += `    - pg_stat_statements\n`;
-    analise += `    - pgjwt\n`;
-    analise += `    - pgcrypto\n`;
-    analise += `  * Triggers e Functions\n`;
-    analise += `  * Materialized Views\n`;
-    analise += `  * Full Text Search\n`;
-    analise += `  * JSON Operations\n\n`;
-
-    analise += `### 1.3 DevOps e Infraestrutura\n`;
-    analise += `- **Vercel**\n`;
-    analise += `  * Edge Network\n`;
-    analise += `  * Analytics\n`;
-    analise += `  * Speed Insights\n`;
-    analise += `  * Image Optimization\n`;
-    analise += `  * Automatic HTTPS\n\n`;
-    
-    analise += `- **GitHub**\n`;
-    analise += `  * Actions\n`;
-    analise += `  * Dependabot\n`;
-    analise += `  * Code Scanning\n`;
-    analise += `  * Pull Request Templates\n`;
-    analise += `  * Branch Protection\n\n`;
-
-    analise += `## 2. Arquitetura Detalhada\n`;
-    analise += `### 2.1 Estrutura de Diretórios\n`;
-    analise += `\`\`\`
-src/
-  ├── app/
-  │   ├── (auth)/
-  │   │   ├── login/
-  │   │   ├── register/
-  │   │   └── forgot-password/
-  │   ├── (dashboard)/
-  │   │   ├── overview/
-  │   │   └── settings/
-  │   ├── (routes)/
-  │   │   └── templates/
-  │   ├── api/
-  │   │   ├── auth/
-  │   │   └── trpc/
-  │   └── layout.tsx
-  ├── components/
-  │   ├── ui/
-  │   │   ├── button.tsx
-  │   │   ├── input.tsx
-  │   │   └── ...
-  │   └── shared/
-  │       ├── header.tsx
-  │       └── footer.tsx
-  ├── lib/
-  │   ├── utils/
-  │   │   ├── api.ts
-  │   │   └── helpers.ts
-  │   └── types/
-  │       └── index.ts
-  ├── hooks/
-  │   ├── use-auth.ts
-  │   └── use-form.ts
-  ├── styles/
-  │   └── globals.css
-  └── tests/
-      ├── unit/
-      └── e2e/
-\`\`\`\n\n`;
-
-    analise += `### 2.2 Padrões de Design\n`;
-    analise += `- **Atomic Design**\n`;
-    analise += `  * Atoms: Botões, Inputs, Icons\n`;
-    analise += `  * Molecules: Form Fields, Cards\n`;
-    analise += `  * Organisms: Forms, Tables\n`;
-    analise += `  * Templates: Layouts\n`;
-    analise += `  * Pages: Views\n\n`;
-    
-    analise += `- **Design System**\n`;
-    analise += `  * Tokens:\n`;
-    analise += `    - Cores\n`;
-    analise += `    - Tipografia\n`;
-    analise += `    - Espaçamento\n`;
-    analise += `    - Sombras\n`;
-    analise += `    - Bordas\n`;
-    analise += `  * Componentes Base\n`;
-    analise += `  * Documentação\n`;
-    analise += `  * Guia de Estilo\n\n`;
-
-    analise += `## 3. Performance e Otimizações\n`;
-    analise += `### 3.1 Frontend\n`;
-    analise += `- **Bundle Size**\n`;
-    analise += `  * Code Splitting\n`;
-    analise += `  * Tree Shaking\n`;
-    analise += `  * Dynamic Imports\n`;
-    analise += `  * Module Federation\n\n`;
-    
-    analise += `- **Rendering**\n`;
-    analise += `  * Server Components\n`;
-    analise += `  * Static Generation\n`;
-    analise += `  * Incremental Static Regeneration\n`;
-    analise += `  * Streaming SSR\n\n`;
-    
-    analise += `- **Caching**\n`;
-    analise += `  * React Query\n`;
-    analise += `  * SWR\n`;
-    analise += `  * Service Worker\n`;
-    analise += `  * Browser Cache\n\n`;
-
-    analise += `### 3.2 Backend\n`;
-    analise += `- **Database**\n`;
-    analise += `  * Índices\n`;
-    analise += `  * Materialized Views\n`;
-    analise += `  * Query Optimization\n`;
-    analise += `  * Connection Pooling\n\n`;
-    
-    analise += `- **API**\n`;
-    analise += `  * Rate Limiting\n`;
-    analise += `  * Caching\n`;
-    analise += `  * Compression\n`;
-    analise += `  * Batch Operations\n\n`;
-
-    analise += `## 4. Segurança\n`;
-    analise += `### 4.1 Autenticação\n`;
-    analise += `- **Supabase Auth**\n`;
-    analise += `  * JWT Tokens\n`;
-    analise += `  * Refresh Tokens\n`;
-    analise += `  * OAuth Providers\n`;
-    analise += `  * MFA\n\n`;
-    
-    analise += `- **Middleware**\n`;
-    analise += `  * Route Protection\n`;
-    analise += `  * Token Validation\n`;
-    analise += `  * Role Checking\n`;
-    analise += `  * Session Management\n\n`;
-
-    analise += `### 4.2 Autorização\n`;
-    analise += `- **Row Level Security**\n`;
-    analise += `  * Políticas por Tabela\n`;
-    analise += `  * Regras de Acesso\n`;
-    analise += `  * Funções de Validação\n`;
-    analise += `  * Audit Logging\n\n`;
-    
-    analise += `- **API Security**\n`;
-    analise += `  * CORS\n`;
-    analise += `  * CSP\n`;
-    analise += `  * XSS Protection\n`;
-    analise += `  * CSRF Tokens\n\n`;
-
-    analise += `## 5. Monitoramento\n`;
-    analise += `### 5.1 Frontend\n`;
-    analise += `- **Analytics**\n`;
-    analise += `  * User Behavior\n`;
-    analise += `  * Performance Metrics\n`;
-    analise += `  * Error Tracking\n`;
-    analise += `  * Custom Events\n\n`;
-    
-    analise += `- **Logging**\n`;
-    analise += `  * Console Errors\n`;
-    analise += `  * Network Requests\n`;
-    analise += `  * Performance Marks\n`;
-    analise += `  * User Actions\n\n`;
-
-    analise += `### 5.2 Backend\n`;
-    analise += `- **Database**\n`;
-    analise += `  * Query Performance\n`;
-    analise += `  * Connection Stats\n`;
-    analise += `  * Table Stats\n`;
-    analise += `  * Disk Usage\n\n`;
-    
-    analise += `- **API**\n`;
-    analise += `  * Request Logs\n`;
-    analise += `  * Error Rates\n`;
-    analise += `  * Response Times\n`;
-    analise += `  * Status Codes\n\n`;
-
-    analise += `## 6. Backup e Recuperação\n`;
-    analise += `### 6.1 Dados\n`;
-    analise += `- **Database**\n`;
-    analise += `  * Daily Backups\n`;
-    analise += `  * Point-in-time Recovery\n`;
-    analise += `  * Replication\n`;
-    analise += `  * Disaster Recovery\n\n`;
-    
-    analise += `- **Storage**\n`;
-    analise += `  * File Backups\n`;
-    analise += `  * Version Control\n`;
-    analise += `  * CDN Cache\n`;
-    analise += `  * Redundancy\n\n`;
-
-    analise += `### 6.2 Código\n`;
-    analise += `- **Source Control**\n`;
-    analise += `  * Git Flow\n`;
-    analise += `  * Branch Protection\n`;
-    analise += `  * Code Review\n`;
-    analise += `  * Automated Tests\n\n`;
-    
-    analise += `- **Deployment**\n`;
-    analise += `  * Staging Environment\n`;
-    analise += `  * Rollback Plan\n`;
-    analise += `  * Blue-Green Deploy\n`;
-    analise += `  * Health Checks\n\n`;
-
-    analise += `## 7. Dependências\n`;
-    analise += `### 7.1 Produção\n`;
-    analise += `\`\`\`json
-{
-  "dependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.8.0",
-    "@supabase/supabase-js": "^2.38.0",
-    "next": "^14.0.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "typescript": "^5.2.0",
-    "tailwindcss": "^3.3.0",
-    "@radix-ui/react-dialog": "^1.0.0",
-    "@radix-ui/react-slot": "^1.0.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
-    "lucide-react": "^0.284.0",
-    "tailwind-merge": "^1.14.0",
-    "zod": "^3.22.0"
-  }
-}
-\`\`\`\n\n`;
-
-    analise += `### 7.2 Desenvolvimento\n`;
-    analise += `\`\`\`json
-{
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "autoprefixer": "^10.4.0",
-    "eslint": "^8.50.0",
-    "eslint-config-next": "^14.0.0",
-    "postcss": "^8.4.0",
-    "prettier": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.5.0",
-    "supabase": "^1.100.0",
-    "tailwindcss": "^3.3.0"
-  }
-}
-\`\`\`\n\n`;
-
-    return analise;
-  };
+  }, [campos, nomeTabela, onSQLGenerated]);
 
   return (
     <Form {...form}>
@@ -1655,29 +695,12 @@ src/
                 >
                   Voltar à Edição
                 </button>
-                {showCopySuccess && (
-                  <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>SQL copiado com sucesso!</span>
-                  </div>
-                )}
                 <button 
                   onClick={() => setShowSQL(true)}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-2"
                 >
                   <Eye className="h-4 w-4" />
                   <span>Visualizar SQL</span>
-                </button>
-                <button 
-                  onClick={handleCopySQL}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                  <span>Copiar SQL</span>
                 </button>
                 <button 
                   onClick={handleDownloadSQL}
@@ -1687,33 +710,6 @@ src/
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   <span>Baixar SQL</span>
-                </button>
-                <button 
-                  onClick={handleDownloadAnaliseReferencia}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md flex items-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Análise Referência</span>
-                </button>
-                <button 
-                  onClick={handleDownloadAnaliseNovaPagina}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md flex items-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <span>Análise Nova Página</span>
-                </button>
-                <button 
-                  onClick={handleDownloadAnaliseTecnica}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md flex items-center gap-2"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
-                  <span>Análise Técnica</span>
                 </button>
                 <button 
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
@@ -1921,10 +917,7 @@ src/
                       
                       {/* Validação */}
                       <div>
-                        <Label htmlFor={`campo-${campo.id}-validacao`} className="text-white flex items-center gap-1">
-                          <span>Validação</span>
-                          {campo.tipoInformacao && <span className="text-xs bg-slate-700 px-1.5 py-0.5 rounded text-slate-300">Sugerido</span>}
-                        </Label>
+                        <Label htmlFor={`campo-${campo.id}-validacao`} className="text-white">Validação</Label>
                         <Input 
                           id={`campo-${campo.id}-validacao`}
                           value={campo.validacao}
@@ -2048,10 +1041,10 @@ src/
             <DialogTitle>SQL do Template</DialogTitle>
           </DialogHeader>
           <pre className="p-4 bg-slate-950 rounded-lg overflow-x-auto text-sm text-slate-300">
-            {generateSQL() || "Nenhum SQL gerado ainda. Configure o template primeiro."}
+            {gerarSQL() || "Nenhum SQL gerado ainda. Configure o template primeiro."}
           </pre>
-          {generateSQL() && (
-            <div className="flex justify-end mt-4">
+          {gerarSQL() && (
+            <div className="flex justify-end mt-4 gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -2062,6 +1055,17 @@ src/
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                 </svg>
                 Copiar SQL
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadSQL}
+                className="flex items-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Baixar SQL
               </Button>
             </div>
           )}
