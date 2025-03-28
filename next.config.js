@@ -16,7 +16,8 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
-    optimizeCss: false,
+    optimizeCss: true,
+    forceSwcTransforms: true,
   },
   webpack: (config, { isServer }) => {
     // Otimizações para o cliente
@@ -80,7 +81,7 @@ const nextConfig = {
     };
 
     return config;
-  },
+  }
 };
 
 module.exports = nextConfig;

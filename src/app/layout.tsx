@@ -7,7 +7,11 @@ import { ThemeProvider } from "./providers/ThemeProvider";
 import { Providers } from "./providers";
 import { Toaster } from 'sonner';
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: '--font-inter',
+  adjustFontFallback: true
+});
 
 export const metadata: Metadata = {
   title: "MagicList",
@@ -20,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR">
-      <body className={inter.className}>
+    <html lang="pt-BR" className={inter.variable}>
+      <body className="font-sans">
         <Providers>
           <ThemeProvider>
             {/* Fundo escuro com gradiente sutil */}

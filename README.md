@@ -252,3 +252,53 @@ npm run build
 # Iniciar em modo de produção
 npm start
 ```
+
+## Configuração da API do Gemini
+
+Para utilizar a funcionalidade de geração de campos a partir de contexto, o sistema utiliza a API do Google Gemini. Siga os passos abaixo para configurar:
+
+1. Acesse a [Plataforma Google AI](https://ai.google.dev/) e crie uma conta se ainda não tiver
+2. Crie uma chave de API do Gemini na [Console de APIs do Google](https://console.cloud.google.com/apis/credentials)
+3. Adicione a chave no arquivo `.env` na raiz do projeto:
+   ```
+   GEMINI_API_KEY=sua_chave_aqui
+   ```
+4. Para testar se a configuração está correta, acesse a [Página de Teste do Gemini](/devs/gemini-teste) e insira sua chave de API
+
+### Solução de Problemas Comuns
+
+Se você estiver enfrentando o erro "API request failed: Forbidden" ao utilizar a API do Gemini, verifique:
+
+1. Se a chave de API está correta e sem espaços extras
+2. Se a API está habilitada para seu projeto no Google Cloud Console
+3. Se há restrições de uso da API em sua conta
+4. Se você está utilizando o endpoint correto (gemini-pro)
+
+Para mais informações, consulte a [documentação oficial da API Gemini](https://ai.google.dev/docs/gemini_api).
+
+## Configuração do Ollama
+
+Para utilizar o Ollama como modelo de geração de campos, siga os passos:
+
+1. Instale o Ollama em sua máquina local:
+   - Para macOS: baixe do [site oficial](https://ollama.com/download) ou use `brew install ollama`
+   - Para Linux: siga as [instruções oficiais](https://github.com/ollama/ollama#linux)
+   - Para Windows: use WSL2 ou [siga as instruções](https://github.com/ollama/ollama#windows)
+
+2. Inicie o serviço Ollama:
+   ```bash
+   ollama serve
+   ```
+
+3. Baixe um modelo para usar (em outro terminal):
+   ```bash
+   ollama pull llama2  # Ou outro modelo como llama3, mistral, etc.
+   ```
+
+4. Configure o Ollama no MagicList:
+   - Acesse a [Página de Geração](/admin/gerar)
+   - Clique no botão "Configurar Ollama"
+   - Defina a URL do servidor (padrão: http://localhost:11434)
+   - Selecione o modelo que você baixou
+
+O Ollama roda localmente em sua máquina, sem custo por solicitação e sem necessidade de chave de API - ideal para desenvolvimento e testes.

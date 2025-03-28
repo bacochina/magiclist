@@ -8,29 +8,37 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)'],
+      },
       colors: {
         // Cores semânticas
-        primary: 'rgb(var(--primary) / <alpha-value>)',
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
         'primary-light': 'rgb(var(--primary-light) / <alpha-value>)',
-        secondary: 'rgb(var(--secondary) / <alpha-value>)',
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
         success: 'rgb(var(--success) / <alpha-value>)',
         warning: 'rgb(var(--warning) / <alpha-value>)',
         danger: 'rgb(var(--danger) / <alpha-value>)',
         info: 'rgb(var(--info) / <alpha-value>)',
         
         // Cores de texto
-        foreground: 'rgb(var(--text-primary) / <alpha-value>)',
+        foreground: "hsl(var(--foreground))",
         'muted-foreground': 'rgb(var(--text-muted) / <alpha-value>)',
         
         // Cores de fundo
-        background: {
-          DEFAULT: 'rgb(var(--background-start-rgb) / <alpha-value>)',
-          end: 'rgb(var(--background-end-rgb) / <alpha-value>)',
-        },
+        background: "hsl(var(--background))",
+        end: 'rgb(var(--background-end-rgb) / <alpha-value>)',
         
         // Cores de cartão
         card: {
-          DEFAULT: 'rgb(var(--card-bg) / <alpha-value>)',
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
           border: 'rgb(var(--card-border) / <alpha-value>)',
         },
         
@@ -43,10 +51,11 @@ const config: Config = {
         },
         
         // Cores de borda
-        border: {
-          DEFAULT: 'rgb(var(--border-primary) / <alpha-value>)',
-          secondary: 'rgb(var(--border-secondary) / <alpha-value>)',
-          muted: 'rgb(var(--border-muted) / <alpha-value>)',
+        border: "hsl(var(--border))",
+        secondary: 'rgb(var(--border-secondary) / <alpha-value>)',
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
 
         // Cores específicas do tema musical
@@ -86,6 +95,20 @@ const config: Config = {
           800: '#9D174D',
           900: '#831843',
         },
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -98,6 +121,8 @@ const config: Config = {
         'gradient-xy': 'gradient-xy 15s ease infinite',
         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'bounce-slow': 'bounce 3s infinite',
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
       keyframes: {
         'gradient-y': {
@@ -129,7 +154,15 @@ const config: Config = {
             'background-size': '200% 200%',
             'background-position': 'right center'
           }
-        }
+        },
+        "accordion-down": {
+          from: { height: '0' },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: '0' },
+        },
       },
       backdropBlur: {
         xs: '2px',
@@ -139,9 +172,14 @@ const config: Config = {
         'neon-strong': '0 0 5px theme(colors.purple.400), 0 0 20px theme(colors.purple.600), 0 0 60px theme(colors.purple.800)',
         'inner-white': 'inset 0 2px 4px 0 rgba(255, 255, 255, 0.06)',
       },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }
 
 export default config 
