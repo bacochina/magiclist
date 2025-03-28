@@ -15,8 +15,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    optimizeCss: true,
     optimizePackageImports: ['lucide-react'],
+    optimizeCss: false,
   },
   webpack: (config, { isServer }) => {
     // Otimizações para o cliente
@@ -72,6 +72,12 @@ const nextConfig = {
         },
       };
     }
+
+    // Resolver para o alias @
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': '.',
+    };
 
     return config;
   },

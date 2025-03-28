@@ -5,6 +5,7 @@ import Navigation from "@/components/ui/Navigation";
 import 'sweetalert2/dist/sweetalert2.min.css'
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { Providers } from "./providers";
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,6 +49,7 @@ export default function RootLayout({
             </div>
           </ThemeProvider>
         </Providers>
+        <Toaster />
       </body>
     </html>
   );

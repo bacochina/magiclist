@@ -1,0 +1,2269 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { FieldTypeSelector } from './FieldTypeSelector';
+import { Textarea } from '@/components/ui/textarea';
+import { PlusCircle, ChevronUp, ChevronDown, Copy, Trash2, Loader2, Wand2, Database, MessageSquarePlus, Plus, Code } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { LucideIcon } from 'lucide-react';
+import { User, MapPin, Package, Boxes, CreditCard, Receipt, Shield, Lock, Tags, Link } from 'lucide-react';
+
+interface Field {
+  name: string;
+  type: string;
+  description: string;
+  required: boolean;
+  isPrimaryKey: boolean;
+  isForeignKey: boolean;
+  references?: {
+    table: string;
+    field: string;
+  };
+}
+
+interface Index {
+  name: string;
+  fields: string[];
+  type: 'btree' | 'hash' | 'gin' | 'gist';
+  unique: boolean;
+}
+
+interface Constraint {
+  name: string;
+  type: 'check' | 'unique' | 'foreign_key';
+  definition: string;
+}
+
+interface Context {
+  id: string;
+  name: string;
+  description: string;
+  prompt: string;
+  icon: LucideIcon;
+}
+
+interface ContextCategory {
+  id: string;
+  title: string;
+  contexts: Context[];
+}
+
+interface DatabaseSchemaBuilderProps {
+  onSchemaChange: (schema: any) => void;
+  initialData?: {
+    pageTitle: string;
+    pageSubtitle: string;
+    tableName: string;
+    tableFunction: string;
+    fields: Field[];
+    relationships: any[];
+    constraints: Constraint[];
+    indexes: Index[];
+  };
+}
+
+const PREDEFINED_CONTEXTS = {
+  financeiro: {
+    name: 'Campos Financeiros',
+    description: 'Campos relacionados a valores, transações e controle financeiro',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'valores monetários',
+      'datas de vencimento',
+      'status de pagamento',
+      'métodos de pagamento',
+      'histórico de transações'
+    ]
+  },
+  auditoria: {
+    name: 'Campos de Auditoria',
+    description: 'Campos para rastreamento e auditoria de mudanças',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'logs de alterações',
+      'histórico de versões',
+      'responsáveis por mudanças',
+      'timestamps de operações'
+    ]
+  },
+  metadados: {
+    name: 'Campos de Metadados',
+    description: 'Campos para informações adicionais e classificação',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'tags',
+      'categorias',
+      'status',
+      'prioridade',
+      'metadados customizados'
+    ]
+  },
+  endereco: {
+    name: 'Campos de Endereço',
+    description: 'Campos para endereçamento e localização',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'endereço completo',
+      'CEP',
+      'coordenadas geográficas',
+      'referências'
+    ]
+  },
+  contato: {
+    name: 'Campos de Contato',
+    description: 'Campos para informações de contato',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'telefones',
+      'emails',
+      'redes sociais',
+      'preferências de contato'
+    ]
+  },
+  documentos: {
+    name: 'Campos de Documentos',
+    description: 'Campos para documentação e arquivos',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'anexos',
+      'documentos oficiais',
+      'histórico de versões',
+      'metadados de arquivos'
+    ]
+  },
+  pessoa: {
+    name: 'Campos de Pessoa',
+    description: 'Campos para informações pessoais e identificação',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'dados pessoais',
+      'documentos de identificação',
+      'informações demográficas',
+      'preferências'
+    ]
+  },
+  produto: {
+    name: 'Campos de Produto',
+    description: 'Campos para cadastro e gestão de produtos',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'informações básicas',
+      'especificações técnicas',
+      'preços e custos',
+      'estoque',
+      'categorização'
+    ]
+  },
+  evento: {
+    name: 'Campos de Evento',
+    description: 'Campos para gestão de eventos e agendamentos',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'datas e horários',
+      'local',
+      'participantes',
+      'recursos necessários',
+      'status do evento'
+    ]
+  },
+  seguranca: {
+    name: 'Campos de Segurança',
+    description: 'Campos para controle de acesso e segurança',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'permissões',
+      'logs de acesso',
+      'tokens e chaves',
+      'configurações de segurança'
+    ]
+  },
+  integracao: {
+    name: 'Campos de Integração',
+    description: 'Campos para integração com sistemas externos',
+    icon: <Database className="h-4 w-4" />,
+    suggestions: [
+      'identificadores externos',
+      'tokens de API',
+      'configurações de sincronização',
+      'mapeamentos'
+    ]
+  }
+};
+
+const CONTEXT_CATEGORIES: ContextCategory[] = [
+  {
+    id: 'basic',
+    title: 'Dados Básicos',
+    contexts: [
+      {
+        id: 'user',
+        name: 'Usuário',
+        description: 'Campos comuns para tabela de usuários',
+        prompt: 'Gere campos para uma tabela de usuários com dados básicos como nome, email, senha, etc.',
+        icon: User
+      },
+      {
+        id: 'address',
+        name: 'Endereço',
+        description: 'Campos para endereço completo',
+        prompt: 'Gere campos para armazenar um endereço completo com CEP, rua, número, etc.',
+        icon: MapPin
+      }
+    ]
+  },
+  {
+    id: 'management',
+    title: 'Gestão',
+    contexts: [
+      {
+        id: 'product',
+        name: 'Produto',
+        description: 'Campos para cadastro de produtos',
+        prompt: 'Gere campos para uma tabela de produtos com dados como nome, descrição, preço, etc.',
+        icon: Package
+      },
+      {
+        id: 'inventory',
+        name: 'Estoque',
+        description: 'Campos para controle de estoque',
+        prompt: 'Gere campos para controle de estoque com quantidade, lote, validade, etc.',
+        icon: Boxes
+      }
+    ]
+  },
+  {
+    id: 'financial',
+    title: 'Financeiro',
+    contexts: [
+      {
+        id: 'payment',
+        name: 'Pagamento',
+        description: 'Campos para registro de pagamentos',
+        prompt: 'Gere campos para registrar pagamentos com valor, data, status, etc.',
+        icon: CreditCard
+      },
+      {
+        id: 'invoice',
+        name: 'Nota Fiscal',
+        description: 'Campos para notas fiscais',
+        prompt: 'Gere campos para uma tabela de notas fiscais com número, série, valor, etc.',
+        icon: Receipt
+      }
+    ]
+  },
+  {
+    id: 'security',
+    title: 'Segurança e Controle',
+    contexts: [
+      {
+        id: 'audit',
+        name: 'Auditoria',
+        description: 'Campos para registro de auditoria',
+        prompt: 'Gere campos para registrar logs de auditoria com data, usuário, ação, etc.',
+        icon: Shield
+      },
+      {
+        id: 'permission',
+        name: 'Permissões',
+        description: 'Campos para controle de acesso',
+        prompt: 'Gere campos para controle de permissões com recursos, ações, etc.',
+        icon: Lock
+      }
+    ]
+  },
+  {
+    id: 'metadata',
+    title: 'Metadados e Integração',
+    contexts: [
+      {
+        id: 'metadata',
+        name: 'Metadados',
+        description: 'Campos para metadados e tags',
+        prompt: 'Gere campos para armazenar metadados, tags e informações adicionais',
+        icon: Tags
+      },
+      {
+        id: 'integration',
+        name: 'Integração',
+        description: 'Campos para integração externa',
+        prompt: 'Gere campos para integração com sistemas externos, APIs, etc.',
+        icon: Link
+      }
+    ]
+  }
+];
+
+// Função para gerar o comando SQL completo a partir dos campos, índices e restrições
+const generateCreateTableSQL = (tableName: string, fields: Field[], indexes: Index[], constraints: Constraint[]): string => {
+  if (!tableName || fields.length === 0) return '';
+
+  // Iniciar a declaração CREATE TABLE
+  let sql = `CREATE TABLE ${tableName} (\n`;
+  
+  // Adicionar campos
+  const fieldDefinitions = fields.map(field => {
+    let definition = `  ${field.name} ${field.type}`;
+    
+    // Adicionar NOT NULL se o campo for obrigatório
+    if (field.required) {
+      definition += ' NOT NULL';
+    }
+    
+    // Adicionar PRIMARY KEY se for chave primária
+    if (field.isPrimaryKey) {
+      definition += ' PRIMARY KEY';
+    }
+    
+    // Adicionar referência de chave estrangeira
+    if (field.isForeignKey && field.references) {
+      definition += ` REFERENCES ${field.references.table}(${field.references.field})`;
+    }
+    
+    return definition;
+  });
+  
+  // Juntar as definições de campos
+  sql += fieldDefinitions.join(',\n');
+  
+  // Adicionar restrições
+  if (constraints.length > 0) {
+    const constraintDefinitions = constraints.map(constraint => {
+      if (constraint.type === 'check') {
+        return `  CONSTRAINT ${constraint.name} CHECK (${constraint.definition})`;
+      } else if (constraint.type === 'unique') {
+        return `  CONSTRAINT ${constraint.name} UNIQUE (${constraint.definition})`;
+      }
+      return '';
+    }).filter(Boolean);
+    
+    if (constraintDefinitions.length > 0) {
+      sql += ',\n' + constraintDefinitions.join(',\n');
+    }
+  }
+  
+  // Fechar a declaração CREATE TABLE
+  sql += '\n);';
+  
+  // Adicionar criação de índices
+  if (indexes.length > 0) {
+    const indexDefinitions = indexes.map(index => {
+      if (index.fields.length === 0) return '';
+      
+      let indexSQL = `\n\nCREATE `;
+      if (index.unique) {
+        indexSQL += 'UNIQUE ';
+      }
+      indexSQL += `INDEX ${index.name} ON ${tableName} USING ${index.type} (${index.fields.join(', ')});`;
+      return indexSQL;
+    }).filter(Boolean);
+    
+    sql += indexDefinitions.join('');
+  }
+  
+  return sql;
+};
+
+export function DatabaseSchemaBuilder({ onSchemaChange, initialData }: DatabaseSchemaBuilderProps) {
+  const [fields, setFields] = useState<Field[]>(initialData?.fields || []);
+  const [indexes, setIndexes] = useState<Index[]>(initialData?.indexes || []);
+  const [constraints, setConstraints] = useState<Constraint[]>(initialData?.constraints || []);
+  const [tableName, setTableName] = useState(initialData?.tableName || '');
+  const [tableFunction, setTableFunction] = useState(initialData?.tableFunction || '');
+  const [pageTitle, setPageTitle] = useState(initialData?.pageTitle || '');
+  const [pageSubtitle, setPageSubtitle] = useState(initialData?.pageSubtitle || '');
+  const [isGeneratingSubtitle, setIsGeneratingSubtitle] = useState(false);
+  const [isGeneratingTableFunction, setIsGeneratingTableFunction] = useState(false);
+  const [isGeneratingFields, setIsGeneratingFields] = useState(false);
+  const [isGeneratingSpecificFields, setIsGeneratingSpecificFields] = useState(false);
+  const [lastNotifiedData, setLastNotifiedData] = useState({
+    pageTitle: initialData?.pageTitle || '',
+    pageSubtitle: initialData?.pageSubtitle || '',
+    tableName: initialData?.tableName || '',
+    tableFunction: initialData?.tableFunction || '',
+    fields: initialData?.fields || [],
+    indexes: initialData?.indexes || [],
+    constraints: initialData?.constraints || [],
+  });
+  const [customContext, setCustomContext] = useState('');
+  const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false);
+  const [showCustomContextDialog, setShowCustomContextDialog] = useState(false);
+  const [isAdvancedExpanded, setIsAdvancedExpanded] = useState(false);
+  const [showSQLPanel, setShowSQLPanel] = useState(true);
+
+  const generateSubtitle = async () => {
+    if (!pageTitle) {
+      toast.error('Digite o título da página primeiro');
+      return;
+    }
+
+    setIsGeneratingSubtitle(true);
+    try {
+      // Versão simplificada que não depende da API de busca
+      const formattedTitle = pageTitle
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+        
+      const suggestedSubtitle = `Gerencie e organize ${formattedTitle.toLowerCase()} de forma eficiente e intuitiva`;
+      setPageSubtitle(suggestedSubtitle);
+      toast.success('Subtítulo sugerido com sucesso!');
+    } catch (error) {
+      console.error('Erro:', error);
+      // Fallback para sugestão básica em caso de erro
+      const fallbackSuggestion = `Gerencie ${pageTitle.toLowerCase()} do sistema de forma eficiente`;
+      setPageSubtitle(fallbackSuggestion);
+      toast.error('Erro ao gerar sugestão. Usando sugestão padrão.');
+    } finally {
+      setIsGeneratingSubtitle(false);
+    }
+  };
+
+  const generateTableFunction = async () => {
+    if (!tableName) {
+      toast.error('Digite o nome da tabela primeiro');
+      return;
+    }
+
+    setIsGeneratingTableFunction(true);
+    try {
+      // Versão simplificada que não depende da API de busca
+      const tableNameFormatted = tableName
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      const suggestedFunction = `Armazena e gerencia informações relacionadas a ${tableNameFormatted.toLowerCase()}, permitindo controle eficiente e rastreabilidade dos dados.`;
+      setTableFunction(suggestedFunction);
+      toast.success('Função da tabela sugerida com sucesso!');
+    } catch (error) {
+      console.error('Erro:', error);
+      // Fallback para sugestão básica em caso de erro
+      const tableNameFormatted = tableName
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      const fallbackSuggestion = `Armazena e gerencia informações relacionadas a ${tableNameFormatted.toLowerCase()} no sistema`;
+      setTableFunction(fallbackSuggestion);
+      toast.error('Erro ao gerar sugestão. Usando sugestão padrão.');
+    } finally {
+      setIsGeneratingTableFunction(false);
+    }
+  };
+
+  const generateFields = async () => {
+    if (!tableName || !tableFunction) {
+      toast.error('Digite o nome e a função da tabela primeiro');
+      return;
+    }
+
+    setIsGeneratingFields(true);
+    try {
+      // Função local para gerar campos sem depender da API
+      const generateFieldsLocally = () => {
+        const baseFields = [
+          {
+            name: 'id',
+            type: 'uuid',
+            required: true,
+            isPrimaryKey: true,
+            isForeignKey: false,
+            description: 'Identificador único do registro'
+          },
+          {
+            name: 'created_at',
+            type: 'timestamp',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Data e hora de criação do registro'
+          },
+          {
+            name: 'updated_at',
+            type: 'timestamp',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Data e hora da última atualização do registro'
+          }
+        ];
+        
+        // Adicionar campos baseados no nome da tabela
+        const tableNameLower = tableName.toLowerCase();
+        
+        if (tableNameLower.includes('usuario') || tableNameLower.includes('user')) {
+          return [...baseFields,
+            {
+              name: 'nome',
+              type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Nome completo do usuário'
+            },
+            {
+              name: 'email',
+              type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Endereço de e-mail do usuário'
+            },
+            {
+              name: 'senha',
+              type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Senha do usuário (hash)'
+            },
+            {
+              name: 'ativo',
+              type: 'boolean',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Status de ativação do usuário'
+            }
+          ];
+        } else if (tableNameLower.includes('produto') || tableNameLower.includes('product')) {
+          return [...baseFields,
+            {
+              name: 'nome',
+              type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Nome do produto'
+            },
+            {
+              name: 'descricao',
+              type: 'text',
+              required: false,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Descrição detalhada do produto'
+            },
+            {
+              name: 'preco',
+              type: 'decimal(10,2)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Preço do produto'
+            },
+            {
+              name: 'estoque',
+              type: 'integer',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Quantidade em estoque'
+            }
+          ];
+        } else {
+          // Campos genéricos para qualquer tabela
+          return [...baseFields,
+            {
+              name: 'nome',
+              type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Nome do registro'
+            },
+            {
+              name: 'descricao',
+              type: 'text',
+              required: false,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Descrição do registro'
+            },
+            {
+              name: 'ativo',
+              type: 'boolean',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+              description: 'Status de ativação do registro'
+            }
+          ];
+        }
+      };
+
+      // Gerar campos localmente
+      const generatedFields = generateFieldsLocally();
+      
+      // Atualizar os campos com as sugestões
+      setFields(prevFields => {
+        const existingFieldNames = new Set(prevFields.map(f => f.name));
+        const newFields = generatedFields.filter(
+          f => !existingFieldNames.has(f.name)
+        );
+        return [...prevFields, ...newFields];
+      });
+
+      // Atualizar índices sugeridos
+      setIndexes(prevIndexes => {
+        const suggestedIndexes = suggestIndexes(generatedFields);
+        const existingIndexNames = new Set(prevIndexes.map(i => i.name));
+        const newIndexes = suggestedIndexes.filter(
+          i => !existingIndexNames.has(i.name)
+        );
+        return [...prevIndexes, ...newIndexes];
+      });
+
+      // Atualizar constraints sugeridas
+      setConstraints(prevConstraints => {
+        const suggestedConstraints = suggestConstraints(generatedFields);
+        const existingConstraintNames = new Set(prevConstraints.map(c => c.name));
+        const newConstraints = suggestedConstraints.filter(
+          c => !existingConstraintNames.has(c.name)
+        );
+        return [...prevConstraints, ...newConstraints];
+      });
+
+      toast.success('Campos sugeridos com sucesso!');
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.error('Erro ao gerar sugestões. Tente novamente.');
+    } finally {
+      setIsGeneratingFields(false);
+    }
+  };
+
+  const generateSpecificFields = async (context: string) => {
+    if (!tableName || !tableFunction) {
+      toast.error('Digite o nome e a função da tabela primeiro');
+      return;
+    }
+
+    setIsGeneratingFields(true);
+    try {
+      // Gerar campos específicos localmente
+      let specificFields: Field[] = [];
+      let specificIndexes: Index[] = [];
+      let specificConstraints: Constraint[] = [];
+      
+      // Extrair campos específicos mencionados no contexto
+      const contextLower = context.toLowerCase();
+      
+      // Verificar se o contexto menciona campos específicos com formato "lista destes campos:" ou similar
+      if (contextLower.includes('lista') && contextLower.includes('campo')) {
+        // Regex para extrair campos listados após "lista de campos", "lista destes campos", etc.
+        const camposMencionados = new Set<string>();
+        
+        // Processar texto para extrair campos listados
+        const palavrasChave = contextLower.split(/[,:.;\s]+/);
+        
+        for (const palavra of palavrasChave) {
+          const termo = palavra.trim();
+          if (termo.length > 2) { // Ignorar palavras muito curtas
+            // Adicionar campos mencionados específicos
+            if (['data', 'horario', 'hora', 'dia', 'quando'].includes(termo)) {
+              camposMencionados.add('data');
+            } else if (['local', 'lugar', 'localizacao', 'endereco', 'onde'].includes(termo)) {
+              camposMencionados.add('local');
+            } else if (['banda', 'artista', 'grupo', 'musico', 'cantor'].includes(termo)) {
+              camposMencionados.add('banda');
+            } else if (['contato', 'email', 'telefone', 'fone'].includes(termo)) {
+              camposMencionados.add('contato');
+            } else if (['numero', 'n', 'nr', 'contato'].includes(termo)) {
+              camposMencionados.add('telefone');
+            } else if (['preco', 'valor', 'custo', 'pagamento'].includes(termo)) {
+              camposMencionados.add('preco');
+            } else if (['evento', 'show', 'apresentacao', 'concerto'].includes(termo)) {
+              camposMencionados.add('evento');
+            } else if (['duracao', 'tempo', 'periodo'].includes(termo)) {
+              camposMencionados.add('duracao');
+            }
+          }
+        }
+        
+        // Verificar se o contexto menciona bandas/artistas
+        if (contextLower.includes('banda') || contextLower.includes('artista') || 
+            contextLower.includes('musica') || contextLower.includes('show')) {
+          // Campos para gestão de bandas/artistas
+          if (!camposMencionados.has('banda')) camposMencionados.add('banda');
+          
+          // Se for um contexto de eventos/shows
+          if (contextLower.includes('show') || contextLower.includes('evento')) {
+            if (!camposMencionados.has('data')) camposMencionados.add('data');
+            if (!camposMencionados.has('local')) camposMencionados.add('local');
+            if (!camposMencionados.has('contato')) camposMencionados.add('contato');
+          }
+        }
+        
+        // Adicionar os campos mencionados à lista de campos
+        if (camposMencionados.has('data')) {
+          specificFields.push({
+            name: 'data',
+            type: 'date',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Data do evento/show'
+          });
+          
+          specificFields.push({
+            name: 'horario',
+            type: 'time',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Horário de início do evento/show'
+          });
+        }
+        
+        if (camposMencionados.has('local')) {
+          specificFields.push({
+            name: 'local',
+            type: 'varchar(255)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Local onde ocorrerá o evento/show'
+          });
+          
+          specificFields.push({
+            name: 'endereco',
+            type: 'varchar(255)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Endereço completo do local'
+          });
+        }
+        
+        if (camposMencionados.has('banda')) {
+          specificFields.push({
+            name: 'banda_id',
+            type: 'uuid',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: true,
+            description: 'ID da banda/artista que se apresentará',
+            references: {
+              table: 'bandas',
+              field: 'id'
+            }
+          });
+          
+          // Também adicione outras informações relevantes
+          specificFields.push({
+            name: 'estilo_musical',
+            type: 'varchar(100)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Estilo musical da apresentação'
+          });
+        }
+        
+        if (camposMencionados.has('contato')) {
+          specificFields.push({
+            name: 'nome_contato',
+            type: 'varchar(255)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Nome da pessoa de contato para o evento'
+          });
+        }
+        
+        if (camposMencionados.has('telefone')) {
+          specificFields.push({
+            name: 'telefone_contato',
+            type: 'varchar(20)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Número de telefone do contato'
+          });
+        }
+        
+        if (camposMencionados.has('preco')) {
+          specificFields.push({
+            name: 'valor_cachê',
+            type: 'decimal(10,2)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Valor do cachê a ser pago'
+          });
+        }
+        
+        if (camposMencionados.has('evento')) {
+          specificFields.push({
+            name: 'nome_evento',
+            type: 'varchar(255)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Nome do evento/show'
+          });
+        }
+        
+        if (camposMencionados.has('duracao')) {
+          specificFields.push({
+            name: 'duracao_show',
+            type: 'interval',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Duração prevista da apresentação'
+          });
+        }
+        
+        // Adicionar campos adicionais sempre úteis para este domínio se não temos campos suficientes
+        if (specificFields.length < 4) {
+          specificFields.push({
+            name: 'observacoes',
+            type: 'text',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Observações e requisitos especiais'
+          });
+          
+          specificFields.push({
+            name: 'status',
+            type: 'varchar(20)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Status do evento (confirmado, cancelado, pendente)'
+          });
+        }
+      } 
+      // Para contextos relacionados a bandas/artistas sem lista específica de campos
+      else if (contextLower.includes('banda') || contextLower.includes('artista') || 
+          contextLower.includes('música') || contextLower.includes('show')) {
+        // Campos básicos para gerenciamento de bandas e artistas
+        specificFields = [
+          {
+            name: 'nome',
+            type: 'varchar(255)',
+              required: true,
+            isPrimaryKey: false,
+              isForeignKey: false,
+            description: 'Nome da banda ou artista'
+            },
+            {
+            name: 'estilo_musical',
+            type: 'varchar(100)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+            description: 'Estilo ou gênero musical'
+          },
+          {
+            name: 'data_formacao',
+            type: 'date',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Data de formação da banda'
+          },
+          {
+            name: 'biografia',
+            type: 'text',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Biografia ou descrição do artista/banda'
+          },
+          {
+            name: 'contato_principal',
+            type: 'varchar(255)',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: false,
+            description: 'Nome do contato principal'
+            },
+            {
+            name: 'telefone_contato',
+            type: 'varchar(20)',
+              required: true,
+              isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Telefone do contato principal'
+          },
+          {
+            name: 'email',
+            type: 'varchar(255)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'E-mail para contato'
+          },
+          {
+            name: 'valor_cache_padrao',
+            type: 'decimal(10,2)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Valor padrão de cachê cobrado'
+          },
+          {
+            name: 'ativo',
+            type: 'boolean',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Indica se a banda/artista está ativo'
+          }
+        ];
+      }
+      // Para contextos com menção de shows específicos
+      else if (contextLower.includes('show') || contextLower.includes('evento')) {
+        specificFields = [
+          {
+            name: 'nome_evento',
+            type: 'varchar(255)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Nome do evento ou show'
+          },
+          {
+            name: 'data',
+            type: 'date',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Data do evento'
+          },
+          {
+            name: 'horario',
+            type: 'time',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Horário de início'
+          },
+          {
+            name: 'local',
+            type: 'varchar(255)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Local onde ocorrerá o evento'
+          },
+          {
+            name: 'banda_id',
+              type: 'uuid',
+              required: true,
+              isPrimaryKey: false,
+              isForeignKey: true,
+            description: 'ID da banda/artista que se apresentará',
+              references: {
+              table: 'bandas',
+                field: 'id'
+              }
+          },
+          {
+            name: 'valor_cache',
+            type: 'decimal(10,2)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Valor do cachê a ser pago'
+          },
+          {
+            name: 'status',
+            type: 'varchar(20)',
+            required: true,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Status do evento (confirmado, cancelado, pendente)'
+          },
+          {
+            name: 'nome_contato',
+            type: 'varchar(255)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Nome da pessoa de contato para o evento'
+          },
+          {
+            name: 'telefone_contato',
+            type: 'varchar(20)',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Número de telefone do contato'
+          },
+          {
+            name: 'observacoes',
+            type: 'text',
+            required: false,
+            isPrimaryKey: false,
+            isForeignKey: false,
+            description: 'Requisitos especiais e observações'
+          }
+        ];
+      }
+      // Use a lógica existente para outros contextos (recaindo para os padrões)
+      else if (context.startsWith('Gere campos para')) {
+        // Resto do código existente para contextos predefinidos...
+        // ... existing code ...
+
+      // Verificar se o contexto menciona alguma palavra-chave específica para usar a lógica existente
+      } else {
+        // Resto do código existente para contexto personalizado
+        // ... existing code ...
+      }
+      
+      // Adicionar campos básicos de controle se ainda não existem
+      const hasIdField = specificFields.some(f => f.name === 'id');
+      const hasCreatedAtField = specificFields.some(f => f.name === 'created_at');
+      const hasUpdatedAtField = specificFields.some(f => f.name === 'updated_at');
+      
+      if (!hasIdField) {
+        specificFields.unshift({
+          name: 'id',
+          type: 'uuid',
+          required: true,
+          isPrimaryKey: true,
+          isForeignKey: false,
+          description: 'Identificador único do registro'
+        });
+      }
+      
+      if (!hasCreatedAtField) {
+        specificFields.push({
+          name: 'created_at',
+          type: 'timestamp',
+          required: true,
+          isPrimaryKey: false,
+          isForeignKey: false,
+          description: 'Data e hora de criação do registro'
+        });
+      }
+      
+      if (!hasUpdatedAtField) {
+        specificFields.push({
+          name: 'updated_at',
+          type: 'timestamp',
+          required: true,
+          isPrimaryKey: false,
+          isForeignKey: false,
+          description: 'Data e hora da última atualização do registro'
+        });
+      }
+      
+      // Gerar índices para os campos específicos
+      specificIndexes = suggestIndexes(specificFields);
+      
+      // Gerar constraints para os campos específicos
+      specificConstraints = suggestConstraints(specificFields);
+      
+      // Atualizar os campos com as sugestões específicas
+      setFields(prevFields => {
+        const existingFieldNames = new Set(prevFields.map(f => f.name));
+        const newFields = specificFields.filter(
+          f => !existingFieldNames.has(f.name)
+        );
+        return [...prevFields, ...newFields];
+      });
+
+      // Atualizar índices sugeridos
+      setIndexes(prevIndexes => {
+        const existingIndexNames = new Set(prevIndexes.map(i => i.name));
+        const newIndexes = specificIndexes.filter(
+          i => !existingIndexNames.has(i.name)
+        );
+        return [...prevIndexes, ...newIndexes];
+      });
+
+      // Atualizar constraints sugeridas
+      setConstraints(prevConstraints => {
+        const existingConstraintNames = new Set(prevConstraints.map(c => c.name));
+        const newConstraints = specificConstraints.filter(
+          c => !existingConstraintNames.has(c.name)
+        );
+        return [...prevConstraints, ...newConstraints];
+      });
+
+      toast.success(`Campos sugeridos com sucesso!`);
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.error('Erro ao gerar sugestões específicas. Tente novamente.');
+    } finally {
+      setIsGeneratingFields(false);
+    }
+  };
+
+  // Função para sugerir campos baseado no nome da tabela
+  const suggestFields = (tableName: string) => {
+    const commonFields = [
+      {
+        name: 'id',
+        type: 'uuid',
+        required: true,
+        isPrimaryKey: true,
+        isForeignKey: false,
+        description: 'Identificador único do registro'
+      },
+      {
+        name: 'created_at',
+        type: 'timestamp',
+        required: true,
+        isPrimaryKey: false,
+        isForeignKey: false,
+        description: 'Data e hora de criação do registro'
+      },
+      {
+        name: 'updated_at',
+        type: 'timestamp',
+        required: true,
+        isPrimaryKey: false,
+        isForeignKey: false,
+        description: 'Data e hora da última atualização do registro'
+      }
+    ];
+
+    // Mapeamento de campos sugeridos por tipo de tabela
+    const fieldSuggestions: { [key: string]: Field[] } = {
+      usuarios: [
+        { name: 'nome', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Nome completo do usuário' },
+        { name: 'email', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Endereço de e-mail do usuário' },
+        { name: 'senha', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Senha do usuário (hash)' },
+        { name: 'ativo', type: 'boolean', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Status de ativação do usuário' }
+      ],
+      produtos: [
+        { name: 'nome', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Nome do produto' },
+        { name: 'descricao', type: 'text', required: false, isPrimaryKey: false, isForeignKey: false, description: 'Descrição detalhada do produto' },
+        { name: 'preco', type: 'decimal', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Preço do produto' },
+        { name: 'estoque', type: 'integer', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Quantidade em estoque' }
+      ],
+      categorias: [
+        { name: 'nome', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Nome da categoria' },
+        { name: 'descricao', type: 'text', required: false, isPrimaryKey: false, isForeignKey: false, description: 'Descrição da categoria' },
+        { name: 'ativa', type: 'boolean', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Status de ativação da categoria' }
+      ],
+      pedidos: [
+        { name: 'numero', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Número do pedido' },
+        { name: 'data', type: 'timestamp', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Data e hora do pedido' },
+        { name: 'status', type: 'text', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Status do pedido' },
+        { name: 'valor_total', type: 'decimal', required: true, isPrimaryKey: false, isForeignKey: false, description: 'Valor total do pedido' },
+        { name: 'usuario_id', type: 'uuid', required: true, isPrimaryKey: false, isForeignKey: true, description: 'ID do usuário que fez o pedido',
+          references: { table: 'usuarios', field: 'id' }}
+      ]
+    };
+
+    // Normaliza o nome da tabela para comparação
+    const normalizedTableName = tableName.toLowerCase().replace(/_/g, '');
+    
+    // Procura por correspondências parciais
+    let suggestedFields = commonFields;
+    for (const [key, fields] of Object.entries(fieldSuggestions)) {
+      if (normalizedTableName.includes(key)) {
+        suggestedFields = [...suggestedFields, ...fields];
+        break;
+      }
+    }
+
+    return suggestedFields;
+  };
+
+  // Função para sugerir índices baseado nos campos
+  const suggestIndexes = (fields: Field[]) => {
+    const suggestedIndexes: Index[] = [];
+
+    // Índice para chave primária
+    const pkFields = fields.filter(f => f.isPrimaryKey);
+    if (pkFields.length > 0) {
+      suggestedIndexes.push({
+        name: `${tableName}_pkey`,
+        fields: pkFields.map(f => f.name),
+        type: 'btree',
+        unique: true
+      });
+    }
+
+    // Índices para chaves estrangeiras
+    fields.forEach(field => {
+      if (field.isForeignKey) {
+        suggestedIndexes.push({
+          name: `${tableName}_${field.name}_idx`,
+          fields: [field.name],
+          type: 'btree',
+          unique: false
+        });
+      }
+    });
+
+    // Índices para campos comumente pesquisados
+    fields.forEach(field => {
+      if (['email', 'numero', 'codigo', 'slug'].some(pattern => field.name.toLowerCase().includes(pattern))) {
+        suggestedIndexes.push({
+          name: `${tableName}_${field.name}_idx`,
+          fields: [field.name],
+          type: 'btree',
+          unique: field.name === 'email'
+        });
+      }
+    });
+
+    return suggestedIndexes;
+  };
+
+  // Função para sugerir restrições baseado nos campos
+  const suggestConstraints = (fields: Field[]) => {
+    const suggestedConstraints: Constraint[] = [];
+
+    // Restrições de chave estrangeira
+    fields.forEach(field => {
+      if (field.isForeignKey && field.references) {
+        suggestedConstraints.push({
+          name: `${tableName}_${field.name}_fkey`,
+          type: 'foreign_key',
+          definition: `FOREIGN KEY (${field.name}) REFERENCES ${field.references.table}(${field.references.field})`
+        });
+      }
+    });
+
+    // Restrições de unicidade
+    fields.forEach(field => {
+      if (field.name === 'email' || field.name === 'codigo' || field.name === 'slug') {
+        suggestedConstraints.push({
+          name: `${tableName}_${field.name}_unique`,
+          type: 'unique',
+          definition: `UNIQUE (${field.name})`
+        });
+      }
+    });
+
+    // Restrições de verificação para campos específicos
+    fields.forEach(field => {
+      if (field.name.includes('preco') || field.name.includes('valor')) {
+        suggestedConstraints.push({
+          name: `${tableName}_${field.name}_check`,
+          type: 'check',
+          definition: `CHECK (${field.name} >= 0)`
+        });
+      }
+    });
+
+    return suggestedConstraints;
+  };
+
+  useEffect(() => {
+    const currentData = {
+      pageTitle,
+      pageSubtitle,
+      tableName,
+      tableFunction,
+      fields,
+      indexes,
+      constraints
+    };
+
+    // Verifica se houve mudança real nos dados
+    const hasChanged = JSON.stringify(currentData) !== JSON.stringify(lastNotifiedData);
+
+    if (hasChanged) {
+      onSchemaChange({
+        ...currentData,
+        relationships: []
+      });
+      setLastNotifiedData(currentData);
+    }
+  }, [pageTitle, pageSubtitle, tableName, tableFunction, fields, indexes, constraints, onSchemaChange, lastNotifiedData]);
+
+  useEffect(() => {
+    if (fields.length > 0) {
+      // Atualizar índices e restrições quando os campos mudarem
+      const newIndexes = suggestIndexes(fields);
+      const newConstraints = suggestConstraints(fields);
+      
+      // Comparar com os valores atuais para evitar atualizações desnecessárias
+      if (JSON.stringify(newIndexes) !== JSON.stringify(indexes)) {
+        setIndexes(newIndexes);
+      }
+      if (JSON.stringify(newConstraints) !== JSON.stringify(constraints)) {
+        setConstraints(newConstraints);
+      }
+    } else {
+      // Limpar índices e restrições se não houver campos
+      setIndexes([]);
+      setConstraints([]);
+    }
+  }, [fields, tableName]);
+
+  // Atualiza os estados locais quando initialData muda
+  useEffect(() => {
+    if (initialData) {
+      setFields(initialData.fields || []);
+      setTableName(initialData.tableName || '');
+      setTableFunction(initialData.tableFunction || '');
+      setPageTitle(initialData.pageTitle || '');
+      setPageSubtitle(initialData.pageSubtitle || '');
+      setLastNotifiedData({
+        pageTitle: initialData.pageTitle || '',
+        pageSubtitle: initialData.pageSubtitle || '',
+        tableName: initialData.tableName || '',
+        tableFunction: initialData.tableFunction || '',
+        fields: initialData.fields || [],
+        indexes: initialData.indexes || [],
+        constraints: initialData.constraints || [],
+      });
+    }
+  }, [initialData]);
+
+  const addField = () => {
+    const newField: Field = {
+      name: '',
+      type: 'text',
+      required: false,
+      isPrimaryKey: false,
+      isForeignKey: false,
+      description: 'Novo campo'
+    };
+    setFields([...fields, newField]);
+  };
+
+  const duplicateField = (index: number) => {
+    const field = fields[index];
+    const newField = {
+      ...field,
+      name: `${field.name}_copia`,
+      isPrimaryKey: false, // Chave primária não pode ser duplicada
+      description: `Cópia de: ${field.description}`
+    };
+    setFields([...fields, newField]);
+  };
+
+  const moveField = (fromIndex: number, toIndex: number) => {
+    const updatedFields = [...fields];
+    const [movedField] = updatedFields.splice(fromIndex, 1);
+    updatedFields.splice(toIndex, 0, movedField);
+    setFields(updatedFields);
+  };
+
+  const updateField = (index: number, updates: Partial<Field>) => {
+    const updatedFields = fields.map((field, i) => 
+      i === index ? { ...field, ...updates } : field
+    );
+    setFields(updatedFields);
+  };
+
+  const removeField = (index: number) => {
+    setFields(fields.filter((_, i) => i !== index));
+  };
+
+  // Adicionar função para remover todos os campos
+  const removeAllFields = () => {
+    if (fields.length === 0) {
+      toast.info('Não há campos para remover');
+      return;
+    }
+    
+    toast.warning('Você tem certeza?', {
+      description: 'Todos os campos serão removidos e esta ação não pode ser desfeita.',
+      action: {
+        label: 'Remover',
+        onClick: () => {
+          setFields([]);
+          toast.success('Todos os campos foram removidos');
+        }
+      },
+      cancel: {
+        label: 'Cancelar',
+        onClick: () => {}
+      },
+      duration: 5000
+    });
+  };
+
+  const createEmptyField = (): Field => ({
+    name: '',
+    type: 'text',
+    description: 'Novo campo',
+    required: false,
+    isPrimaryKey: false,
+    isForeignKey: false
+  });
+
+  const handleFieldChange = (index: number, field: keyof Field, value: string) => {
+    updateField(index, { [field]: value });
+  };
+
+  // Lógica para gerar o SQL atualizado quando algum dado relevante muda
+  const sqlCommand = useMemo(() => {
+    return generateCreateTableSQL(tableName, fields, indexes, constraints);
+  }, [tableName, fields, indexes, constraints]);
+
+  return (
+    <div className="relative">
+      {/* Efeito de fundo */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-gray-900 to-black -z-10 overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600/0 via-blue-600/80 to-purple-600/0"></div>
+        <div className="absolute w-full h-full bg-[url('/grid.svg')] bg-repeat opacity-10"></div>
+        <div className="absolute top-10 -left-24 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-10 -right-24 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Conteúdo principal */}
+      <div className="relative z-10 max-w-7xl mx-auto">
+        {/* Layout em uma única coluna ocupando toda a largura */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Informações básicas */}
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800/60 shadow-[0_0_15px_rgba(0,0,0,0.2),0_0_3px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.2)] overflow-hidden">
+            <div className="p-5 pb-4 border-b border-slate-700/50">
+              <h2 className="text-lg font-medium text-slate-100 flex items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                Informações Básicas
+              </h2>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* Seção de título */}
+              <div className="space-y-3">
+                <Label htmlFor="pageTitle" className="text-slate-300 text-sm font-medium inline-flex items-center">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span>
+                  Título da Página
+                </Label>
+          <div className="flex gap-2">
+                  <div className="relative flex-1">
+            <Input
+              id="pageTitle"
+              value={pageTitle}
+              onChange={(e) => setPageTitle(e.target.value)}
+              placeholder="Título da página"
+                      className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/30 pr-10 h-10"
+            />
+                    <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    </div>
+                  </div>
+            <Button
+                    variant="ghost"
+              size="default"
+              onClick={generateSubtitle}
+              disabled={isGeneratingSubtitle || !pageTitle}
+                    className="bg-slate-800/80 hover:bg-slate-700/80 h-10 border border-slate-700/50 shadow-sm text-slate-300 hover:text-white transition-colors"
+            >
+              {isGeneratingSubtitle ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <span>Gerando</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="h-4 w-4 mr-2" />
+                        <span>Sugerir</span>
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+              {/* Seção de subtítulo */}
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <Label htmlFor="pageSubtitle" className="text-slate-300 text-sm font-medium inline-flex items-center">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span>
+            Subtítulo da Página
+          </Label>
+                  <span className="ml-2 text-[10px] bg-slate-800/80 px-1.5 py-0.5 rounded-full text-slate-400 border border-slate-700/50 font-medium tracking-wide">OPCIONAL</span>
+                </div>
+                <div className="relative">
+          <Input
+            id="pageSubtitle"
+            value={pageSubtitle}
+            onChange={(e) => setPageSubtitle(e.target.value)}
+            placeholder="Subtítulo da página"
+                    className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/30 pr-10 h-10"
+          />
+                  <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+
+          {/* Estrutura da tabela */}
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800/60 shadow-[0_0_15px_rgba(0,0,0,0.2),0_0_3px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.2)] overflow-hidden">
+            <div className="p-5 pb-4 border-b border-slate-700/50">
+              <h2 className="text-lg font-medium text-slate-100 flex items-center">
+                <span className="inline-block w-2 h-2 rounded-full bg-purple-500 mr-2"></span>
+                Estrutura da Tabela
+              </h2>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* Nome da tabela */}
+              <div className="space-y-3">
+                <Label htmlFor="tableName" className="text-slate-300 text-sm font-medium inline-flex items-center">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 mr-2"></span>
+                  Nome da Tabela
+                </Label>
+                <div className="relative">
+          <Input
+            id="tableName"
+            value={tableName}
+            onChange={(e) => setTableName(e.target.value)}
+            placeholder="nome_da_tabela"
+                    className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/30 pr-10 h-10"
+          />
+                  <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
+                  </div>
+                </div>
+        </div>
+
+              {/* Função da tabela */}
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <Label htmlFor="tableFunction" className="text-slate-300 text-sm font-medium inline-flex items-center">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-400 mr-2"></span>
+            Função da Tabela
+          </Label>
+                  <span className="ml-2 text-[10px] bg-slate-800/80 px-1.5 py-0.5 rounded-full text-slate-400 border border-slate-700/50 font-medium tracking-wide">OPCIONAL</span>
+                </div>
+          <div className="flex gap-2">
+                  <div className="relative flex-1">
+            <Textarea
+              id="tableFunction"
+              value={tableFunction}
+              onChange={(e) => setTableFunction(e.target.value)}
+              placeholder="Descreva a função desta tabela"
+                      className="bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/30 resize-none min-h-[100px]"
+            />
+                    <div className="absolute top-2.5 right-2.5 pr-0 flex items-center pointer-events-none">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>
+                    </div>
+                  </div>
+            <Button
+                    variant="ghost"
+                    size="sm"
+              onClick={generateTableFunction}
+              disabled={isGeneratingTableFunction || !tableName}
+                    className="bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/50 h-auto self-stretch shadow-sm text-slate-300 hover:text-white transition-colors"
+            >
+              {isGeneratingTableFunction ? (
+                      <Loader2 className="h-4 animate-spin" />
+              ) : (
+                      <Wand2 className="h-4 w-4" />
+              )}
+            </Button>
+                </div>
+          </div>
+        </div>
+      </div>
+
+          {/* Área principal para campos e contextos em duas colunas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Definição de campos */}
+            <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800/60 shadow-[0_0_15px_rgba(0,0,0,0.2),0_0_3px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.2)] overflow-hidden">
+              <div className="p-5 pb-4 border-b border-slate-700/50">
+                <h2 className="text-lg font-medium text-slate-100 flex items-center justify-between">
+                  <span className="flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-rose-500 mr-2"></span>
+                    Campos
+                    <span className="ml-2 text-xs bg-slate-800 px-1.5 py-0.5 rounded-full text-slate-400 font-medium">
+                      {fields.length} campo{fields.length === 1 ? '' : 's'}
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateFields}
+              disabled={isGeneratingFields || !tableName}
+                      className="bg-slate-800/50 hover:bg-slate-700/50 border-slate-700/50 text-slate-300 h-7 text-xs"
+            >
+              {isGeneratingFields ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+              ) : (
+                        <Wand2 className="h-3.5 w-3.5 mr-1" />
+              )}
+                      <span>Sugerir</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+                      onClick={() => setFields([...fields, createEmptyField()])}
+                      className="bg-slate-800/50 hover:bg-slate-700/50 border-slate-700/50 text-slate-300 h-7"
+            >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+              Adicionar Campo
+            </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={removeAllFields}
+                      disabled={fields.length === 0}
+                      className="bg-slate-800/50 hover:bg-red-900/30 border-slate-700/50 hover:border-red-700/50 text-slate-300 hover:text-red-300 h-7"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Remover Todos
+                    </Button>
+          </div>
+                </h2>
+        </div>
+
+              <div className="divide-y divide-slate-800/50">
+                {fields.length === 0 ? (
+                  <div className="p-8 flex flex-col items-center justify-center text-center">
+                    <Database className="h-10 w-10 text-slate-600 mb-3" />
+                    <p className="text-slate-500 mb-4 text-sm">Nenhum campo definido</p>
+                    <p className="text-slate-600 max-w-md text-xs mb-5">Selecione um dos contextos ao lado ou adicione um campo manualmente</p>
+                  <Button
+                      onClick={() => setFields([...fields, createEmptyField()])}
+                      variant="outline" 
+                      className="bg-slate-800/70 hover:bg-slate-700/70 border-slate-700/50 text-slate-300"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Primeiro Campo
+                  </Button>
+                  </div>
+                ) : (
+                  <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                    {/* Cabeçalho da tabela */}
+                    <div className="grid grid-cols-12 gap-2 px-4 py-2 border-b border-slate-700/50 bg-slate-800/30 text-xs font-medium text-slate-400 uppercase tracking-wider">
+                      <div className="col-span-3">Nome</div>
+                      <div className="col-span-2">Tipo</div>
+                      <div className="col-span-6">Descrição</div>
+                      <div className="col-span-1 text-right">Ações</div>
+              </div>
+
+                    {/* Linhas da tabela */}
+                    {fields.map((field, index) => (
+                      <div key={index} className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-slate-800/30 transition-colors items-start border-b border-slate-800/40">
+                        <div className="col-span-3">
+                  <Input
+                    value={field.name}
+                            onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                            placeholder="nome_campo"
+                            className="h-8 text-sm bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-rose-500/40 focus:ring-rose-500/20"
+                          />
+                          <div className="mt-2 flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
+                              <Checkbox 
+                                id={`field-${index}-required`}
+                                checked={field.required}
+                                onCheckedChange={(checked) => 
+                                  updateField(index, { required: checked === true })
+                                }
+                                className="h-3.5 w-3.5 rounded-sm border-slate-700 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600"
+                              />
+                              <label htmlFor={`field-${index}-required`} className="text-xs text-slate-400">
+                                Obrigatório
+                              </label>
+                  </div>
+                </div>
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                    value={field.type}
+                            onChange={(e) => handleFieldChange(index, 'type', e.target.value)}
+                            placeholder="tipo"
+                            className="h-8 text-sm bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/40 focus:ring-blue-500/20"
+                          />
+                          <div className="mt-2 flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
+                    <Checkbox
+                                id={`field-${index}-pk`}
+                                checked={field.isPrimaryKey}
+                      onCheckedChange={(checked) => 
+                                  updateField(index, { isPrimaryKey: checked === true })
+                      }
+                                className="h-3.5 w-3.5 rounded-sm border-slate-700 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                    />
+                              <label htmlFor={`field-${index}-pk`} className="text-xs text-slate-400">
+                                PK
+                              </label>
+                  </div>
+                          </div>
+                        </div>
+                        <div className="col-span-6">
+                          <Textarea
+                            value={field.description}
+                            onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
+                            placeholder="Descrição detalhada do campo (propósito, formato, regras, etc.)"
+                            className="h-16 min-h-16 text-sm bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-amber-500/40 focus:ring-amber-500/20 resize-none"
+                          />
+                          <div className="mt-2 flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
+                    <Checkbox
+                                id={`field-${index}-fk`}
+                                checked={field.isForeignKey}
+                      onCheckedChange={(checked) => {
+                                  if (checked === true) {
+                                    // Se marcado, certifique-se de que references existe e tem valores válidos
+                                    updateField(index, { 
+                                      isForeignKey: true,
+                                      references: {
+                                        table: field.references?.table || "",
+                                        field: field.references?.field || ""
+                                      }
+                                    });
+                                  } else {
+                                    // Se desmarcado, apenas atualize a flag
+                                    updateField(index, { isForeignKey: false });
+                                  }
+                                }}
+                                className="h-3.5 w-3.5 rounded-sm border-slate-700 data-[state=checked]:bg-amber-600 data-[state=checked]:border-amber-600"
+                              />
+                              <label htmlFor={`field-${index}-fk`} className="text-xs text-slate-400">
+                                FK
+                              </label>
+                  </div>
+                {field.isForeignKey && (
+                              <div className="flex items-center space-x-1 text-xs text-slate-400">
+                                <span>Ref:</span>
+                      <Input
+                                  value={field.references?.table || ""}
+                                  onChange={(e) => {
+                                    const table = e.target.value;
+                                    const fieldName = field.references?.field || "";
+                                    updateField(index, { 
+                                      references: { table, field: fieldName } 
+                                    });
+                                  }}
+                                  placeholder="tabela"
+                                  className="h-5 w-20 text-xs bg-slate-800/70 border-slate-700/50 text-white placeholder:text-slate-500"
+                                />
+                                <span>.</span>
+                      <Input
+                                  value={field.references?.field || ""}
+                                  onChange={(e) => {
+                                    const fieldName = e.target.value;
+                                    const table = field.references?.table || "";
+                                    updateField(index, { 
+                                      references: { table, field: fieldName }
+                                    });
+                                  }}
+                                  placeholder="campo"
+                                  className="h-5 w-20 text-xs bg-slate-800/70 border-slate-700/50 text-white placeholder:text-slate-500"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeField(index)}
+                            className="h-7 w-7 rounded-full hover:bg-red-500/20 hover:text-red-400 text-slate-500 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Botão para adicionar mais campos */}
+                    <div className="p-3 flex justify-center">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setFields([...fields, createEmptyField()])}
+                        className="bg-slate-800/50 hover:bg-slate-700/50 border-slate-700/50 text-slate-300"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        Adicionar Campo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Contextos para geração */}
+            <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800/60 shadow-[0_0_15px_rgba(0,0,0,0.2),0_0_3px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.2)] overflow-hidden">
+              <div className="p-5 pb-4 border-b border-slate-700/50">
+                <h2 className="text-lg font-medium text-slate-100 flex items-center justify-between">
+                  <span className="flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
+                    Contextos
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSQLPanel(!showSQLPanel)}
+                      className="text-xs bg-slate-800/90 hover:bg-slate-700/90 border-slate-700/50 text-slate-300 h-7 px-2 py-0"
+                    >
+                      <Code className="h-3.5 w-3.5 mr-1" />
+                      {showSQLPanel ? 'Ocultar SQL' : 'Mostrar SQL'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCustomContextDialog(true)}
+                      className="text-xs bg-slate-800/90 hover:bg-slate-700/90 border-slate-700/50 text-slate-300 h-7 px-2 py-0"
+                    >
+                      <MessageSquarePlus className="h-3.5 w-3.5 mr-1" />
+                      Personalizado
+                    </Button>
+                  </div>
+                </h2>
+              </div>
+              
+              <div className="flex flex-row">
+                {/* Painel de Contextos - Agora ocupa metade do espaço quando o SQL está visível */}
+                <div className={`px-2 py-3 max-h-[400px] overflow-y-auto custom-scrollbar ${showSQLPanel ? 'w-1/2 border-r border-slate-700/30' : 'w-full'}`}>
+                  <div className="grid grid-cols-1 gap-2 px-2">
+                    {CONTEXT_CATEGORIES.map((category) => (
+                      <div key={category.id} className="mb-3">
+                        <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2 ml-1 font-semibold">{category.title}</h3>
+                        <div className="space-y-1.5">
+                          {category.contexts.map((context) => (
+                            <Button
+                              key={context.id}
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => generateSpecificFields(context.prompt)}
+                              disabled={isGeneratingFields}
+                              className="w-full justify-start bg-slate-800/40 hover:bg-slate-700/60 border border-slate-700/40 shadow-sm"
+                            >
+                              {isGeneratingFields ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                              ) : (
+                                <context.icon className="h-3.5 w-3.5 mr-2 text-emerald-400" />
+                              )}
+                              <span>{context.name}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Painel SQL - Só é visível quando showSQLPanel é true */}
+                {showSQLPanel && (
+                  <div className="w-1/2 p-4 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    <div className="bg-slate-800/80 border border-slate-700/50 rounded-md p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-slate-200 flex items-center">
+                          <Database className="h-3.5 w-3.5 mr-2 text-blue-400" />
+                          Comando SQL
+                        </h3>
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50"
+                            onClick={() => {
+                              navigator.clipboard.writeText(sqlCommand);
+                              toast.success('SQL copiado para a área de transferência!');
+                            }}
+                            title="Copiar SQL"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <pre className="text-xs font-mono bg-slate-950/50 p-3 rounded overflow-x-auto text-green-400 custom-scrollbar">
+                          {sqlCommand || 'Defina o nome da tabela e adicione campos para gerar o SQL'}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+        </div>
+        </div>
+
+          {/* Painel de configurações adicionais (índices/restrições) */}
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-xl border border-slate-800/60 shadow-[0_0_15px_rgba(0,0,0,0.2),0_0_3px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.2)] overflow-hidden">
+            <div className="p-5 pb-4 border-b border-slate-700/50">
+              <h2 className="text-lg font-medium text-slate-100 flex items-center justify-between">
+                <span className="flex items-center">
+                  <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-2"></span>
+                  Configurações Avançadas
+                </span>
+                  <Button
+                  variant="ghost"
+                    size="sm"
+                  onClick={() => setIsAdvancedExpanded(!isAdvancedExpanded)}
+                  className="text-xs bg-slate-800 hover:bg-slate-700 border-slate-700/50 text-slate-300 h-7 px-2 py-0"
+                >
+                  {isAdvancedExpanded ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5 mr-1" />
+                      Recolher
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                      Expandir
+                    </>
+                  )}
+            </Button>
+              </h2>
+                </div>
+            <div className="p-4 text-sm text-slate-400 flex items-center justify-center">
+              <p>
+                {indexes.length > 0 && (
+                  <span className="mr-4">
+                    <span className="bg-blue-900/30 text-blue-300 border border-blue-500/20 px-1.5 py-0.5 rounded-full text-xs mr-1.5">
+                      {indexes.length}
+                    </span>
+                    índice{indexes.length === 1 ? '' : 's'}
+                  </span>
+                )}
+                {constraints.length > 0 && (
+                  <span>
+                    <span className="bg-amber-900/30 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded-full text-xs mr-1.5">
+                      {constraints.length}
+                    </span>
+                    restrição{constraints.length === 1 ? '' : 'ões'}
+                  </span>
+                )}
+                {indexes.length === 0 && constraints.length === 0 && (
+                  <span className="text-slate-500 text-xs">
+                    Sem configurações avançadas definidas
+                  </span>
+                )}
+              </p>
+      </div>
+
+            {isAdvancedExpanded ? (
+              <div className="p-4 space-y-5">
+                {/* Seção de Índices */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-slate-300 flex items-center">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-2"></span>
+            Índices
+                      <span className="ml-2 text-xs bg-blue-900/30 text-blue-300 border border-blue-500/20 px-1.5 py-0.5 rounded-full">
+                        {indexes.length}
+                      </span>
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs bg-slate-800/60 hover:bg-slate-700/60 border-slate-700/30 text-slate-300"
+                      onClick={() => {
+                        setIndexes([
+                          ...indexes,
+                          {
+                            name: `${tableName}_idx_${indexes.length + 1}`,
+                            fields: [],
+                            type: 'btree',
+                            unique: false,
+                          },
+                        ]);
+                        toast.success('Novo índice adicionado');
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Adicionar
+                    </Button>
+        </div>
+
+                  {indexes.length === 0 ? (
+                    <div className="text-center py-3 bg-slate-800/20 border border-slate-700/30 rounded-md">
+                      <p className="text-slate-500 text-xs">Nenhum índice definido</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+          {indexes.map((index, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 bg-slate-800/20 border border-slate-700/30 rounded-md"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2 flex-1">
+                              <Input
+                                value={index.name}
+                                onChange={(e) => {
+                                  const updatedIndexes = [...indexes];
+                                  updatedIndexes[idx].name = e.target.value;
+                                  setIndexes(updatedIndexes);
+                                }}
+                                placeholder="Nome do índice"
+                                className="h-7 text-xs bg-slate-800/50 border-slate-700/50 text-white w-full"
+                              />
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center">
+                                  <Checkbox
+                                    id={`index-${idx}-unique`}
+                                    checked={index.unique}
+                                    onCheckedChange={(checked) => {
+                                      const updatedIndexes = [...indexes];
+                                      updatedIndexes[idx].unique = checked === true;
+                                      setIndexes(updatedIndexes);
+                                    }}
+                                    className="h-3.5 w-3.5"
+                                  />
+                                  <label
+                                    htmlFor={`index-${idx}-unique`}
+                                    className="text-xs text-slate-400 ml-1.5"
+                                  >
+                                    Único
+                                  </label>
+                                </div>
+                              </div>
+                  </div>
+                  <Button
+                              variant="ghost"
+                    size="sm"
+                              className="text-slate-400 hover:text-red-400 rounded-full h-7 w-7 p-0"
+                              onClick={() => {
+                                const updatedIndexes = [...indexes];
+                                updatedIndexes.splice(idx, 1);
+                                setIndexes(updatedIndexes);
+                                toast.success('Índice removido');
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+          ))}
+        </div>
+                  )}
+      </div>
+
+                {/* Seção de Restrições */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-slate-300 flex items-center">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-2"></span>
+            Restrições
+                      <span className="ml-2 text-xs bg-amber-900/30 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded-full">
+                        {constraints.length}
+                      </span>
+                    </h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs bg-slate-800/60 hover:bg-slate-700/60 border-slate-700/30 text-slate-300"
+                      onClick={() => {
+                        setConstraints([
+                          ...constraints,
+                          {
+                            name: `${tableName}_constraint_${constraints.length + 1}`,
+                            type: 'check',
+                            definition: '',
+                          },
+                        ]);
+                        toast.success('Nova restrição adicionada');
+                      }}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Adicionar
+                    </Button>
+        </div>
+
+                  {constraints.length === 0 ? (
+                    <div className="text-center py-3 bg-slate-800/20 border border-slate-700/30 rounded-md">
+                      <p className="text-slate-500 text-xs">Nenhuma restrição definida</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[200px] overflow-y-auto custom-scrollbar pr-1">
+          {constraints.map((constraint, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 bg-slate-800/20 border border-slate-700/30 rounded-md"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2 flex-1">
+                              <div className="flex gap-2">
+                                <Input
+                                  value={constraint.name}
+                                  onChange={(e) => {
+                                    const updatedConstraints = [...constraints];
+                                    updatedConstraints[idx].name = e.target.value;
+                                    setConstraints(updatedConstraints);
+                                  }}
+                                  placeholder="Nome da restrição"
+                                  className="h-7 text-xs bg-slate-800/50 border-slate-700/50 text-white w-auto flex-1"
+                                />
+                                <select
+                                  value={constraint.type}
+                                  onChange={(e) => {
+                                    const updatedConstraints = [...constraints];
+                                    updatedConstraints[idx].type = e.target.value as any;
+                                    setConstraints(updatedConstraints);
+                                  }}
+                                  className="bg-slate-800/70 border-slate-700/50 text-slate-300 rounded-sm text-xs h-7"
+                                >
+                                  <option value="check">CHECK</option>
+                                  <option value="unique">UNIQUE</option>
+                                  <option value="foreign_key">FOREIGN KEY</option>
+                                </select>
+                              </div>
+                              <Textarea
+                                value={constraint.definition}
+                                onChange={(e) => {
+                                  const updatedConstraints = [...constraints];
+                                  updatedConstraints[idx].definition = e.target.value;
+                                  setConstraints(updatedConstraints);
+                                }}
+                                placeholder="Definição da restrição (ex: CHECK (preco > 0))"
+                                className="h-16 min-h-[50px] text-xs bg-slate-800/50 border-slate-700/50 text-white resize-none"
+                              />
+                  </div>
+                  <Button
+                              variant="ghost"
+                    size="sm"
+                              className="text-slate-400 hover:text-red-400 rounded-full h-7 w-7 p-0"
+                              onClick={() => {
+                                const updatedConstraints = [...constraints];
+                                updatedConstraints.splice(idx, 1);
+                                setConstraints(updatedConstraints);
+                                toast.success('Restrição removida');
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+          ))}
+        </div>
+                  )}
+      </div>
+              </div>
+            ) : (
+              <div className="p-4 text-sm text-slate-400 flex items-center justify-center">
+                <p>
+                  {indexes.length > 0 && (
+                    <span className="mr-4">
+                      <span className="bg-blue-900/30 text-blue-300 border border-blue-500/20 px-1.5 py-0.5 rounded-full text-xs mr-1.5">
+                        {indexes.length}
+                      </span>
+                      índice{indexes.length === 1 ? '' : 's'}
+                    </span>
+                  )}
+                  {constraints.length > 0 && (
+                    <span>
+                      <span className="bg-amber-900/30 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded-full text-xs mr-1.5">
+                        {constraints.length}
+                      </span>
+                      restrição{constraints.length === 1 ? '' : 'ões'}
+                    </span>
+                  )}
+                  {indexes.length === 0 && constraints.length === 0 && (
+                    <span className="text-slate-500 text-xs">
+                      Sem configurações avançadas definidas
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+          </div>
+          
+          {/* Botão para gerar estrutura */}
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="default"
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white border-none shadow-lg shadow-blue-900/20 px-8"
+              disabled={fields.length === 0 || !tableName}
+            >
+              <Database className="h-5 w-5 mr-2" />
+              Gerar Estrutura
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal para contexto personalizado */}
+      <Dialog open={showCustomContextDialog} onOpenChange={setShowCustomContextDialog}>
+        <DialogContent className="max-w-3xl bg-slate-900/95 backdrop-blur-xl border-slate-700/50 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.3),0_0_10px_rgba(0,0,0,0.3),inset_0_0_1px_rgba(255,255,255,0.1)]">
+          <div className="absolute inset-0 rounded-xl overflow-hidden -z-10">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+          </div>
+          <DialogHeader>
+            <div className="flex items-center">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+              <DialogTitle className="text-slate-100">Contexto Personalizado</DialogTitle>
+            </div>
+            <DialogDescription className="text-slate-400">
+              Descreva o contexto específico para gerar campos personalizados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="context" className="text-slate-200 text-sm font-medium">Descreva seu Contexto</Label>
+              <Textarea
+                id="context"
+                placeholder="Ex: Campos para controle de estoque com rastreamento de lotes e validade"
+                value={customContext}
+                onChange={(e) => setCustomContext(e.target.value)}
+                className="min-h-[150px] bg-slate-800/50 border-slate-700/50 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:ring-blue-500/20 resize-none"
+              />
+              <div className="bg-blue-900/20 border border-blue-600/20 rounded-lg p-3 mt-2">
+                <p className="text-sm text-blue-300 flex items-start">
+                  <span className="bg-blue-500/20 p-1 rounded-md mr-3 mt-0.5">
+                    <Wand2 className="h-3.5 w-3.5 text-blue-400" />
+                  </span>
+                  <span>
+                    <span className="font-medium">Dica:</span> Seja específico sobre o que você precisa. Inclua detalhes sobre regras de negócio,
+                    validações necessárias e relacionamentos importantes.
+                  </span>
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                generateSpecificFields(customContext);
+                setShowCustomContextDialog(false);
+              }}
+              disabled={!customContext.trim() || isGeneratingFields}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white py-2 transition-colors"
+            >
+              {isGeneratingFields ? (
+                <div className="flex items-center justify-center">
+                  <div className="h-5 w-5 mr-2 relative">
+                    <Loader2 className="h-5 w-5 animate-spin absolute" />
+                    <div className="h-5 w-5 rounded-full bg-white/10 absolute"></div>
+                  </div>
+                  Gerando Campos...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Gerar Campos Personalizados
+                </div>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.3);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(71, 85, 105, 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(100, 116, 139, 0.6);
+        }
+      `}</style>
+    </div>
+  );
+} 
