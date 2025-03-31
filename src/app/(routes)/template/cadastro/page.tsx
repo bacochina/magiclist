@@ -33,7 +33,7 @@ export default function TemplatesPage() {
   const [generatedSQL, setGeneratedSQL] = useState<string>("");
 
   return (
-    <div className="flex flex-col gap-8 p-8">
+    <div className="flex flex-col gap-8 p-8 relative pb-20">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Novo Template</h1>

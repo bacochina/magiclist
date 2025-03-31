@@ -53,3 +53,22 @@ Implementação
 "Quando sugerir mudanças em arquivos existentes, mostre apenas as partes relevantes que precisam ser alteradas, usando
 '// ... existing code ...' para indicar código não alterado."
 
+
+
+Em Templates/Cadastros
+
+Obs: Só vai mexer em Templates/Cadastro, MAIS NADA, ENTENDEU?
+Na opção Formulário
+
+Não é pra ter nem as estatísticas e nem a escolha por Tabelas ou Cartões, como demonstro na imagem de contexto, preste atenção não quero instale nada ou troque dependência, analise a causa Raiz do problema.
+
+
+Obs: Só vai mexer em Templates/Cadastro, MAIS NADA, ENTENDEU?
+
+NÃO É PRA EXCLUIR AS ESTATÍSTICAS E ESCOLHA ENTRE TABELAS E CARTÕES DE OUTROS LUGARES
+
+Sö nos Previews 3,4 na opção FORMULÁRIO
+
+Entendeu Claude? Entendeu mesmo?
+
+

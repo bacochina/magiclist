@@ -1,0 +1,144 @@
+Criar uma nova página dentro do menu Principal
+
+GERAR
+
+Objetivo desta página
+
+    Vai pedir para o usuário estas informações:
+        Título da nova página
+        Sugerir p sub-titulo
+        
+    Vai pedir referente ao Banco de Dados (Será criado no Supabase pelo usuário)
+        Nome da tabela
+        Sugerir a função da tabela pesquisando muito bem sobre o contexto e o nicho daquela tabela que pode ser conseguido no Google
+        Sugerir os campos da tabela, pesquisando muito bem sobre o contexto e o nicho daquela tabela que pode ser conseguido no Google
+            nome dos campos sempre em português do Brasil, fora o campo ID que será sempre em inglês
+        Sugerir os tipos de dados dos campos
+        Sugerir as chaves primárias e estrangeiras
+        Sugerir as restrições de integridade
+        Sugerir os índices
+        Dar a opção para o usuário aceitar ou não o campo que estiver selecionado ou alterar tanto o nome quanto o tipo de dado
+        Dar a opção de excluir ou adicionar mais campos
+        Dar a opção de excluir ou adicionar mais índices
+        Dar a opção de excluir ou adicionar mais restrições de integridade
+        Dar a opção de excluir ou adicionar mais chaves primárias e estrangeiras
+
+________________________________________________________________________________________________________________________________________________
+
+Baseado nas especificações fornecidas e na estrutura do projeto, vou propor um plano de implementação:
+
+1. Perguntas esclarecedoras:
+   - Qual será o caminho da rota para esta nova página de geração? (ex: /gerar, /admin/gerar)
+   - A página deve ser protegida por autenticação?
+   - Devemos criar uma API específica para gerenciar as operações de banco de dados?
+   - Qual o formato desejado para o layout da página? (wizard/stepper ou formulário único)
+   - Devemos manter um histórico das páginas/tabelas geradas?
+   - Como devemos lidar com a validação dos nomes de tabelas e campos para garantir compatibilidade com o Supabase?
+
+Após suas respostas, posso elaborar um plano detalhado de implementação. Por enquanto, vou sugerir uma estrutura inicial para discussão:
+
+1. Componentes necessários:
+   - PageGeneratorForm: Formulário principal
+   - DatabaseSchemaBuilder: Componente para definição da estrutura do banco
+   - FieldTypeSelector: Componente para seleção de tipos de dados
+   - ConstraintManager: Gerenciador de restrições e chaves
+   - PreviewComponent: Visualização da estrutura final
+
+2. Estrutura de arquivos proposta:
+```
+src/
+  app/
+    gerar/
+      page.tsx
+      layout.tsx
+  components/
+    generators/
+      PageGeneratorForm.tsx
+      DatabaseSchemaBuilder.tsx
+      FieldTypeSelector.tsx
+      ConstraintManager.tsx
+      PreviewComponent.tsx
+  lib/
+    generators/
+      schema-validator.ts
+      supabase-schema-generator.ts
+```
+
+Por favor, responda às perguntas acima para que eu possa elaborar um plano mais detalhado e começar a implementação.
+
+
+
+
+[Barra de Progresso]
+Passo 1/4: Informações Básicas
+  - Título da página
+  - Subtítulo (sugerido automaticamente)
+
+Passo 2/4: Estrutura da Tabela
+  - Nome da tabela
+  - Descrição da função
+  - Lista de campos sugeridos com opções de:
+    * Aceitar/Rejeitar
+    * Editar nome/tipo
+    * Adicionar novo
+    * Reordenar
+
+Passo 3/4: Relacionamentos e Restrições
+  - Chaves primárias
+  - Chaves estrangeiras
+  - Índices
+  - Restrições de integridade
+
+Passo 4/4: Revisão e Confirmação
+  - Preview do código
+  - Preview da estrutura DB
+  - Botão de geração
+
+
+Modelo 2: Painel Único Interativo
+
++------------------------+-------------------------+
+|    Painel Esquerdo    |     Painel Direito     |
+|------------------------|-------------------------|
+| Informações Básicas   | Preview em tempo real   |
+| - Título              | - Estrutura da tabela   |
+| - Subtítulo           | - Código gerado         |
+|                       |                         |
+| Campos da Tabela      |                         |
+| [Lista interativa     |                         |
+|  com drag-and-drop]   |                         |
+|                       |                         |
+| Relacionamentos       |                         |
+| [Interface visual     |                         |
+|  de relacionamentos]  |                         |
++------------------------+-------------------------+
+
+
+
+
+
+________________________________________________________________________________________________________________________________________________
+    Vai pedir para o usuário escolher uma página de referência
+        Vai ter uma lista de páginas já criadas
+        que serão exibidas em forma de cards
+        cada card terá o nome da página, uma breve descrição e o nome do arquivo da página
+        o usuário poderá escolher uma das páginas listadas ou criar uma nova página
+
+        
+        
+    Criar uma página no Sistema idêntica a página de referência
+    
+    Seguindo a Página de Referência já escolhida pelo usuário
+    
+        Criar o layout completo 
+            Padding
+            Margins
+            Alinhamento
+            Espaçamento
+            Cores
+            Fontes
+            Imagens
+            Ícones
+
+            
+    O usuário irá escolher em uma lista uma página qualquer do nosso projeto

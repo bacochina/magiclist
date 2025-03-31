@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Eye, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -57,6 +57,15 @@ export function TemplateForm({ onSQLGenerated }: TemplateFormProps) {
   // Estado para controlar a visualização do SQL
   const [showSQL, setShowSQL] = useState(false);
   
+  // Estado para modal de próximo passo
+  const [showProximoModal, setShowProximoModal] = useState(false);
+  
+  // Estado para animação do botão
+  const [botaoAnimado, setBotaoAnimado] = useState(false);
+  
+  // Estado para efeito de pulsação
+  const [pulsar, setPulsar] = useState(true);
+  
   // Efeito para gerar subtítulo automaticamente
   useEffect(() => {
     if (titulo) {
@@ -70,6 +79,15 @@ export function TemplateForm({ onSQLGenerated }: TemplateFormProps) {
       setFuncaoTabela(gerarFuncaoTabela(nomeTabela));
     }
   }, [nomeTabela]);
+  
+  // Efeito para pulsação do botão
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      setPulsar(prev => !prev);
+    }, 1500);
+    
+    return () => clearInterval(intervalo);
+  }, []);
   
   // Função para gerar função da tabela com base no nome
   const gerarFuncaoTabela = (nome: string): string => {
@@ -400,8 +418,77 @@ export function TemplateForm({ onSQLGenerated }: TemplateFormProps) {
     }
   }, [campos, nomeTabela, onSQLGenerated]);
 
+  // Função para mostrar feedback visual ao clicar no botão
+  const handleProximoClick = () => {
+    setBotaoAnimado(true);
+    setTimeout(() => {
+      setBotaoAnimado(false);
+      setShowProximoModal(true);
+    }, 300);
+  };
+
   return (
     <Form {...form}>
+      {/* Modal personalizado para próximo passo */}
+      {showProximoModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
+          <div className="bg-slate-950 border border-slate-700 rounded-md max-w-2xl w-full mx-8 overflow-visible transition-all duration-300 ease-in-out">
+            <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Informações do Template</h2>
+              <button 
+                onClick={() => setShowProximoModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-900 p-5 rounded-md border border-slate-800">
+                <div className="mb-5">
+                  <h3 className="text-sm font-medium text-slate-400">Título do Template</h3>
+                  <p className="text-xl font-bold mt-2 text-white">{titulo || "Nenhum título definido"}</p>
+                </div>
+                
+                <div className="mb-5">
+                  <h3 className="text-sm font-medium text-slate-400">Subtítulo</h3>
+                  <p className="text-md mt-2 text-slate-200">{subtitulo || "Nenhum subtítulo definido"}</p>
+                </div>
+                
+                <div className="mb-5">
+                  <h3 className="text-sm font-medium text-slate-400">Nome da Tabela</h3>
+                  <p className="text-md font-mono bg-slate-800 px-4 py-2 rounded mt-2 text-slate-200">{nomeTabela || "Nenhuma tabela definida"}</p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium text-slate-400">Função da Tabela</h3>
+                  <p className="text-md mt-2 text-slate-200">{funcaoTabela || "Nenhuma função definida"}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="px-6 py-4 border-t border-slate-800 flex justify-between">
+              <button 
+                onClick={() => setShowProximoModal(false)}
+                className="px-4 py-2 bg-slate-800 text-white rounded hover:bg-slate-700 transition-colors"
+              >
+                Fechar
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setShowProximoModal(false);
+                  // Lógica para avançar
+                }}
+                className="px-8 py-4 bg-green-500 text-white rounded-md hover:bg-green-400 font-bold flex items-center gap-2 shadow-xl text-lg transition-all duration-300 animate-pulse border-2 border-green-400"
+              >
+                CONTINUAR <ArrowRight className="h-6 w-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-[1fr] gap-6">
         {/* Preview Final da Página Completa (quando ativado) */}
         {showFinalPreview && (
@@ -1016,13 +1103,25 @@ export function TemplateForm({ onSQLGenerated }: TemplateFormProps) {
           </div>
 
           {/* Botão de Submit */}
-          <div className="mt-6">
+          <div className="mt-6 flex justify-between items-center">
             <Button 
               type="button" 
               onClick={handleSubmit} 
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               Criar Template
+            </Button>
+            
+            <Button 
+              type="button" 
+              onClick={handleProximoClick} 
+              className={`bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 text-lg font-medium px-6 py-5 shadow-lg rounded-md transition-all duration-300 
+                ${botaoAnimado ? 'scale-95 bg-blue-700' : ''}
+                ${pulsar ? 'animate-pulse shadow-blue-500/50' : ''}
+              `}
+            >
+              PRÓXIMO
+              <ArrowRight className="h-5 w-5" />
             </Button>
           </div>
         </div>
