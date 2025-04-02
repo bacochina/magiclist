@@ -23,7 +23,9 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
-  FileCode2
+  FileCode2,
+  RefreshCw,
+  CheckSquare
 } from 'lucide-react';
 
 type MenuItem = {
@@ -47,15 +49,6 @@ const menuGroups: MenuGroup[] = [
     icon: <Home className="w-5 h-5" />,
     items: [
       { id: 'home', title: 'Home', href: '/', icon: <Home className="w-5 h-5" /> }
-    ]
-  },
-  {
-    id: 'templates',
-    title: 'Templates',
-    icon: <FileCode2 className="w-5 h-5" />,
-    items: [
-      { id: 'templates-list', title: 'Templates', href: '/templates', icon: <FileCode2 className="w-5 h-5" /> },
-      { id: 'templates-cadastros', title: 'Cadastros', href: '/templates/cadastros', icon: <Database className="w-5 h-5" /> }
     ]
   },
   {
@@ -108,11 +101,15 @@ const menuGroups: MenuGroup[] = [
     ]
   },
   {
-    id: 'dev',
-    title: 'Dev Tools',
-    icon: <Settings className="w-5 h-5" />,
+    id: 'ferramentas',
+    title: 'Ferramentas',
+    icon: <FileCode2 className="w-5 h-5" />,
     items: [
-      { id: 'dbtest', title: 'Teste de DB', href: '/db-test', icon: <Database className="w-5 h-5" /> }
+      { id: 'ferramentas_dashboard', title: 'Dashboard', href: '/ferramentas', icon: <BarChart2 className="w-5 h-5" /> },
+      { id: 'calendario', title: 'Calendário', href: '/ferramentas/calendario', icon: <Calendar className="w-5 h-5" /> },
+      { id: 'geradores', title: 'Geradores', href: '/ferramentas/geradores', icon: <FileCode2 className="w-5 h-5" /> },
+      { id: 'conversores', title: 'Conversores', href: '/ferramentas/conversores', icon: <RefreshCw className="w-5 h-5" /> },
+      { id: 'checklist', title: 'Checklist', href: '/ferramentas/checklist', icon: <CheckSquare className="w-5 h-5" /> }
     ]
   },
   {
@@ -148,12 +145,12 @@ export default function Navigation() {
   const isLinkActive = (href: string) => {
     // Tratamento especial para submenu de Eventos
     if (href === '/eventos' && (
-      pathname === '/eventos/shows' || 
       pathname === '/eventos/ensaios' || 
       pathname === '/eventos/reunioes' ||
-      pathname.startsWith('/eventos/shows/') || 
+      pathname === '/eventos/shows' ||
       pathname.startsWith('/eventos/ensaios/') || 
-      pathname.startsWith('/eventos/reunioes/')
+      pathname.startsWith('/eventos/reunioes/') ||
+      pathname.startsWith('/eventos/shows/')
     )) {
       return false;
     }

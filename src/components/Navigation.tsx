@@ -9,6 +9,7 @@ const Navigation = () => {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [eventosExpanded, setEventosExpanded] = useState(false);
+  const [ferramentasExpanded, setFerramentasExpanded] = useState(false);
 
   // Fechar o menu mobile quando o caminho mudar
   useEffect(() => {
@@ -22,10 +23,30 @@ const Navigation = () => {
     }
   }, [pathname]);
 
+  // Expandir o menu Ferramentas se estiver em alguma rota de ferramentas
+  useEffect(() => {
+    if (pathname.includes('/ferramentas')) {
+      setFerramentasExpanded(true);
+    }
+  }, [pathname]);
+
   const isActive = (path: string) => pathname === path;
   const isEventoActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
+  const isFerramentaActive = (path: string) => pathname === path || pathname.startsWith(`${path}/`);
 
   const menuItems = [
+    { 
+      href: '/ferramentas', 
+      label: 'Ferramentas', 
+      icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+      color: 'from-yellow-400 to-amber-500',
+      hasSubmenu: true,
+      submenu: [
+        { href: '/ferramentas/geradores', label: 'Geradores' },
+        { href: '/ferramentas/conversores', label: 'Conversores' },
+        { href: '/ferramentas/checklist', label: 'Checklist' }
+      ]
+    },
     { 
       href: '/eventos', 
       label: 'Eventos', 
@@ -103,15 +124,23 @@ const Navigation = () => {
                   {item.hasSubmenu ? (
                     <div className="flex flex-col">
                       <button
-                        onClick={() => setEventosExpanded(!eventosExpanded)}
+                        onClick={() => {
+                          if (item.label === 'Eventos') {
+                            setEventosExpanded(!eventosExpanded);
+                          } else if (item.label === 'Ferramentas') {
+                            setFerramentasExpanded(!ferramentasExpanded);
+                          }
+                        }}
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center space-x-2 group
-                          ${isEventoActive(item.href)
+                          ${(item.label === 'Eventos' && isEventoActive(item.href)) || 
+                             (item.label === 'Ferramentas' && isFerramentaActive(item.href))
                             ? 'bg-white/10 text-white shadow-lg shadow-white/5'
                             : 'text-gray-300 hover:bg-white/5 hover:text-white'
                           }`}
                       >
                         <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
-                          ${isEventoActive(item.href) 
+                          ${(item.label === 'Eventos' && isEventoActive(item.href)) || 
+                             (item.label === 'Ferramentas' && isFerramentaActive(item.href))
                             ? 'opacity-100 shadow-lg' 
                             : 'opacity-70 group-hover:opacity-100'} 
                           transition-all duration-300`}
@@ -128,7 +157,8 @@ const Navigation = () => {
                         <span className="transition-all duration-300 group-hover:translate-x-0.5">
                           {item.label}
                         </span>
-                        {eventosExpanded ? 
+                        {(item.label === 'Eventos' && eventosExpanded) || 
+                         (item.label === 'Ferramentas' && ferramentasExpanded) ? 
                           <ChevronUp className="h-4 w-4 ml-1" /> : 
                           <ChevronDown className="h-4 w-4 ml-1" />
                         }
@@ -136,7 +166,9 @@ const Navigation = () => {
                       
                       {/* Submenu */}
                       <div className={`absolute top-full left-0 mt-1 rounded-lg bg-gray-800 shadow-lg overflow-hidden transition-all duration-300 z-10
-                        ${eventosExpanded ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
+                        ${(item.label === 'Eventos' && eventosExpanded) || 
+                           (item.label === 'Ferramentas' && ferramentasExpanded) 
+                          ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}
                       >
                         <div className="py-1 w-40">
                           {item.submenu?.map(subItem => (
@@ -248,16 +280,25 @@ const Navigation = () => {
               {item.hasSubmenu ? (
                 <div>
                   <button
-                    onClick={() => setEventosExpanded(!eventosExpanded)}
+                    onClick={() => {
+                      if (item.label === 'Eventos') {
+                        setEventosExpanded(!eventosExpanded);
+                      } else if (item.label === 'Ferramentas') {
+                        setFerramentasExpanded(!ferramentasExpanded);
+                      }
+                    }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-base font-medium transition-all duration-300
-                      ${isEventoActive(item.href)
+                      ${(item.label === 'Eventos' && isEventoActive(item.href)) || 
+                         (item.label === 'Ferramentas' && isFerramentaActive(item.href))
                         ? 'bg-white/10 text-white'
                         : 'text-gray-300 hover:bg-white/5 hover:text-white'
                       }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`p-1.5 rounded-lg bg-gradient-to-r ${item.color} 
-                        ${isEventoActive(item.href) ? 'opacity-100' : 'opacity-70'} 
+                        ${(item.label === 'Eventos' && isEventoActive(item.href)) || 
+                           (item.label === 'Ferramentas' && isFerramentaActive(item.href))
+                          ? 'opacity-100' : 'opacity-70'} 
                         transition-all duration-300`}
                       >
                         <svg
@@ -271,12 +312,15 @@ const Navigation = () => {
                       </div>
                       <span className="transition-all duration-300 hover:translate-x-0.5">{item.label}</span>
                     </div>
-                    {eventosExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                    {(item.label === 'Eventos' && eventosExpanded) || 
+                     (item.label === 'Ferramentas' && ferramentasExpanded) ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </button>
                   
                   {/* Mobile Submenu */}
                   <div className={`transition-all duration-300 overflow-hidden pl-10 
-                    ${eventosExpanded ? 'max-h-40 opacity-100 pt-1' : 'max-h-0 opacity-0'}`}
+                    ${(item.label === 'Eventos' && eventosExpanded) || 
+                       (item.label === 'Ferramentas' && ferramentasExpanded) 
+                      ? 'max-h-40 opacity-100 pt-1' : 'max-h-0 opacity-0'}`}
                   >
                     {item.submenu?.map(subItem => (
                       <Link

@@ -96,7 +96,6 @@ const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEv
 
   const getEventLink = () => {
     switch (eventType) {
-      case 'show': return `/eventos/shows/${event.id}`;
       case 'ensaio': return `/eventos/ensaios/${event.id}`;
       case 'reuniao': return `/eventos/reunioes/${event.id}`;
       default: return '/eventos';
@@ -105,19 +104,17 @@ const UpcomingEventCard = ({ event, eventType }: { event: any; eventType: TipoEv
 
   const getEventIcon = () => {
     switch (eventType) {
-      case 'show': return <Calendar className="text-blue-400" />;
       case 'ensaio': return <Calendar className="text-purple-400" />;
       case 'reuniao': return <Calendar className="text-green-400" />;
-      default: return <Calendar className="text-blue-400" />;
+      default: return <Calendar className="text-gray-400" />;
     }
   };
 
   const getEventColor = () => {
     switch (eventType) {
-      case 'show': return 'border-blue-900/40';
       case 'ensaio': return 'border-purple-900/40';
       case 'reuniao': return 'border-green-900/40';
-      default: return 'border-blue-900/40';
+      default: return 'border-gray-900/40';
     }
   };
 
@@ -183,7 +180,6 @@ export default function EventosDashboard() {
   const [stats, setStats] = useState({
     totalEventos: 0,
     eventosProximos: 0,
-    showsProximos: 0,
     ensaiosProximos: 0,
     reunioesProximas: 0,
     bandasAtivas: 0,
@@ -192,7 +188,6 @@ export default function EventosDashboard() {
   });
 
   // Eventos mais próximos de cada tipo
-  const [proximoShow, setProximoShow] = useState<any>(null);
   const [proximoEnsaio, setProximoEnsaio] = useState<any>(null);
   const [proximaReuniao, setProximaReuniao] = useState<any>(null);
 
@@ -212,39 +207,6 @@ export default function EventosDashboard() {
         } else {
           // Se falhar, usar dados mockados
           eventosData = [
-            // Shows
-            {
-              id: '1',
-              titulo: 'Show de Rock',
-              nome: 'Show de Rock',
-              tipo: 'show' as TipoEvento,
-              status: 'agendado',
-              integrantesIds: [],
-              data: '2025-05-20',
-              horaInicio: '20:00',
-              hora_inicio: '20:00',
-              horaFim: '23:30',
-              hora_termino: '23:30',
-              local: 'Arena Show',
-              banda: { id: '1', nome: 'Rock Stars' },
-              descricao: 'Show especial de aniversário da casa'
-            },
-            {
-              id: '2',
-              titulo: 'Aniversário 30 Anos',
-              nome: 'Aniversário 30 Anos',
-              tipo: 'show' as TipoEvento,
-              status: 'confirmado',
-              integrantesIds: [],
-              data: '2025-04-15',
-              horaInicio: '21:00',
-              hora_inicio: '21:00',
-              horaFim: '03:00',
-              hora_termino: '03:00',
-              local: 'Club House',
-              banda: { id: '2', nome: 'Electric Sound' },
-              descricao: ''
-            },
             // Ensaios
             {
               id: '6',
@@ -327,14 +289,8 @@ export default function EventosDashboard() {
           (evento.status === 'agendado' || evento.status === 'confirmado')
         );
         
-        const shows = eventosData.filter((evento: any) => evento.tipo === 'show');
         const ensaios = eventosData.filter((evento: any) => evento.tipo === 'ensaio');
         const reunioes = eventosData.filter((evento: any) => evento.tipo === 'reuniao');
-        
-        const proximosShows = shows.filter((evento: any) => 
-          new Date(evento.data) >= today &&
-          (evento.status === 'agendado' || evento.status === 'confirmado')
-        );
         
         const proximosEnsaios = ensaios.filter((evento: any) => 
           new Date(evento.data) >= today &&
@@ -360,7 +316,6 @@ export default function EventosDashboard() {
         setStats({
           totalEventos: eventosData.length,
           eventosProximos: proximosEventos.length,
-          showsProximos: proximosShows.length,
           ensaiosProximos: proximosEnsaios.length,
           reunioesProximas: proximasReunioes.length,
           bandasAtivas: bandasUnicas,
@@ -369,12 +324,6 @@ export default function EventosDashboard() {
         });
         
         // Encontrar o próximo evento de cada tipo
-        if (proximosShows.length > 0) {
-          setProximoShow(proximosShows.sort((a: any, b: any) => 
-            new Date(a.data).getTime() - new Date(b.data).getTime()
-          )[0]);
-        }
-        
         if (proximosEnsaios.length > 0) {
           setProximoEnsaio(proximosEnsaios.sort((a: any, b: any) => 
             new Date(a.data).getTime() - new Date(b.data).getTime()
@@ -398,7 +347,6 @@ export default function EventosDashboard() {
 
   // Distribuição de eventos por tipo
   const eventDistribution = [
-    { name: 'Shows', value: eventos.filter(e => e.tipo === 'show').length },
     { name: 'Ensaios', value: eventos.filter(e => e.tipo === 'ensaio').length },
     { name: 'Reuniões', value: eventos.filter(e => e.tipo === 'reuniao').length }
   ];
@@ -460,75 +408,48 @@ export default function EventosDashboard() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white">Dashboard de Eventos</h1>
         <p className="text-gray-400 mt-2">Visão geral de shows, ensaios e reuniões</p>
-          </div>
+      </div>
       
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-            </div>
+        </div>
       ) : (
         <>
           {/* Cards de Estatísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard
-              title="Total de Eventos"
-              value={stats.totalEventos}
-              icon={<Calendar className="h-6 w-6 text-indigo-400" />}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard 
+              title="Total de Eventos" 
+              value={stats.totalEventos} 
+              icon={<Calendar className="h-6 w-6 text-indigo-400" />} 
               trend={null}
               color="border-indigo-900/40"
             />
-            <StatCard
-              title="Eventos Próximos"
-              value={stats.eventosProximos}
-              icon={<Clock className="h-6 w-6 text-blue-400" />}
+            <StatCard 
+              title="Próximos Eventos" 
+              value={stats.eventosProximos} 
+              icon={<Clock className="h-6 w-6 text-blue-400" />} 
               trend={null}
               color="border-blue-900/40"
             />
-            <StatCard
-              title="Bandas Ativas"
-              value={stats.bandasAtivas}
-              icon={<Users className="h-6 w-6 text-purple-400" />}
+            <StatCard 
+              title="Ensaios Agendados" 
+              value={stats.ensaiosProximos} 
+              icon={<Users className="h-6 w-6 text-purple-400" />} 
               trend={null}
               color="border-purple-900/40"
             />
-            <StatCard
-              title="Taxa de Conclusão"
-              value={`${stats.percentConcluidos}%`}
-              icon={<CheckCircle className="h-6 w-6 text-green-400" />}
+            <StatCard 
+              title="Reuniões Agendadas" 
+              value={stats.reunioesProximas} 
+              icon={<Layers className="h-6 w-6 text-green-400" />} 
               trend={null}
               color="border-green-900/40"
-                    />
-                  </div>
-                  
+            />
+          </div>
+          
           {/* Detalhes por Tipo de Evento */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-gray-800/60 rounded-xl border border-blue-900/40 p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-white flex items-center">
-                  <Calendar className="mr-2 text-blue-400" /> Shows
-                </h2>
-                <Link href="/eventos/shows" className="text-blue-400 hover:text-blue-300 flex items-center text-sm">
-                  Ver todos <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
-                        </div>
-              <div className="flex flex-col space-y-4">
-                <div className="bg-gray-750 p-4 rounded-lg">
-                  <div className="text-3xl font-bold text-white mb-1">{stats.showsProximos}</div>
-                  <div className="text-sm text-gray-400">Shows agendados</div>
-                  </div>
-                {proximoShow ? (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Show</h3>
-                    <UpcomingEventCard event={proximoShow} eventType="show" />
-                </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    Nenhum show agendado
-                      </div>
-                )}
-                      </div>
-                    </div>
-                    
             <div className="bg-gray-800/60 rounded-xl border border-purple-900/40 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white flex items-center">
@@ -537,25 +458,25 @@ export default function EventosDashboard() {
                 <Link href="/eventos/ensaios" className="text-purple-400 hover:text-purple-300 flex items-center text-sm">
                   Ver todos <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-                    </div>
+              </div>
               <div className="flex flex-col space-y-4">
                 <div className="bg-gray-750 p-4 rounded-lg">
                   <div className="text-3xl font-bold text-white mb-1">{stats.ensaiosProximos}</div>
                   <div className="text-sm text-gray-400">Ensaios agendados</div>
-                      </div>
+                </div>
                 {proximoEnsaio ? (
                   <div className="mt-4">
                     <h3 className="text-sm font-medium text-gray-400 mb-2">Próximo Ensaio</h3>
                     <UpcomingEventCard event={proximoEnsaio} eventType="ensaio" />
-                    </div>
+                  </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     Nenhum ensaio agendado
                   </div>
                 )}
               </div>
-                </div>
-                    
+            </div>
+            
             <div className="bg-gray-800/60 rounded-xl border border-green-900/40 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white flex items-center">
@@ -564,7 +485,7 @@ export default function EventosDashboard() {
                 <Link href="/eventos/reunioes" className="text-green-400 hover:text-green-300 flex items-center text-sm">
                   Ver todos <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
-                          </div>
+              </div>
               <div className="flex flex-col space-y-4">
                 <div className="bg-gray-750 p-4 rounded-lg">
                   <div className="text-3xl font-bold text-white mb-1">{stats.reunioesProximas}</div>
@@ -574,15 +495,15 @@ export default function EventosDashboard() {
                   <div className="mt-4">
                     <h3 className="text-sm font-medium text-gray-400 mb-2">Próxima Reunião</h3>
                     <UpcomingEventCard event={proximaReuniao} eventType="reuniao" />
-                </div>
+                  </div>
                 ) : (
                   <div className="text-center py-4 text-gray-500">
                     Nenhuma reunião agendada
-                      </div>
-                    )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
           {/* Distribuição de Eventos */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -598,18 +519,17 @@ export default function EventosDashboard() {
                     <div className="mt-2 w-full bg-gray-700 rounded-full h-2.5">
                       <div 
                         className={`h-2.5 rounded-full ${
-                          item.name === 'Shows' ? 'bg-blue-500' : 
                           item.name === 'Ensaios' ? 'bg-purple-500' : 'bg-green-500'
                         }`}
                         style={{ width: `${eventos.length > 0 ? (item.value / eventos.length) * 100 : 0}%` }}
                       ></div>
-                      </div>
                     </div>
+                  </div>
                 ))}
-                        </div>
-                        </div>
-                        </div>
-          
+              </div>
+            </div>
+          </div>
+
           {/* Seção de Gráficos */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfico 1: Eventos por Mês */}
@@ -649,21 +569,14 @@ export default function EventosDashboard() {
                     <LineChart className="w-4 h-4 mr-1" />
                     Linha
                   </Button>
-                      </div>
-                    </div>
+                </div>
+              </div>
               <div className="h-80">
                 {chartType1 === 'bar' ? (
                   <Bar
                     data={{
                       labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
                       datasets: [
-                        {
-                          label: 'Shows',
-                          data: eventos.filter(e => e.tipo === 'show').map(e => new Date(e.data).getMonth()),
-                          backgroundColor: 'rgba(99, 102, 241, 0.5)',
-                          borderColor: 'rgb(99, 102, 241)',
-                          borderWidth: 1
-                        },
                         {
                           label: 'Ensaios',
                           data: eventos.filter(e => e.tipo === 'ensaio').map(e => new Date(e.data).getMonth()),
@@ -701,14 +614,6 @@ export default function EventosDashboard() {
                       labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
                       datasets: [
                         {
-                          label: 'Shows',
-                          data: eventos.filter(e => e.tipo === 'show').map(e => new Date(e.data).getMonth()),
-                          borderColor: 'rgb(99, 102, 241)',
-                          backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                          tension: 0.4,
-                          fill: true
-                        },
-                        {
                           label: 'Ensaios',
                           data: eventos.filter(e => e.tipo === 'ensaio').map(e => new Date(e.data).getMonth()),
                           borderColor: 'rgb(59, 130, 246)',
@@ -742,8 +647,8 @@ export default function EventosDashboard() {
                     }}
                   />
                 )}
-                    </div>
-                        </div>
+              </div>
+            </div>
 
             {/* Gráfico 2: Distribuição por Tipo */}
             <div className="bg-gray-800/60 rounded-xl border border-gray-700 p-6 shadow-lg">
@@ -782,26 +687,23 @@ export default function EventosDashboard() {
                     <Layers className="w-4 h-4 mr-1" />
                     Rosca
                   </Button>
-                  </div>
                 </div>
+              </div>
               <div className="h-80">
                 <Pie
                   data={{
-                    labels: ['Shows', 'Ensaios', 'Reuniões'],
+                    labels: ['Ensaios', 'Reuniões'],
                     datasets: [
                       {
                         data: [
-                          eventos.filter(e => e.tipo === 'show').length,
                           eventos.filter(e => e.tipo === 'ensaio').length,
                           eventos.filter(e => e.tipo === 'reuniao').length
                         ],
                         backgroundColor: [
-                          'rgba(99, 102, 241, 0.8)',
                           'rgba(59, 130, 246, 0.8)',
                           'rgba(147, 51, 234, 0.8)'
                         ],
                         borderColor: [
-                          'rgb(99, 102, 241)',
                           'rgb(59, 130, 246)',
                           'rgb(147, 51, 234)'
                         ],
@@ -825,9 +727,9 @@ export default function EventosDashboard() {
                     cutout: chartType2 === 'doughnut' ? '50%' : undefined
                   }}
                 />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
         </>
       )}
 
